@@ -4,14 +4,11 @@
 #include <Preferences.h>
 #include <WiFi.h>
 
-std::shared_ptr<wifiHandler> wifiHandler::mInstance = nullptr;
-std::shared_ptr<wifiHandler> wifiHandler::getInstance() {
-  if (mInstance) {
-    return mInstance;
+wifiHandler::~wifiHandler() {
+  if (mCallbackRegistration > 0) {
+    WiFi.removeEvent(mCallbackRegistration);
   }
-  mInstance = std::shared_ptr<wifiHandler>(new wifiHandler());
-  return mInstance;
-};
+}
 
 void wifiHandler::WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t aEventInfo) {
   int no_networks = 0;
@@ -85,9 +82,9 @@ void wifiHandler::scan() {
 void wifiHandler::begin() {
   WiFi.setHostname("OMOTE");
   WiFi.mode(WIFI_STA);
-  WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t aEventInfo) {
-    mInstance->WiFiEvent(event, aEventInfo);
-  });
+  mCallbackRegistration =
+      WiFi.onEvent(std::bind(&wifiHandler::WiFiEvent, this,
+                             std::placeholders::_1, std::placeholders::_2));
 
   Preferences preferences;
   preferences.begin("wifiSettings", false);

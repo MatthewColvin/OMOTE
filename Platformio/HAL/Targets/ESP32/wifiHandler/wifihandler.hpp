@@ -6,7 +6,8 @@
 
 class wifiHandler : public wifiHandlerInterface {
 public:
-  static std::shared_ptr<wifiHandler> getInstance();
+  wifiHandler() = default;
+  virtual ~wifiHandler();
 
   // wifiHandlerInterface Implementation
   void begin() override;
@@ -16,9 +17,6 @@ public:
   //
 
 protected:
-  wifiHandler() = default;
-  static std::shared_ptr<wifiHandler> mInstance;
-
   /**
    * @brief Function to store the credentials when we have had a
    *        successful connection
@@ -31,6 +29,8 @@ private:
    * @param event - a Wifi event
    */
   void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t aEventInfo);
+  /// @brief Keep Track of event registered to WiFi Arduino lib
+  wifi_event_id_t mCallbackRegistration = -1;
 
   /**
    * @brief Update Internal status and send out a notification

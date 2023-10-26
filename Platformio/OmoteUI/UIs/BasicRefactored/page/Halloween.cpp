@@ -41,7 +41,7 @@ Halloween::Halloween()
       ledIdleList(AddElement<Widget::List>(std::make_unique<Widget::List>())) {
   WiFi.mode(WIFI_STA);
 
-  auto listHeight = 500;
+  auto listHeight = 1000;
 
   if (esp_now_init() != 0) {
     Serial.print("Error init now");

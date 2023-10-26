@@ -17,5 +17,7 @@ BasicUI::BasicUI() : UIBase() {
   Screen::Manager::getInstance().pushScreen(
       std::make_unique<Screen::HomeScreen>());
 
-  HardwareFactory::getAbstract().wifi()->begin();
+  if (auto wifi = HardwareFactory::getAbstract().wifi(); wifi) {
+    wifi->begin();
+  }
 }

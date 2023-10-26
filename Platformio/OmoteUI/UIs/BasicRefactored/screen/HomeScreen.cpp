@@ -1,6 +1,7 @@
 #include "HomeScreen.hpp"
 #include "Colors.hpp"
 #include "Demo.hpp"
+#include "Halloween.hpp"
 #include "IrLearner.hpp"
 #include "SettingsPage.hpp"
 
@@ -15,6 +16,7 @@ HomeScreen::HomeScreen()
   SetPushAnimation(LV_SCR_LOAD_ANIM_FADE_IN);
 
   // Adds pages to the Tab view
+  mTabView->AddTab(std::make_unique<Page::Halloween>());
   mTabView->AddTab(std::make_unique<Page::SettingsPage>());
   mTabView->AddTab(std::make_unique<Page::Demo>());
   mTabView->AddTab(std::make_unique<Page::IrLearner>());

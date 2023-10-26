@@ -72,7 +72,7 @@ void HardwareRevX::init() {
 
   mDisplay = Display::getInstance();
   mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
-  mWifiHandler = std::make_shared<wifiHandler>();
+  mWifiHandler = nullptr;
   mKeys = std::make_shared<Keys>();
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>();

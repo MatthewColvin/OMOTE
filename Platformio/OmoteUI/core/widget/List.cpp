@@ -30,5 +30,5 @@ void List::AddItem(std::string aTitle, const char *aSymbol,
   }
   mListItems.push_back(
       std::make_unique<ListItem>(lvListItem, std::move(onItemSelected)));
-  mListItems.back()->SetHeight(lv_pct(20));
+  mListItems.back()->SetHeight(60);
 }

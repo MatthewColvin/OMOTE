@@ -75,8 +75,7 @@ Halloween::Halloween()
     for (int i = 0; i < hatAddresses.size(); i++) {
       resetRequest(requests[i]);
       requests[i].isRequestingDenyingEntryRoutine = true;
-      esp_now_send(hatAddresses[i].data(), (uint8_t *)&requests[i],
-                   sizeof(CommunicationData));
+      sendRequest(hatAddresses[i].data(), requests[i], 1);
     }
   });
 
@@ -97,8 +96,7 @@ Halloween::Halloween()
     for (int i = 0; i < hatAddresses.size(); i++) {
       resetRequest(requests[i]);
       requests[i].isRequestingAllowingEntryRoutine = true;
-      esp_now_send(hatAddresses[i].data(), (uint8_t *)&requests[i],
-                   sizeof(CommunicationData));
+      sendRequest(hatAddresses[i].data(), requests[i], 5);
     }
   });
 
@@ -119,8 +117,7 @@ Halloween::Halloween()
     for (int i = 0; i < hatAddresses.size(); i++) {
       resetRequest(requests[i]);
       requests[i].isRequestingMarioRoutine = true;
-      esp_now_send(hatAddresses[i].data(), (uint8_t *)&requests[i],
-                   sizeof(CommunicationData));
+      sendRequest(hatAddresses[i].data(), requests[i], 1);
     }
   });
 
@@ -141,8 +138,7 @@ Halloween::Halloween()
     for (int i = 0; i < hatAddresses.size(); i++) {
       resetRequest(requests[i]);
       requests[i].isRequestingJeopardyRoutine = true;
-      esp_now_send(hatAddresses[i].data(), (uint8_t *)&requests[i],
-                   sizeof(CommunicationData));
+      sendRequest(hatAddresses[i].data(), requests[i], 1);
     }
   });
 
@@ -164,12 +160,20 @@ Halloween::Halloween()
     for (int i = 0; i < hatAddresses.size(); i++) {
       resetRequest(requests[i]);
       requests[i].isLightsOnInIdle = allLedIdle;
-      esp_now_send(hatAddresses[i].data(), (uint8_t *)&requests[i],
-                   sizeof(CommunicationData));
+      sendRequest(hatAddresses[i].data(), requests[i], 5);
     }
   });
 
   esp_now_register_send_cb(sendCb);
+};
+
+void Halloween::sendRequest(const uint8_t *mac_addr, CommunicationData &aData,
+                            uint8_t aMsFailRetryTime) {
+  if (esp_now_send(mac_addr, (uint8_t *)&aData, sizeof(CommunicationData)) ==
+      ESP_ERR_ESPNOW_NO_MEM) {
+    vTaskDelay(aMsFailRetryTime / portTICK_PERIOD_MS);
+    esp_now_send(mac_addr, (uint8_t *)&aData, sizeof(CommunicationData));
+  }
 };
 
 void Halloween::sendCb(const uint8_t *mac_addr, esp_now_send_status_t status) {

@@ -18,6 +18,8 @@ public:
   Halloween();
 
   static void sendCb(const uint8_t *mac_addr, esp_now_send_status_t status);
+  static void sendRequest(const uint8_t *mac_addr, CommunicationData &aData,
+                          uint8_t aMsFailRetryTime = 0);
 
 private:
   Widget::List *denyList;

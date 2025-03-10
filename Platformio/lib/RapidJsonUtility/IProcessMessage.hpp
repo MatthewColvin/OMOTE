@@ -68,9 +68,11 @@ class IProcessMessage {
   virtual bool IsChunkProcessingPrefered();
 
   void SetMaxProcessBufferSize(size_t aProcessBufferSize);
+  size_t GetMaxProcessBufferSize() const;
 
  protected:
   bool ProcessDocument(const MemConciousDocument& aRecievedDocument);
+  size_t GetUnProcessedBufferCapacity();
 
  private:
   DocumentProccessor mDocProcessor = nullptr;
@@ -87,7 +89,7 @@ class IProcessMessage {
   static constexpr auto ChunkMessageSizeNotProcessing = 0;
   size_t mCurrentChunkBasedTotalJsonSize = ChunkMessageSizeNotProcessing;
   size_t mOffsetIntoChunkBasedJson = 0;
-  std::string mUnprocessedBuffer;
+  std::vector<char> mUnprocessedBuffer;
 
   static constexpr auto DefaultMaxBufferSize = 1024;
   size_t mMaxBufferSize = DefaultMaxBufferSize;

@@ -8,11 +8,20 @@ using namespace UI;
 
 BasicUI::BasicUI() : UIBase() {
   HardwareFactory::getAbstract().keys()->RegisterKeyPressHandler(
-      [](auto aKeyEvent) {
-        return Screen::Manager::getInstance().distributeKeyEvent(aKeyEvent);
-        // Could potentially add a check here and display that a key event was
-        // unused.
+      [this](auto aKeyEvent) {
+        // See if any UI elements wanted the key press first
+        if (Screen::Manager::getInstance().distributeKeyEvent(aKeyEvent)) {
+          return true;
+          // Pass key event to devices to handle if not
+        } else if (mActiveDevices.handleKeyEvent(aKeyEvent)) {
+          return true;
+        } else {
+          // Could potentially add a check here and display that a key event was
+          // unused.
+          return false;
+        }
       });
+
   auto homeScreen = std::make_unique<Screen::HomeScreen>();
   mHomeScreen = homeScreen.get();
   Screen::Manager::getInstance().pushScreen(std::move(homeScreen));

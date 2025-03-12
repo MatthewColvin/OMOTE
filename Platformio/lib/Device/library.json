@@ -1,0 +1,19 @@
+{
+    "name": "Device",
+    "version": "1.0.0",
+    "description": "A module to help encompass devices that Omote supports",
+    "keywords": "",
+    "authors": [
+        {
+            "name": "Matthew Colvin",
+            "email": "mcolvin32.7@gmail.com",
+            "maintainer": true
+        }
+    ],
+    "dependencies": [
+        "HAL",
+        "LVGL++"
+    ],
+    "frameworks": "*",
+    "platforms": "*"
+}

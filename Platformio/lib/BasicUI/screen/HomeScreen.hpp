@@ -1,14 +1,18 @@
 #pragma once
+#include <string>
+
 #include "HardwareAbstract.hpp"
+#include "Label.hpp"
+#include "MainTopBar.hpp"
 #include "PageBase.hpp"
 #include "ScreenBase.hpp"
 #include "TabView.hpp"
-#include <string>
+
 namespace UI::Screen {
 
 class HomeScreen : public Base {
-public:
-  HomeScreen();
+ public:
+  HomeScreen(ActiveDevices& aActiveDevices);
 
   void SetBgColor(lv_color_t value,
                   lv_style_selector_t selector = LV_PART_MAIN) override;
@@ -17,11 +21,14 @@ public:
 
   bool GoToPage(ID anId) { return mTabView->GoToTab(anId); }
 
-protected:
+ protected:
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
 
-private:
-  Page::TabView *mTabView;
+ private:
+  ActiveDevices& mActiveDevices;
+
+  Page::TabView* mTabView;
+  Widget::MainTopBar* mTopBar;
 };
 
-} // namespace UI::Screen
+}  // namespace UI::Screen

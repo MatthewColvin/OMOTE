@@ -22,7 +22,7 @@ BasicUI::BasicUI() : UIBase() {
         }
       });
 
-  auto homeScreen = std::make_unique<Screen::HomeScreen>();
+  auto homeScreen = std::make_unique<Screen::HomeScreen>(mActiveDevices);
   mHomeScreen = homeScreen.get();
   Screen::Manager::getInstance().pushScreen(std::move(homeScreen));
 

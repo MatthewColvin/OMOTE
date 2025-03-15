@@ -1,5 +1,9 @@
 #include "PopUpScreen.hpp"
+
+#include "Button.hpp"
 #include "Colors.hpp"
+#include "Image.hpp"
+#include "Label.hpp"
 #include "ScreenManager.hpp"
 
 using namespace UI;
@@ -7,7 +11,6 @@ using namespace UI::Screen;
 
 PopUpScreen::PopUpScreen(Page::Base::Ptr aPage)
     : Screen::Base(UI::ID::Screens::PopUp) {
-
   mContentPage = AddElement(std::move(aPage));
 
   mExitButton = AddNewElement<Widget::Button>(
@@ -15,15 +18,23 @@ PopUpScreen::PopUpScreen(Page::Base::Ptr aPage)
 
   mTitle = AddNewElement<Widget::Label>(mContentPage->GetTitle());
 
-  mExitButton->SetWidth(lv_pct(10));
+  mXsymbol = AddNewElement<Widget::Image>(LV_SYMBOL_CLOSE);
+
+  mExitButton->SetWidth(lv_pct(15));
   mExitButton->SetHeight(mExitButton->GetWidth());
   mExitButton->SetBgColor(Color::RED);
   mExitButton->AlignTo(this, LV_ALIGN_TOP_RIGHT, -5, 5);
 
+  mXsymbol->MatchContentDimentions(mExitButton);
+  mXsymbol->SetZoom(1024);
+  mXsymbol->AlignTo(mExitButton, LV_ALIGN_CENTER);
+
   mTitle->SetWidth(mExitButton->GetX());
-  mTitle->SetHeight(mExitButton->GetHeight());
-  mTitle->AlignTo(mExitButton, LV_ALIGN_OUT_LEFT_BOTTOM);
-  mTitle->SetTextStyle(mTitle->GetTextStyle().Align(LV_TEXT_ALIGN_CENTER));
+  mTitle->SetHeight(mExitButton->GetContentHeight());
+  mTitle->AlignTo(mExitButton, LV_ALIGN_OUT_LEFT_MID);
+  mTitle->SetTextStyle(mTitle->GetTextStyle()
+                           .Align(LV_TEXT_ALIGN_CENTER)
+                           .Font(&lv_font_montserrat_16));
 
   mContentPage->SetHeight(GetHeight() - mExitButton->GetBottom() - 5);
   mContentPage->SetY(mExitButton->GetBottom() + 5);

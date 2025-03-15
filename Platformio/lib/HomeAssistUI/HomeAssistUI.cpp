@@ -25,6 +25,7 @@ HomeAssistUI::HomeAssistUI() : BasicUI() {
   mConnectionStatusHandler = [this](auto aStatus) {
     HandleConnectionStatusChange(aStatus);
   };
+
   // MatthewColvin/OMOTE#19
   AddPageToHomeScreen(
       std::make_unique<UI::Page::DeviceList>(*mHomeAssistApi, mActiveDevices));

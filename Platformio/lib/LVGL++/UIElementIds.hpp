@@ -25,6 +25,7 @@ class ID {
     Arc,
     MainTopBar,
     LED,
+    Image,
     INVALID_WIDGET_ID
   };
 

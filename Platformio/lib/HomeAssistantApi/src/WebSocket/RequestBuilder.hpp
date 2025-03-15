@@ -89,16 +89,20 @@ class TriggerBuilder {
   }
 
   TriggerBuilder& SetFromState(const std::string& aFrom) {
-    mTrigger.AddMember("from",
-                       MemConciousValue().SetString(aFrom.c_str(), mAllocator),
-                       mAllocator);
+    if (!aFrom.empty()) {
+      mTrigger.AddMember(
+          "from", MemConciousValue().SetString(aFrom.c_str(), mAllocator),
+          mAllocator);
+    }
     return *this;
   }
 
   TriggerBuilder& SetToState(const std::string& aTo) {
-    mTrigger.AddMember("to",
-                       MemConciousValue().SetString(aTo.c_str(), mAllocator),
-                       mAllocator);
+    if (!aTo.empty()) {
+      mTrigger.AddMember("to",
+                         MemConciousValue().SetString(aTo.c_str(), mAllocator),
+                         mAllocator);
+    }
     return *this;
   }
 
@@ -119,6 +123,7 @@ class RequestBuilder {
   RequestBuilder& AddField(const std::string& aKey, const std::string& aValue);
   RequestBuilder& AddField(const std::string& aKey, int aValue);
   RequestBuilder& AddField(const std::string& aKey, bool aValue);
+  RequestBuilder& AddTargetEntity(const std::string& aEntityId);
   RequestBuilder& AddTrigger(
       std::function<void(TriggerBuilder&)> aTriggerBuilder);
 
@@ -168,6 +173,18 @@ inline RequestBuilder& RequestBuilder::AddField(const std::string& aKey,
                                                 bool aValue) {
   mDocument.AddMember(MemConciousValue().SetString(aKey.c_str(), mAllocator),
                       aValue, mAllocator);
+  return *this;
+}
+
+inline RequestBuilder& RequestBuilder::AddTargetEntity(
+    const std::string& aEntityId) {
+  MemConciousValue targetEntity;
+  targetEntity.SetString(aEntityId.c_str(), mAllocator);
+
+  MemConciousValue targetObject;
+  targetObject.SetObject();
+  targetObject.AddMember("entity_id", targetEntity, mAllocator);
+  mDocument.AddMember("target", targetObject, mAllocator);
   return *this;
 }
 

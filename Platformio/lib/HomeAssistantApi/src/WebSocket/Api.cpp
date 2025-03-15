@@ -1,5 +1,7 @@
 #include "WebSocket/Api.hpp"
 
+#include <sstream>
+
 #include "HardwareFactory.hpp"
 #include "RapidJsonUtilty.hpp"
 #include "WebSocket/Message/Message.hpp"
@@ -148,7 +150,13 @@ void Api::AttemptConnection(bool aHonorTimeInterval) {
       (aHonorTimeInterval && !fiveSecondsSinceRetry())) {
     return;
   }
-  mHomeAssistSocket->connect("ws://192.168.86.49:8123/api/websocket");
+
+  std::stringstream addressSs;
+
+  addressSs << "ws://" << HOMEASSISTANT_IP_ADDRESS << ":" << HOMEASSISTANT_PORT
+            << "/api/websocket";
+
+  mHomeAssistSocket->connect(addressSs.str());
   mLastConnectRetry = execTime;
   // Session already sent auth so need to reset and retry
   if (!mAuthSession || mAuthSession->IsAuthSent()) {

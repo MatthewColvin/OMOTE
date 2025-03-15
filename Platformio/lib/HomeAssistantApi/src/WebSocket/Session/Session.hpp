@@ -20,6 +20,7 @@ class Session : public ISession {
           std::shared_ptr<HAL::WebSocket::Json::IChunkProcessor>
               aChunkProcessor = nullptr);
 
+  std::unique_ptr<Request> GetStartRequest() override;
   Request* BorrowStartRequest() override;
   Request* BorrowEndRequest() override;
 

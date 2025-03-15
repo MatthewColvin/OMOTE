@@ -78,7 +78,7 @@ void Api::ProcessSessions() {
   }
   for (auto& session : mSessions) {
     if (!session.second->IsRunning()) {
-      if (auto* request = session.second->BorrowStartRequest(); request) {
+      if (auto request = session.second->GetStartRequest(); request) {
         mHomeAssistSocket->sendMessage(request->GetRequestMessage());
         session.second->MarkStarted();
       }

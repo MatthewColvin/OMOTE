@@ -31,6 +31,7 @@ class AuthSession : public ISession {
   bool IsAuthSent();
 
  private:
+  std::unique_ptr<Request> GetStartRequest() override { return nullptr; }
   Request* BorrowEndRequest() override { return nullptr; }
   Request* BorrowStartRequest() override { return nullptr; }
   std::shared_ptr<HAL::WebSocket::Json::IChunkProcessor> GetChunkProcessor()

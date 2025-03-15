@@ -15,9 +15,10 @@ class BasicUI : public UIBase {
   void AddPageToHomeScreen(Page::Base::Ptr aPageToAdd);
   bool GoToPage(ID anId);
 
+  ActiveDevices mActiveDevices;
+
  private:
   Screen::HomeScreen* mHomeScreen;
-  ActiveDevices mActiveDevices;
 
 };  // namespace UIBase
 

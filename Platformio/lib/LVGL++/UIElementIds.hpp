@@ -23,6 +23,7 @@ class ID {
     BrightnessSlider,
     Joystick,
     Arc,
+    Image,
     INVALID_WIDGET_ID
   };
 

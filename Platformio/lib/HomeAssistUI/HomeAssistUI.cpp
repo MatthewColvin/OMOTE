@@ -26,7 +26,7 @@ HomeAssistUI::HomeAssistUI() : BasicUI() {
     HandleConnectionStatusChange(aStatus);
   };
 
-  AddPageToHomeScreen(std::make_unique<UI::Page::DeviceList>(*mHomeAssistApi));
+  // AddPageToHomeScreen(std::make_unique<UI::Page::DeviceList>(*mHomeAssistApi));
 };
 
 void HomeAssistUI::HandleConnectionStatusChange(

@@ -27,7 +27,7 @@ class Base : public UIElement {
 
  private:
   lv_screen_load_anim_t mPushAnimation = LV_SCR_LOAD_ANIM_NONE;
-  uint32_t mTransitionAnimationTime = 1000;  // 1000 ms / 1 sec
+  uint32_t mTransitionAnimationTime = 500;  // 500 ms / 1 sec
   uint32_t mTransitionDelayTime = 0;
 };
 

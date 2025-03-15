@@ -79,6 +79,12 @@ class UIElement {
 
   UIElement::Ptr RemoveElement(UIElement *aUIElementRef);
 
+  /**
+   * Helper to resize widget to match the content width and height of
+   * @param aUIElementToMatch - The container
+   */
+  void MatchContentDimentions(UIElement *aUIElementToMatch);
+
   size_t GetNumContainedElements() { return mContainedElements.size(); }
 
   virtual ID GetID() { return mId; };

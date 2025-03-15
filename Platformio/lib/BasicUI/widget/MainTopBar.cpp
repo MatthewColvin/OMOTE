@@ -1,7 +1,8 @@
 #include "MainTopBar.hpp"
 
+#include "ActiveDeviceList.hpp"
 #include "Colors.hpp"
-
+#include "ScreenManager.hpp"
 namespace UI::Widget {
 
 MainTopBar::MainTopBar(ActiveDevices& aActiveDevices)
@@ -42,6 +43,19 @@ void MainTopBar::DisplayDeviceInfo(std::shared_ptr<IDevice> aDeviceToDisplay) {
   auto name = aDeviceToDisplay->GetName();
   mDeviceLabel->SetText(name.empty() ? "Unnamed Device" : name);
   mLed->SetColor(aDeviceToDisplay->GetDisplayColor());
+}
+
+void MainTopBar::OpenActiveDevicesPage() {
+  UI::Screen::Manager::getInstance().pushPopUp(
+      std::make_unique<UI::Page::ActiveDeviceList>(mActiveDevices),
+      LV_SCR_LOAD_ANIM_OVER_BOTTOM);
+}
+
+void MainTopBar::OnLvglEvent(lv_event_t* aEvent) {
+  auto code = lv_event_get_code(aEvent);
+  if (code == LV_EVENT_PRESSED) {
+    OpenActiveDevicesPage();
+  }
 }
 
 }  // namespace UI::Widget

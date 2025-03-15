@@ -15,6 +15,9 @@ class MainTopBar : public Base {
  private:
   void DisplayDeviceInfo(std::shared_ptr<IDevice> aDeviceToDisplay);
 
+  void OnLvglEvent(lv_event_t* aEvent) override;
+  void OpenActiveDevicesPage();
+
   ActiveDevices& mActiveDevices;
   Widget::Label* mDeviceLabel;
   Widget::LED* mLed;

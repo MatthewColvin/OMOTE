@@ -38,6 +38,7 @@ class ID {
     Tv,
     CarController,
     HomeAssistDeviceList,
+    ActiveDeviceList,
     INVALID_PAGE_ID
   };
 

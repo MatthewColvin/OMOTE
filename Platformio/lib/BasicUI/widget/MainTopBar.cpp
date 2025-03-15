@@ -29,6 +29,16 @@ MainTopBar::MainTopBar(ActiveDevices& aActiveDevices)
   mLed->AlignTo(this, LV_ALIGN_LEFT_MID);
   mDeviceLabel->AlignTo(mLed, LV_ALIGN_OUT_RIGHT_MID);
 
+  DisplayTopPrioityDeviceInfo();
+
+  mDeviceChangeHandler.SetNotification(
+      mActiveDevices.getListUpdateNotification());
+  mDeviceChangeHandler = [this](auto listChangeEvent) {
+    DisplayTopPrioityDeviceInfo();
+  };
+}
+
+void MainTopBar::DisplayTopPrioityDeviceInfo() {
   const auto& devices = mActiveDevices.getDevices();
   DisplayDeviceInfo(devices.empty() ? nullptr : devices.back());
 }

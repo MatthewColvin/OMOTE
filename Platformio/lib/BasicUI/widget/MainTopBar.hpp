@@ -13,12 +13,14 @@ class MainTopBar : public Base {
   MainTopBar(ActiveDevices& aActiveDevices);
 
  private:
+  void DisplayTopPrioityDeviceInfo();
   void DisplayDeviceInfo(std::shared_ptr<IDevice> aDeviceToDisplay);
 
   void OnLvglEvent(lv_event_t* aEvent) override;
   void OpenActiveDevicesPage();
 
   ActiveDevices& mActiveDevices;
+  Handler<ActiveDevices::ListEvent> mDeviceChangeHandler;
   Widget::Label* mDeviceLabel;
   Widget::LED* mLed;
 };

@@ -6,10 +6,12 @@
 namespace HomeAssist::WebSocket {
 
 Session::Session(
-    std::unique_ptr<Request> aRequest,
+    std::unique_ptr<Request> aStartRequest,
+    std::unique_ptr<Request> aEndRequest,
     std::shared_ptr<MessageHandler> aMessageHandler,
     std::shared_ptr<HAL::WebSocket::Json::IChunkProcessor> aChunkProcessor)
-    : mStartRequest(std::move(aRequest)),
+    : mStartRequest(std::move(aStartRequest)),
+      mEndRequest(std::move(aEndRequest)),
       mMessageHandler(aMessageHandler),
       mChunkProcessor(aChunkProcessor) {}
 

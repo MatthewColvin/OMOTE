@@ -126,7 +126,7 @@ class RequestBuilder {
   Request Build();  // keep original for backward compatibility
 
   static std::unique_ptr<Request> CreateTriggerSubscription(
-      int aId, const std::string& aEntityId, const std::string& aFrom,
+      const std::string& aEntityId, const std::string& aFrom,
       const std::string& aTo);
 
  private:
@@ -186,11 +186,11 @@ inline std::unique_ptr<Request> RequestBuilder::BuildUnique() {
 inline Request RequestBuilder::Build() { return Request(std::move(mDocument)); }
 
 inline std::unique_ptr<Request> RequestBuilder::CreateTriggerSubscription(
-    int aId, const std::string& aEntityId, const std::string& aFrom,
+    const std::string& aEntityId, const std::string& aFrom,
     const std::string& aTo) {
   return RequestBuilder()
       .SetType(RequestTypes::SUBSCRIBE_TRIGGER)
-      .SetId(aId)
+      .SetId(0)  // Id set by API
       .AddTrigger([&](TriggerBuilder& builder) {
         builder.SetPlatform("state")
             .SetEntityId(aEntityId)

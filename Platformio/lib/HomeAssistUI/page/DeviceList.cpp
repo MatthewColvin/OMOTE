@@ -55,7 +55,7 @@ DeviceList::DeviceList(HomeAssist::WebSocket::Api& aApi)
             .BuildUnique();
 
     mApi.AddSession(std::make_unique<Session>(std::move(request), nullptr,
-                                              mDeviceQueryProcessor));
+                                              nullptr, mDeviceQueryProcessor));
   }
 }
 

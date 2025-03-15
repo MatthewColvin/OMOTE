@@ -20,6 +20,7 @@ class ISession {
   void MarkComplete();
   bool IsRunning() const;
 
+  virtual std::unique_ptr<Request> GetStartRequest() = 0;
   virtual Request* BorrowStartRequest() = 0;
   virtual Request* BorrowEndRequest() = 0;
 

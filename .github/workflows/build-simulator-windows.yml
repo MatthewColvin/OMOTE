@@ -15,8 +15,7 @@ jobs:
             mingw-w64-x86_64-SDL2
             mingw-w64-x86_64-python
             mingw-w64-x86_64-curl
-            mingw-w64-x86_64-libwebsockets
-            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-asio
             python3-pip
       - uses: actions/checkout@v3
         with:
@@ -30,4 +29,4 @@ jobs:
 
       - name: Build PlatformIO Project 64 bit sim
         working-directory: ./Platformio
-        run: pio run --environment x64_sim
+        run: pio run --environment x64_sim_windows

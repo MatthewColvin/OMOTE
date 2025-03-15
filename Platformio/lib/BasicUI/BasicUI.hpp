@@ -1,4 +1,5 @@
 #pragma once
+#include "ActiveDevices.hpp"
 #include "PageBase.hpp"
 #include "UIBase.hpp"
 namespace UI {
@@ -14,8 +15,10 @@ class BasicUI : public UIBase {
   void AddPageToHomeScreen(Page::Base::Ptr aPageToAdd);
   bool GoToPage(ID anId);
 
+  ActiveDevices mActiveDevices;
+
  private:
-  Screen::HomeScreen *mHomeScreen;
+  Screen::HomeScreen* mHomeScreen;
 
 };  // namespace UIBase
 

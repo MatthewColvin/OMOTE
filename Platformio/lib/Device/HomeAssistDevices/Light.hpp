@@ -12,7 +12,7 @@ namespace HomeAssist::Device {
 
 class Light : public IDevice {
  public:
-  Light(const std::string& entityId, std::shared_ptr<WebSocket::Api> api);
+  Light(const std::string& entityId, WebSocket::Api& api);
   ~Light() override = default;
 
   // IDevice interface implementation
@@ -36,7 +36,7 @@ class Light : public IDevice {
   void SendLightCommand(const std::string& service);
 
   std::string mEntityId;
-  std::shared_ptr<WebSocket::Api> mApi;
+  WebSocket::Api& mApi;
   bool mIsOn = false;
 };
 

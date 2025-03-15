@@ -1,5 +1,6 @@
 #include "HomeAssistDevices/Light.hpp"
 
+#include "HardwareFactory.hpp"
 #include "WebSocket/Message/Entity.hpp"
 #include "WebSocket/Message/MessageHandler.hpp"
 #include "WebSocket/RequestBuilder.hpp"
@@ -7,12 +8,18 @@
 
 namespace HomeAssist::Device {
 
-Light::Light(const std::string& entityId, std::shared_ptr<WebSocket::Api> api)
+Light::Light(const std::string& entityId, WebSocket::Api& api)
     : mEntityId(entityId), mApi(api) {
   SetupStateSubscription();
 }
 
-bool Light::HandleKeyEvent(KeyPressAbstract::KeyEvent event) { return false; }
+bool Light::HandleKeyEvent(KeyPressAbstract::KeyEvent event) {
+  if (event.isPress() && event.isKey(KeyPressAbstract::KeyId::Power)) {
+    Toggle();
+    return true;
+  }
+  return false;
+}
 
 std::unique_ptr<UI::Page::Base> Light::GetControlPage() {
   // TODO: Implement control page
@@ -26,7 +33,7 @@ void Light::TurnOff() { SendLightCommand("turn_off"); }
 void Light::Toggle() { SendLightCommand("toggle"); }
 
 void Light::SetupStateSubscription() {
-  if (!mApi) return;
+  // if (!mApi) return;
 
   auto request = WebSocket::RequestBuilder::CreateTriggerSubscription(
       mEntityId,
@@ -43,7 +50,7 @@ void Light::SetupStateSubscription() {
   auto session = std::make_unique<WebSocket::Session>(std::move(request),
                                                       nullptr, messageHandler);
 
-  mApi->AddSession(std::move(session));
+  mApi.AddSession(std::move(session));
 }
 
 void Light::HandleStateChange(const WebSocket::Message& message) {
@@ -53,18 +60,22 @@ void Light::HandleStateChange(const WebSocket::Message& message) {
 }
 
 void Light::SendLightCommand(const std::string& service) {
-  if (!mApi) return;
+  // if (!mApi) return;
 
+  std::string domain = "light";
   auto request = WebSocket::RequestBuilder()
                      .SetType(WebSocket::RequestTypes::CALL_SERVICE)
                      .SetId(0)  // ID will be set by Api
-                     .AddField("domain", "light")
+                     .AddField("domain", domain)
                      .AddField("service", service)
-                     .AddField("target", mEntityId)
+                     .AddTargetEntity(mEntityId)
                      .BuildUnique();
 
+  HardwareFactory::getAbstract().debugPrint(
+      "%s", request->GetRequestMessage().c_str());
+
   auto session = std::make_unique<WebSocket::Session>(std::move(request));
-  mApi->AddSession(std::move(session));
+  mApi.AddSession(std::move(session));
 }
 
 }  // namespace HomeAssist::Device

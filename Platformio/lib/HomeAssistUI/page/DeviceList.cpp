@@ -1,6 +1,7 @@
 #include "DeviceList.hpp"
 
 #include "HardwareFactory.hpp"
+#include "HomeAssistDevices/Light.hpp"
 #include "List.hpp"
 #include "UIElementIds.hpp"
 #include "WebSocket/Request.hpp"
@@ -9,11 +10,13 @@
 
 namespace UI::Page {
 
-DeviceList::DeviceList(HomeAssist::WebSocket::Api& aApi)
+DeviceList::DeviceList(HomeAssist::WebSocket::Api& aApi,
+                       ActiveDevices& aActiveDevices)
     : Base(ID::Pages::HomeAssistDeviceList),
       mDeviceList(AddNewElement<Widget::List>()),
       mLoadingArc(AddNewElement<Widget::Arc>()),
       mApi(aApi),
+      mActiveDevices(aActiveDevices),
       mDeviceQueryProcessor(std::make_shared<UI::DevicesQueryProcessor>(
           [this](const auto& aEntity) { AddEntity(aEntity); })) {
   // Initially hide device list
@@ -67,8 +70,19 @@ void DeviceList::AddEntity(const std::string& aEntity) {
   std::string entityDeepCopy = aEntity;
   LvglResourceManager::GetInstance().AttemptNow([this, entityDeepCopy]() {
     constexpr auto lightStr = "light";
-    if (entityDeepCopy.rfind(lightStr, 0) == 0) {
-      mDeviceList->AddItem(entityDeepCopy, LV_SYMBOL_OK, [] {});
+    // MatthewColvin/OMOTE#19 may still need a max here but should probably
+    // break device list into 2 parts 1 for the device type and other for the
+    // actual entities
+    // Maybe the device list can hold a map<devictype, entitiyids>()?
+    // Might be a pretty big structure depening on HA instance?
+    if (entityDeepCopy.rfind(lightStr, 0) == 0 && mDevicesAdded < 10) {
+      mDeviceList->AddItem(
+          entityDeepCopy, LV_SYMBOL_OK, [this, entityDeepCopy]() {
+            auto light = std::make_shared<HomeAssist::Device::Light>(
+                entityDeepCopy, mApi);
+            mActiveDevices.addDevice(light);
+          });
+      mDevicesAdded++;
     }
   });
 }

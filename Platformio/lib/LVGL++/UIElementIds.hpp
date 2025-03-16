@@ -23,6 +23,9 @@ class ID {
     BrightnessSlider,
     Joystick,
     Arc,
+    MainTopBar,
+    LED,
+    Image,
     INVALID_WIDGET_ID
   };
 
@@ -36,6 +39,7 @@ class ID {
     Tv,
     CarController,
     HomeAssistDeviceList,
+    ActiveDeviceList,
     INVALID_PAGE_ID
   };
 

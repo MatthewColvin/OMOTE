@@ -37,7 +37,9 @@ class DropDown : public Base {
   void OnLvglEvent(lv_event_t *anEvent) override {
     if (lv_event_get_code(anEvent) == LV_EVENT_VALUE_CHANGED) {
       auto idx = lv_dropdown_get_selected(LvglSelf());
-      mSelectionHandler(mOptionsData[idx]);
+      if (mSelectionHandler) {
+        mSelectionHandler(mOptionsData[idx]);
+      }
     }
   };
 

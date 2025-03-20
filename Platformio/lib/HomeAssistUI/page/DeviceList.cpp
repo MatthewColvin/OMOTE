@@ -1,8 +1,10 @@
 #include "DeviceList.hpp"
 
+#include "AddDevice.hpp"
 #include "HardwareFactory.hpp"
 #include "HomeAssistDevices/Light.hpp"
 #include "List.hpp"
+#include "Roller.hpp"
 #include "ScreenManager.hpp"
 #include "UIElementIds.hpp"
 #include "WebSocket/Request.hpp"
@@ -107,26 +109,19 @@ void DeviceList::AddEntityTypeListItem(
                      return aEntityType == prefixToEntity.second;
                    });
 
-  auto addEntityItem = [this](auto* aList, auto aEntityType,
-                              const auto& aEntityName) {
-    aList->AddItem(
-        aEntityName, LV_SYMBOL_HOME, [this, aEntityType, aEntityName]() {
-          if (aEntityType == EntityType::Light) {
-            mActiveDevices.addDevice(
-                std::make_unique<HomeAssist::Device::Light>(aEntityName, mApi));
+  auto handleEntityTypeSelected = [&aEntities, aEntityType, this]() {
+    auto entityListPage = std::make_unique<AddDevice>(
+        mActiveDevices, aEntities,
+        [aEntityType, this](const auto& aName) -> IDevice::Ptr {
+          using namespace HomeAssist::Device;
+          switch (aEntityType) {
+            case EntityType::Light:
+              return std::make_shared<Light>(aName, mApi);
+            default:
+              return nullptr;
           }
         });
-  };
 
-  auto handleEntityTypeSelected = [&aEntities, aEntityType, addEntityItem,
-                                   this]() {
-    auto entityListPage =
-        std::make_unique<Page::Base>(UI::ID::Pages::HomeAssistDeviceList);
-    auto* list = entityListPage->AddNewElement<Widget::List>();
-
-    for (int i = 0; i < aEntities.size() && i < 9; i++) {
-      addEntityItem(list, aEntityType, aEntities[i]);
-    }
     UI::Screen::Manager::getInstance().pushPopUp(std::move(entityListPage));
   };
 

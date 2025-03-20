@@ -19,7 +19,7 @@ IProcessMessage::ProcessResult::ProcessResult(rapidjson::ParseResult aResult)
 IProcessMessage::ProcessResult::ProcessResult(rapidjson::ParseErrorCode aError)
     : mStatus(StatusCode::ParseError), mParseResult(aError, 0) {}
 
-IProcessMessage::ProcessResult::operator bool() {
+IProcessMessage::ProcessResult::operator bool() const {
   using Result = ProcessResult::StatusCode;
   return mStatus == Result::Success ||
          mStatus == Result::SuccessFinishedChunkParse ||

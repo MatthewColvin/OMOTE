@@ -18,6 +18,16 @@ namespace UI::Page {
 
 class DeviceList : public Base {
  public:
+  enum class EntityType : uint8_t {
+    Light,
+    Button,
+    Sensor,
+    BinarySensor,
+    Automation,
+    Switch,
+    Other
+  };
+
   DeviceList(HomeAssist::WebSocket::Api& aApi, ActiveDevices& aActiveDevices);
   virtual ~DeviceList() = default;
 
@@ -27,14 +37,23 @@ class DeviceList : public Base {
  protected:
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
 
-  void AddEntity(const std::string& aEntity);
-
  private:
-  Widget::List* mDeviceList;
+  // Save Entity in the Entity map to build UI later
+  void StoreEntity(const std::string& aEntity);
+  // Handle pushing sub list when device list is processed
+  void HandleDevicesQueryComplete(
+      const UI::DevicesQueryProcessor::resultType& aResult);
+
+  Widget::List* mEntityTypeList;
   Widget::Arc* mLoadingArc;
   HomeAssist::WebSocket::Api& mApi;
   ActiveDevices& mActiveDevices;
+
   std::shared_ptr<UI::DevicesQueryProcessor> mDeviceQueryProcessor;
+  std::map<EntityType, std::vector<std::string>> mEntityMap;
+  void AddEntityTypeListItem(EntityType aEntityType,
+                             const std::vector<std::string>& aEntities) const;
+
   int mDevicesAdded = 0;
 };
 

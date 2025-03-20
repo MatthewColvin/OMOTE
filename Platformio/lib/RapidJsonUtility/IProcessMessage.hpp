@@ -44,7 +44,7 @@ class IProcessMessage {
     ProcessResult(rapidjson::ParseResult aResult);
     ProcessResult(rapidjson::ParseErrorCode aError);
 
-    operator bool();
+    operator bool() const;
 
     StatusCode mStatus{};
     rapidjson::ParseResult mParseResult{};

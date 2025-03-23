@@ -4,8 +4,6 @@
 #include <Preferences.h>
 #include <PubSubClient.h>
 
-#include <queue.h>
-
 #include <functional>
 #include <memory>
 
@@ -65,7 +63,7 @@ class HardwareRevX : public HardwareAbstract {
 
  protected:
   // Init Functions to setup hardware
-  void initIO();
+  virtual void initIO();
   void restorePreferences();
   void setupIMU();
 #if defined(OMOTE_HARDWARE_REV5)

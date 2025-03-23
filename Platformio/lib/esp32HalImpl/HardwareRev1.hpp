@@ -9,6 +9,7 @@ class HardwareRev1 : public HardwareRevX {
   virtual ~HardwareRev1() = default;
 
  private:
+  void initIO() override;
 };
 
 #endif  // HARDWARE_REV1_HPP

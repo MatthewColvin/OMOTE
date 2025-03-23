@@ -1,31 +1,16 @@
 #include "HardwareRevX.hpp"
 
+#include "Hardware/KeyPressAbstract.hpp"
 #include "IRTransceiver.hpp"
 #include "display.hpp"
 #include "esp32WebSocket.hpp"
 #include "wifihandler.hpp"
-#include "Hardware/KeyPressAbstract.hpp"
 
 void HardwareRevX::initIO() {
-// Button Pin Definition
-#if not defined(OMOTE_HARDWARE_REV5)
-  pinMode(SW_1, OUTPUT);
-  pinMode(SW_2, OUTPUT);
-  pinMode(SW_3, OUTPUT);
-  pinMode(SW_4, OUTPUT);
-  pinMode(SW_5, OUTPUT);
-  pinMode(SW_A, INPUT);
-  pinMode(SW_B, INPUT);
-  pinMode(SW_C, INPUT);
-  pinMode(SW_D, INPUT);
-  pinMode(SW_E, INPUT);
-#endif
+  // Button Pin Definition
 
   // Power Pin Definition
   pinMode(CRG_STAT, INPUT_PULLUP);
-#if not defined(OMOTE_HARDWARE_REV5)
-  pinMode(ADC_BAT, INPUT);
-#endif
 
   // IR Pin Definition
   pinMode(IR_RX, INPUT);
@@ -55,14 +40,8 @@ void HardwareRevX::initIO() {
   pinMode(USER_LED, OUTPUT);
   digitalWrite(USER_LED, LOW);
 
-// Release GPIO hold in case we are coming out of standby
-#if not defined(OMOTE_HARDWARE_REV5)
-  gpio_hold_dis((gpio_num_t)SW_1);
-  gpio_hold_dis((gpio_num_t)SW_2);
-  gpio_hold_dis((gpio_num_t)SW_3);
-  gpio_hold_dis((gpio_num_t)SW_4);
-  gpio_hold_dis((gpio_num_t)SW_5);
-#endif
+  // Release GPIO hold in case we are coming out of standby
+
   gpio_hold_dis((gpio_num_t)LCD_EN);
   gpio_hold_dis((gpio_num_t)LCD_BL);
   gpio_deep_sleep_hold_dis();
@@ -95,11 +74,18 @@ void HardwareRevX::init() {
   mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
 #endif
   mWifiHandler = wifiHandler::getInstance();
- 
-  static constexpr auto MaxQueueableKeyPresses = 5;
-  mKeysQueueHandle = xQueueCreate(MaxQueueableKeyPresses, sizeof(KeyPressAbstract::KeyEvent));
 
+  static constexpr auto MaxQueueableKeyPresses = 5;
+#if defined(OMOTE_HARDWARE_REV5)
+  mKeysQueueHandle =
+      xQueueCreate(MaxQueueableKeyPresses, sizeof(KeyPressAbstract::KeyEvent));
+#endif
+
+#if (OMOTE_HARDWARE_REV5)
   mKeys = std::make_shared<Keys>(mKeysQueueHandle);
+#else
+  mKeys = std::make_shared<Keys>();
+#endif
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>();
 
@@ -189,15 +175,14 @@ void HardwareRevX::keyboardScan() {
   uint8_t keyCode = 0;
   uint8_t row = 0, col = 0;
   uint8_t keyIndex = 0;
-  //keyStateEnum keyState = KEY_IDLE;
+  // keyStateEnum keyState = KEY_IDLE;
   bool keyPressed = false;
   uint8_t intStat = keypad.readRegister(TCA8418_REG_INT_STAT);
   if (intStat & 0x01)  // Byte 0: K_INT (keyboard interrupt)
   {
     // datasheet page 16 - Table 2
     keyCode = keypad.getEvent();
-    if (keyCode & 0x80)
-      keyPressed = true;
+    if (keyCode & 0x80) keyPressed = true;
 
     keyCode &= 0x7F;
 
@@ -227,7 +212,8 @@ void HardwareRevX::keyboardScan() {
     keypad.writeRegister(TCA8418_REG_INT_STAT, 1);
 
     BaseType_t higherPriorityTaskAwoke;
-    KeyPressAbstract::KeyEvent event = Keys::CharKeyToKeyId(indexToChar[keyIndex],keyPressed);
+    KeyPressAbstract::KeyEvent event =
+        Keys::CharKeyToKeyId(indexToChar[keyIndex], keyPressed);
     xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
   }
 

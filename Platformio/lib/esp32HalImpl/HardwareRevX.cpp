@@ -4,9 +4,11 @@
 #include "display.hpp"
 #include "esp32WebSocket.hpp"
 #include "wifihandler.hpp"
+#include "Hardware/KeyPressAbstract.hpp"
 
 void HardwareRevX::initIO() {
-  // Button Pin Definition
+// Button Pin Definition
+#if not defined(OMOTE_HARDWARE_REV5)
   pinMode(SW_1, OUTPUT);
   pinMode(SW_2, OUTPUT);
   pinMode(SW_3, OUTPUT);
@@ -17,35 +19,50 @@ void HardwareRevX::initIO() {
   pinMode(SW_C, INPUT);
   pinMode(SW_D, INPUT);
   pinMode(SW_E, INPUT);
+#endif
 
   // Power Pin Definition
   pinMode(CRG_STAT, INPUT_PULLUP);
+#if not defined(OMOTE_HARDWARE_REV5)
   pinMode(ADC_BAT, INPUT);
+#endif
 
   // IR Pin Definition
   pinMode(IR_RX, INPUT);
   pinMode(IR_LED, OUTPUT);
   pinMode(IR_VCC, OUTPUT);
+#if defined(OMOTE_KEYBRD_3661)
+  digitalWrite(IR_LED, LOW);  // HIGH on - LOW off
+#else
   digitalWrite(IR_LED, HIGH);  // HIGH off - LOW on
-  digitalWrite(IR_VCC, LOW);   // HIGH on - LOW off
+#endif
+  IR_VCC_OFF;
+#if defined(OMOTE_HARDWARE_REV5)
+  SD_EN_OFF;
+#endif
 
   // LCD Pin Definition
   pinMode(LCD_EN, OUTPUT);
-  digitalWrite(LCD_EN, HIGH);
+  LCD_EN_OFF;
   pinMode(LCD_BL, OUTPUT);
-  digitalWrite(LCD_BL, HIGH);
+  LCD_BL_OFF;
+#if defined(OMOTE_HARDWARE_REV5)
+  KBD_BL_OFF;
+#endif
 
   // Other Pin Definition
   pinMode(ACC_INT, INPUT);
   pinMode(USER_LED, OUTPUT);
   digitalWrite(USER_LED, LOW);
 
-  // Release GPIO hold in case we are coming out of standby
+// Release GPIO hold in case we are coming out of standby
+#if not defined(OMOTE_HARDWARE_REV5)
   gpio_hold_dis((gpio_num_t)SW_1);
   gpio_hold_dis((gpio_num_t)SW_2);
   gpio_hold_dis((gpio_num_t)SW_3);
   gpio_hold_dis((gpio_num_t)SW_4);
   gpio_hold_dis((gpio_num_t)SW_5);
+#endif
   gpio_hold_dis((gpio_num_t)LCD_EN);
   gpio_hold_dis((gpio_num_t)LCD_BL);
   gpio_deep_sleep_hold_dis();
@@ -56,7 +73,7 @@ HardwareRevX::HardwareRevX() : HardwareAbstract() {}
 HardwareRevX::WakeReason getWakeReason() {
   // Find out wakeup cause
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1) {
-    if (log(esp_sleep_get_ext1_wakeup_status()) / log(2) == 13)
+    if (esp_sleep_get_ext1_wakeup_status() == (0x01 << ACC_INT))
       return HardwareRevX::WakeReason::IMU;
     else
       return HardwareRevX::WakeReason::KEYPAD;
@@ -74,9 +91,15 @@ void HardwareRevX::init() {
   Serial.begin(115200);
 
   mDisplay = Display::getInstance();
+#if not defined(OMOTE_HARDWARE_REV5)
   mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
+#endif
   mWifiHandler = wifiHandler::getInstance();
-  mKeys = std::make_shared<Keys>();
+ 
+  static constexpr auto MaxQueueableKeyPresses = 5;
+  mKeysQueueHandle = xQueueCreate(MaxQueueableKeyPresses, sizeof(KeyPressAbstract::KeyEvent));
+
+  mKeys = std::make_shared<Keys>(mKeysQueueHandle);
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>();
 
@@ -89,7 +112,12 @@ void HardwareRevX::init() {
 
   setupIMU();
 
-  debugPrint("Finished Hardware Setup in %d", millis());
+#if defined(OMOTE_HARDWARE_REV5)
+  setupKeyboard();
+#endif
+
+  // debugPrint("Finished Hardware Setup in %d", millis());
+  Serial.printf("Finished Hardware Setup in %dms\r\n", millis());
 }
 
 void HardwareRevX::debugPrint(const char *fmt, ...) {
@@ -153,6 +181,74 @@ void HardwareRevX::activityDetection() {
   accZold = accZ;
 }
 
+#if defined(OMOTE_HARDWARE_REV5)
+void HardwareRevX::keyboardScan() {
+  // std::array<keyPressDataStruct, KEYPAD_ROWS * KEYPAD_COLS> keyPressData =
+  // {0,0,KEY_IDLE};
+
+  uint8_t keyCode = 0;
+  uint8_t row = 0, col = 0;
+  uint8_t keyIndex = 0;
+  //keyStateEnum keyState = KEY_IDLE;
+  bool keyPressed = false;
+  uint8_t intStat = keypad.readRegister(TCA8418_REG_INT_STAT);
+  if (intStat & 0x01)  // Byte 0: K_INT (keyboard interrupt)
+  {
+    // datasheet page 16 - Table 2
+    keyCode = keypad.getEvent();
+    if (keyCode & 0x80)
+      keyPressed = true;
+
+    keyCode &= 0x7F;
+
+    if (keyCode > 96)  //  GPIO
+    {
+      keyCode -= 97;
+#ifdef OMOTE_KEYBRD_3661
+      // this only happens for key 'o' (off). Map this to 0/5
+      row = 0;
+      col = 5;
+#else
+      // this only happens for key 'o' (off). Map this to 1/1
+      row = 1;
+      col = 1;
+#endif
+      Serial.println(keyCode);
+    } else {
+      // process matrix
+      keyCode--;
+      row = keyCode / 10;
+      col = keyCode % 10;
+    }
+    keyIndex = col + (row * KEYPAD_COLS);
+    Serial.printf("Row:%d, Col %d, Index:%d\r\n", row, col, keyIndex);
+
+    //  clear the EVENT IRQ flag
+    keypad.writeRegister(TCA8418_REG_INT_STAT, 1);
+
+    BaseType_t higherPriorityTaskAwoke;
+    KeyPressAbstract::KeyEvent event = Keys::CharKeyToKeyId(indexToChar[keyIndex],keyPressed);
+    xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+  }
+
+  if (intStat & 0x02)  // Byte 1: GPI_INT (GPIO interrupt)
+  {
+    //  reading the registers is mandatory to clear IRQ flag
+    //  can also be used to find the GPIO changed
+    //  as these registers are a bitmap of the gpio pins.
+    keypad.readRegister(TCA8418_REG_GPIO_INT_STAT_1);
+    keypad.readRegister(TCA8418_REG_GPIO_INT_STAT_2);
+    keypad.readRegister(TCA8418_REG_GPIO_INT_STAT_3);
+    //  clear GPIO IRQ flag
+    keypad.writeRegister(TCA8418_REG_INT_STAT, 2);
+  }
+
+  //  check pending events
+  // int intstat = keypad.readRegister(TCA8418_REG_INT_STAT); why, won't it just
+  // loose events??
+}
+#endif
+
 char HardwareRevX::getCurrentDevice() { return currentDevice; }
 
 void HardwareRevX::setCurrentDevice(char currentDevice) {
@@ -192,14 +288,28 @@ void HardwareRevX::enterSleep() {
   // Prepare IO states
   digitalWrite(LCD_DC, LOW);  // LCD control signals off
   digitalWrite(LCD_CS, LOW);
+#if defined(OMOTE_HARDWARE_REV5)
+  digitalWrite(LCD_WR, LOW);
+  digitalWrite(LCD_RD, LOW);
+  digitalWrite(LCD_D0, LOW);
+  digitalWrite(LCD_D1, LOW);
+  digitalWrite(LCD_D2, LOW);
+  digitalWrite(LCD_D3, LOW);
+  digitalWrite(LCD_D4, LOW);
+  digitalWrite(LCD_D5, LOW);
+  digitalWrite(LCD_D6, LOW);
+  digitalWrite(LCD_D7, LOW);
+#else
   digitalWrite(LCD_MOSI, LOW);
   digitalWrite(LCD_SCK, LOW);
+#endif
   digitalWrite(LCD_EN, HIGH);  // LCD logic off
   digitalWrite(LCD_BL, HIGH);  // LCD backlight off
   pinMode(CRG_STAT, INPUT);    // Disable Pull-Up
   digitalWrite(IR_VCC, LOW);   // IR Receiver off
 
-  // Configure button matrix for ext1 interrupt
+// Configure button matrix for ext1 interrupt
+#if not defined(OMOTE_HARDWARE_REV5)
   pinMode(SW_1, OUTPUT);
   pinMode(SW_2, OUTPUT);
   pinMode(SW_3, OUTPUT);
@@ -215,6 +325,7 @@ void HardwareRevX::enterSleep() {
   gpio_hold_en((gpio_num_t)SW_3);
   gpio_hold_en((gpio_num_t)SW_4);
   gpio_hold_en((gpio_num_t)SW_5);
+#endif
   // Force display pins to high impedance
   // Without this the display might not wake up from sleep
   pinMode(LCD_BL, INPUT);
@@ -223,7 +334,11 @@ void HardwareRevX::enterSleep() {
   gpio_hold_en((gpio_num_t)LCD_EN);
   gpio_deep_sleep_hold_en();
 
+#if defined(OMOTE_HARDWARE_REV5)
+  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_LOW);
+#else
   esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
+#endif
 
   delay(100);
   // Sleep
@@ -270,6 +385,14 @@ void HardwareRevX::configIMUInterrupts() {
   // dataToWrite |= 0x04; //Pipe 4D detection from 6D recognition to int1?
   IMU.writeRegister(LIS3DH_CTRL_REG5, dataToWrite);
 
+// LIS3DH_CTRL_REG6
+// Set interrupt polarity
+#if defined(OMOTE_HARDWARE_REV5)
+  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x02);  // For active-low interrupt
+#else
+  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x00);  // For active-high interrupt
+#endif
+
   // LIS3DH_CTRL_REG3
   // Choose source for pin 1
   dataToWrite = 0;
@@ -289,6 +412,7 @@ void HardwareRevX::restorePreferences() {
   if (preferences.getBool("alreadySetUp")) {
     wakeupByIMUEnabled = preferences.getBool("wkpByIMU");
     backlight_brightness = preferences.getUChar("blBrightness");
+    if (backlight_brightness < 30) backlight_brightness = 30;
     currentDevice = preferences.getUChar("currentDevice");
     sleepTimeout = preferences.getUInt("sleepTimeout");
     // setting the default to prevent a 0ms sleep timeout
@@ -314,6 +438,28 @@ void HardwareRevX::setupIMU() {
   IMU.readRegister(&intDataRead, LIS3DH_INT1_SRC);  // clear interrupt
 }
 
+#if defined(OMOTE_HARDWARE_REV5)
+void HardwareRevX::setupKeyboard() {
+  if (!keypad.begin(TCA8418_DEFAULT_ADDR, &Wire)) {
+    Serial.println("Keypad TCA8418 not found!");
+  }
+  keypad.matrix(KEYPAD_ROWS, KEYPAD_COLS);
+  keypad.pinMode(5, INPUT_PULLUP);  // SW_PWR
+  keypad.pinMode(6, INPUT_PULLUP);  // SD_DET
+#ifdef OMOTE_KEYBRD_3661
+  keypad.pinMode(14, INPUT);  // USB_3V3
+#else
+  keypad.pinMode(13, INPUT);  // USB_3V3
+#endif
+
+  pinMode(TCA_INT, INPUT);
+  keypad.flush();
+  keypad.writeRegister(TCA8418_REG_CFG, 0b00000001);
+  keypad.writeRegister(TCA8418_REG_GPI_EM_1, KEYPAD_ROWS_BITMASK);
+  keypad.writeRegister(TCA8418_REG_GPI_EM_2, KEYPAD_COLS_BITMASK);
+}
+#endif
+
 void HardwareRevX::startTasks() {}
 
 void HardwareRevX::loopHandler() {
@@ -327,8 +473,11 @@ void HardwareRevX::loopHandler() {
 
   // Refresh IMU data at 10Hz
   static unsigned long IMUTaskTimer = millis();
-  if (millis() - IMUTaskTimer >= 100) {
+  if (millis() - IMUTaskTimer >= 25) {
     activityDetection();
+#if defined(OMOTE_HARDWARE_REV5)
+    keyboardScan();
+#endif
     if (standbyTimer == 0) {
       Serial.println("Entering Sleep Mode. Goodbye.");
       enterSleep();

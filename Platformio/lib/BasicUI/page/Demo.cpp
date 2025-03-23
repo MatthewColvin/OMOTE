@@ -24,12 +24,12 @@ bool Demo::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   using eventType = KeyPressAbstract::KeyEvent::Type;
   bool used = true;
   switch (aKeyEvent.mId) {
-  case id::Aux1:
+  case id::Up:
     if (aKeyEvent.mType == eventType::Press) {
       AddSlider();
     }
     break;
-  case id::Aux2:
+  case id::Down:
     if (aKeyEvent.mType == eventType::Release) {
       if (sliders.size() > 0) {
         RemoveElement(sliders[0]);

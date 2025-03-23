@@ -4,6 +4,8 @@
 #include <Preferences.h>
 #include <PubSubClient.h>
 
+#include <queue.h>
+
 #include <functional>
 #include <memory>
 
@@ -17,6 +19,16 @@
 #include "lvgl.h"
 #include "omoteconfig.h"
 #include "wifihandler.hpp"
+#if defined(OMOTE_HARDWARE_REV5)
+#include <Adafruit_TCA8418.h>
+#include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h>
+#if defined(OMOTE_KEYBRD_3661)
+#include <Adafruit_LTR329_LTR303.h>
+
+#include "Panel_ST7789_NHD.h"
+#include "Touch_FT5x26.h"
+#endif
+#endif
 
 class HardwareRevX : public HardwareAbstract {
  public:
@@ -56,8 +68,12 @@ class HardwareRevX : public HardwareAbstract {
   void initIO();
   void restorePreferences();
   void setupIMU();
+#if defined(OMOTE_HARDWARE_REV5)
+  void setupKeyboard();
+#endif
 
   void activityDetection();
+  void keyboardScan();
   void enterSleep();
   void configIMUInterrupts();
 
@@ -71,6 +87,17 @@ class HardwareRevX : public HardwareAbstract {
   std::shared_ptr<Keys> mKeys;
   std::shared_ptr<IRTransceiver> mIr;
   std::shared_ptr<EspStats> mStats = nullptr;
+
+#if defined(OMOTE_HARDWARE_REV5)
+  //  Battery gas gauge
+  SFE_MAX1704X fuelGauge = SFE_MAX1704X(MAX1704X_MAX17048);
+  // keypad scanning
+  Adafruit_TCA8418 keypad;
+#if defined(OMOTE_KEYBRD_3661)
+  // light sensor
+  Adafruit_LTR303 ltr = Adafruit_LTR303();
+#endif
+#endif
   // IMU Motion Detection
   LIS3DH IMU =
       LIS3DH(I2C_MODE, 0x19);  // Default constructor is I2C, addr 0x19.
@@ -86,4 +113,18 @@ class HardwareRevX : public HardwareAbstract {
 
   static std::shared_ptr<HardwareRevX> mInstance;
   Handler<Display::TouchPointType> mTouchHandler;
+#if defined(OMOTE_HARDWARE_REV5)
+  QueueHandle_t mKeysQueueHandle;
+  char indexToChar[KEYPAD_ROWS * KEYPAD_COLS] = {
+      '+', '-', 'i',
+      'L', 'b', 'o',  // volume+, volume-,    info,    left,  back,  NotUsed
+      't', 'm', 'k',
+      'h', '<', '=',  //  return,    mute,      OK,    home,  rewind,  stop,
+      '^', 'g', 'd',
+      'p', 's', 'T',  // channel+,   guide,    down,    play,   pause,  TV
+      'v', 'u', 'x',
+      'r', 'S', 'A',  // channel-,      up,    exit,  record,  stream,  audio
+      'c', 'R', '>',
+      'B', 'D', 'Y'};  //    config,   right, forward,     STB,     DVD,  BLURAY
+#endif
 };

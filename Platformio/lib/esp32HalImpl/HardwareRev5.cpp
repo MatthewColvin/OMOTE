@@ -1,4 +1,8 @@
+#if defined(OMOTE_HARDWARE_REV5)
+
 #include "HardwareRev5.hpp"
+
+#include <Adafruit_TCA8418.h>
 
 void HardwareRev5::init() {
   HardwareRev1::init();
@@ -107,3 +111,5 @@ void HardwareRev5::configIMUInterruptPolarity() {
 void HardwareRev5::enableWakeupByPin() {
   esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_LOW);
 }
+
+#endif

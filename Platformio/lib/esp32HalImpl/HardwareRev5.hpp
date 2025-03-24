@@ -1,3 +1,5 @@
+#if defined(OMOTE_HARDWARE_REV5)
+
 #pragma once
 
 #include "HardwareRev1.hpp"
@@ -11,7 +13,7 @@ class HardwareRev5 : public HardwareRev1 {
   void init() override;
 
  private:
-    // Setup IMU for active high interrupt
+  // Setup IMU for active high interrupt
   void configIMUInterruptPolarity() override;
   void enableWakeupByPin() override;
 
@@ -35,3 +37,5 @@ class HardwareRev5 : public HardwareRev1 {
       'c', 'R', '>',
       'B', 'D', 'Y'};  //    config,   right, forward,     STB,     DVD,  BLURAY
 };
+
+#endif

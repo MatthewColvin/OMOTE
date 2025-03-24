@@ -118,4 +118,17 @@ void HardwareRev5::enableWakeupByPin() {
   esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_LOW);
 }
 
+void HardwareRev5::sleepDisplayPins() {
+  digitalWrite(LCD_WR, LOW);
+  digitalWrite(LCD_RD, LOW);
+  digitalWrite(LCD_D0, LOW);
+  digitalWrite(LCD_D1, LOW);
+  digitalWrite(LCD_D2, LOW);
+  digitalWrite(LCD_D3, LOW);
+  digitalWrite(LCD_D4, LOW);
+  digitalWrite(LCD_D5, LOW);
+  digitalWrite(LCD_D6, LOW);
+  digitalWrite(LCD_D7, LOW);
+}
+
 #endif

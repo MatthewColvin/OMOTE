@@ -182,21 +182,9 @@ void HardwareRevX::enterSleep() {
   // Prepare IO states
   digitalWrite(LCD_DC, LOW);  // LCD control signals off
   digitalWrite(LCD_CS, LOW);
-#if defined(OMOTE_HARDWARE_REV5)
-  digitalWrite(LCD_WR, LOW);
-  digitalWrite(LCD_RD, LOW);
-  digitalWrite(LCD_D0, LOW);
-  digitalWrite(LCD_D1, LOW);
-  digitalWrite(LCD_D2, LOW);
-  digitalWrite(LCD_D3, LOW);
-  digitalWrite(LCD_D4, LOW);
-  digitalWrite(LCD_D5, LOW);
-  digitalWrite(LCD_D6, LOW);
-  digitalWrite(LCD_D7, LOW);
-#else
-  digitalWrite(LCD_MOSI, LOW);
-  digitalWrite(LCD_SCK, LOW);
-#endif
+
+  sleepDisplayPins();
+
   digitalWrite(LCD_EN, HIGH);  // LCD logic off
   digitalWrite(LCD_BL, HIGH);  // LCD backlight off
   pinMode(CRG_STAT, INPUT);    // Disable Pull-Up
@@ -233,6 +221,13 @@ void HardwareRevX::enterSleep() {
   delay(100);
   // Sleep
   esp_deep_sleep_start();
+}
+
+void HardwareRevX::sleepDisplayPins() {
+#if not defined(OMOTE_HARDWARE_REV5)
+  digitalWrite(LCD_MOSI, LOW);
+  digitalWrite(LCD_SCK, LOW);
+#endif
 }
 
 void HardwareRevX::enableWakeupByPin() {

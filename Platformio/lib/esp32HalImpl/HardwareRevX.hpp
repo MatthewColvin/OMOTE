@@ -72,6 +72,7 @@ class HardwareRevX : public HardwareAbstract {
   void activityDetection();
   void enterSleep();
   void configIMUInterrupts();
+  virtual void configIMUInterruptPolarity();
 
   // Tasks
   void startTasks();
@@ -96,9 +97,11 @@ class HardwareRevX : public HardwareAbstract {
   Adafruit_LTR303 ltr = Adafruit_LTR303();
 #endif
 #endif
+ protected:  // Maybe todo: make private?
   // IMU Motion Detection
   LIS3DH IMU =
       LIS3DH(I2C_MODE, 0x19);  // Default constructor is I2C, addr 0x19.
+ private:
   int standbyTimer = SLEEP_TIMEOUT;
   int sleepTimeout = SLEEP_TIMEOUT;
   int motion = 0;

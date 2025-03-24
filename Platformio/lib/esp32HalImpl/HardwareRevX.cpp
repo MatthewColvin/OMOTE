@@ -286,13 +286,8 @@ void HardwareRevX::configIMUInterrupts() {
   // dataToWrite |= 0x04; //Pipe 4D detection from 6D recognition to int1?
   IMU.writeRegister(LIS3DH_CTRL_REG5, dataToWrite);
 
-// LIS3DH_CTRL_REG6
-// Set interrupt polarity
-#if defined(OMOTE_HARDWARE_REV5)
-  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x02);  // For active-low interrupt
-#else
-  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x00);  // For active-high interrupt
-#endif
+  // LIS3DH_CTRL_REG6
+  configIMUInterruptPolarity();
 
   // LIS3DH_CTRL_REG3
   // Choose source for pin 1
@@ -304,6 +299,10 @@ void HardwareRevX::configIMUInterrupts() {
   // dataToWrite |= 0x04; //FIFO watermark
   // dataToWrite |= 0x02; //FIFO overrun
   IMU.writeRegister(LIS3DH_CTRL_REG3, dataToWrite);
+}
+
+void HardwareRevX::configIMUInterruptPolarity() {
+  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x02);  // For active-low interrupt
 }
 
 void HardwareRevX::restorePreferences() {

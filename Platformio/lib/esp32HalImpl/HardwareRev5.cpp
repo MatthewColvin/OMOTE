@@ -99,3 +99,7 @@ void HardwareRev5::keyboardScan() {
   // int intstat = keypad.readRegister(TCA8418_REG_INT_STAT); why, won't it just
   // loose events??
 }
+
+void HardwareRev5::configIMUInterruptPolarity() {
+  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x02);  // For active-low interrupt
+}

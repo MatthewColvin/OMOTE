@@ -223,13 +223,6 @@ void HardwareRevX::enterSleep() {
   esp_deep_sleep_start();
 }
 
-void HardwareRevX::sleepDisplayPins() {
-#if not defined(OMOTE_HARDWARE_REV5)
-  digitalWrite(LCD_MOSI, LOW);
-  digitalWrite(LCD_SCK, LOW);
-#endif
-}
-
 void HardwareRevX::enableWakeupByPin() {
   esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
 }

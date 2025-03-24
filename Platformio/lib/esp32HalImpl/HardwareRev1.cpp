@@ -36,3 +36,10 @@ void HardwareRev1::initIO() {
   gpio_hold_dis((gpio_num_t)SW_5);
 #endif
 }
+
+void HardwareRev1::sleepDisplayPins() {
+#if not defined(OMOTE_HARDWARE_REV5)
+  digitalWrite(LCD_MOSI, LOW);
+  digitalWrite(LCD_SCK, LOW);
+#endif
+}

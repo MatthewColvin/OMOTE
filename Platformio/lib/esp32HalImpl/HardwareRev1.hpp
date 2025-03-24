@@ -12,6 +12,8 @@ class HardwareRev1 : public HardwareRevX {
 
  private:
   void initIO() override;
+
+  void sleepDisplayPins() override;
 };
 
 #endif  // HARDWARE_REV1_HPP

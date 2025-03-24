@@ -73,17 +73,6 @@ void HardwareRevX::init() {
 
   mWifiHandler = wifiHandler::getInstance();
 
-  static constexpr auto MaxQueueableKeyPresses = 5;
-#if defined(OMOTE_HARDWARE_REV5)
-  mKeysQueueHandle =
-      xQueueCreate(MaxQueueableKeyPresses, sizeof(KeyPressAbstract::KeyEvent));
-#endif
-
-#if (OMOTE_HARDWARE_REV5)
-  mKeys = std::make_shared<Keys>(mKeysQueueHandle);
-#else
-  mKeys = std::make_shared<Keys>();
-#endif
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>();
 

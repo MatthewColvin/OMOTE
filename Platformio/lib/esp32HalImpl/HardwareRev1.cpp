@@ -4,6 +4,7 @@
 
 void HardwareRev1::init() {
 #if not defined(OMOTE_HARDWARE_REV5)
+  mKeys = std::make_shared<Keys>();
   mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
 #endif
 }

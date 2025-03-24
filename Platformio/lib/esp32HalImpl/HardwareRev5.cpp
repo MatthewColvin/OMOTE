@@ -2,6 +2,12 @@
 
 void HardwareRev5::init() {
   HardwareRev1::init();
+
+  static constexpr auto MaxQueueableKeyPresses = 5;
+  mKeysQueueHandle =
+      xQueueCreate(MaxQueueableKeyPresses, sizeof(KeyPressAbstract::KeyEvent));
+
+  mKeys = std::make_shared<Keys>(mKeysQueueHandle);
   setupKeyboard();
 
   Serial.printf("Finished Rev5 Hardware Init in %dms\r\n", millis());

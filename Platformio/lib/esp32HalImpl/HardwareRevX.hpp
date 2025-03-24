@@ -79,11 +79,11 @@ class HardwareRevX : public HardwareAbstract {
   // Maybe TODO: make not protected?
  protected:
   std::shared_ptr<Battery> mBattery;
+  std::shared_ptr<Keys> mKeys;
 
  private:
   std::shared_ptr<Display> mDisplay;
   std::shared_ptr<wifiHandler> mWifiHandler;
-  std::shared_ptr<Keys> mKeys;
   std::shared_ptr<IRTransceiver> mIr;
   std::shared_ptr<EspStats> mStats = nullptr;
 
@@ -111,21 +111,4 @@ class HardwareRevX : public HardwareAbstract {
 
   static std::shared_ptr<HardwareRevX> mInstance;
   Handler<Display::TouchPointType> mTouchHandler;
-#if defined(OMOTE_HARDWARE_REV5)
-
-  // TODO move to HW5
- public:
-  QueueHandle_t mKeysQueueHandle;
-  char indexToChar[KEYPAD_ROWS * KEYPAD_COLS] = {
-      '+', '-', 'i',
-      'L', 'b', 'o',  // volume+, volume-,    info,    left,  back,  NotUsed
-      't', 'm', 'k',
-      'h', '<', '=',  //  return,    mute,      OK,    home,  rewind,  stop,
-      '^', 'g', 'd',
-      'p', 's', 'T',  // channel+,   guide,    down,    play,   pause,  TV
-      'v', 'u', 'x',
-      'r', 'S', 'A',  // channel-,      up,    exit,  record,  stream,  audio
-      'c', 'R', '>',
-      'B', 'D', 'Y'};  //    config,   right, forward,     STB,     DVD,  BLURAY
-#endif
 };

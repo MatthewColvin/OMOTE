@@ -235,15 +235,15 @@ void HardwareRevX::enterSleep() {
   gpio_hold_en((gpio_num_t)LCD_EN);
   gpio_deep_sleep_hold_en();
 
-#if defined(OMOTE_HARDWARE_REV5)
-  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_LOW);
-#else
-  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
-#endif
+  enableWakeupByPin();
 
   delay(100);
   // Sleep
   esp_deep_sleep_start();
+}
+
+void HardwareRevX::enableWakeupByPin() {
+  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
 }
 
 void HardwareRevX::configIMUInterrupts() {

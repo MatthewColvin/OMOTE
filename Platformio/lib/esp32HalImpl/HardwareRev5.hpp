@@ -11,9 +11,9 @@ class HardwareRev5 : public HardwareRev1 {
   void init() override;
 
  private:
-  
-  // Setup IMU for active high interrupt
+    // Setup IMU for active high interrupt
   void configIMUInterruptPolarity() override;
+  void enableWakeupByPin() override;
 
   void setupKeyboard();
 

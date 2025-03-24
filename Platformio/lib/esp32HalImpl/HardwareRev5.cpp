@@ -103,3 +103,7 @@ void HardwareRev5::keyboardScan() {
 void HardwareRev5::configIMUInterruptPolarity() {
   IMU.writeRegister(LIS3DH_CTRL_REG6, 0x02);  // For active-low interrupt
 }
+
+void HardwareRev5::enableWakeupByPin() {
+  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_LOW);
+}

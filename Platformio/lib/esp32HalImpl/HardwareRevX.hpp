@@ -66,12 +66,10 @@ class HardwareRevX : public HardwareAbstract {
   virtual void initIO();
   void restorePreferences();
   void setupIMU();
-#if defined(OMOTE_HARDWARE_REV5)
-  void setupKeyboard();
-#endif
+
+  virtual void keyboardScan() {};
 
   void activityDetection();
-  void keyboardScan();
   void enterSleep();
   void configIMUInterrupts();
 
@@ -89,8 +87,7 @@ class HardwareRevX : public HardwareAbstract {
 #if defined(OMOTE_HARDWARE_REV5)
   //  Battery gas gauge
   SFE_MAX1704X fuelGauge = SFE_MAX1704X(MAX1704X_MAX17048);
-  // keypad scanning
-  Adafruit_TCA8418 keypad;
+
 #if defined(OMOTE_KEYBRD_3661)
   // light sensor
   Adafruit_LTR303 ltr = Adafruit_LTR303();
@@ -112,6 +109,9 @@ class HardwareRevX : public HardwareAbstract {
   static std::shared_ptr<HardwareRevX> mInstance;
   Handler<Display::TouchPointType> mTouchHandler;
 #if defined(OMOTE_HARDWARE_REV5)
+
+  // TODO move to HW5
+ public:
   QueueHandle_t mKeysQueueHandle;
   char indexToChar[KEYPAD_ROWS * KEYPAD_COLS] = {
       '+', '-', 'i',

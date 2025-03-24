@@ -11,6 +11,7 @@ class HardwareRev5 : public HardwareRev1 {
 
  protected:
   void init() override;
+  void initIO() override;
 
  private:
   // Setup IMU for active high interrupt

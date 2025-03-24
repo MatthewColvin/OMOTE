@@ -22,18 +22,12 @@ void HardwareRevX::initIO() {
   digitalWrite(IR_LED, HIGH);  // HIGH off - LOW on
 #endif
   IR_VCC_OFF;
-#if defined(OMOTE_HARDWARE_REV5)
-  SD_EN_OFF;
-#endif
 
   // LCD Pin Definition
   pinMode(LCD_EN, OUTPUT);
   LCD_EN_OFF;
   pinMode(LCD_BL, OUTPUT);
   LCD_BL_OFF;
-#if defined(OMOTE_HARDWARE_REV5)
-  KBD_BL_OFF;
-#endif
 
   // Other Pin Definition
   pinMode(ACC_INT, INPUT);
@@ -41,7 +35,6 @@ void HardwareRevX::initIO() {
   digitalWrite(USER_LED, LOW);
 
   // Release GPIO hold in case we are coming out of standby
-
   gpio_hold_dis((gpio_num_t)LCD_EN);
   gpio_hold_dis((gpio_num_t)LCD_BL);
   gpio_deep_sleep_hold_dis();

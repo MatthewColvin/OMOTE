@@ -17,6 +17,12 @@ void HardwareRev5::init() {
   Serial.printf("Finished Rev5 Hardware Init in %dms\r\n", millis());
 }
 
+void HardwareRev5::initIO() {
+  HardwareRevX::initIO();
+  SD_EN_OFF;
+  KBD_BL_OFF;
+}
+
 void HardwareRev5::setupKeyboard() {
   if (!keypad.begin(TCA8418_DEFAULT_ADDR, &Wire)) {
     Serial.println("Keypad TCA8418 not found!");

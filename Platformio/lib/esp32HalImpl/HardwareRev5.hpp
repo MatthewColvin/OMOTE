@@ -18,6 +18,7 @@ class HardwareRev5 : public HardwareRev1 {
   void configIMUInterruptPolarity() override;
   void enableWakeupByPin() override;
   void sleepDisplayPins() override;
+  void configPinsForSleepInterrupts() override;
 
   void setupKeyboard();
 

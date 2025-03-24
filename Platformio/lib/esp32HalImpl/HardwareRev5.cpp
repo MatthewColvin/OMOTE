@@ -118,6 +118,24 @@ void HardwareRev5::enableWakeupByPin() {
   esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_LOW);
 }
 
+void HardwareRev5::configPinsForSleepInterrupts() {
+  pinMode(SW_1, OUTPUT);
+  pinMode(SW_2, OUTPUT);
+  pinMode(SW_3, OUTPUT);
+  pinMode(SW_4, OUTPUT);
+  pinMode(SW_5, OUTPUT);
+  digitalWrite(SW_1, HIGH);
+  digitalWrite(SW_2, HIGH);
+  digitalWrite(SW_3, HIGH);
+  digitalWrite(SW_4, HIGH);
+  digitalWrite(SW_5, HIGH);
+  gpio_hold_en((gpio_num_t)SW_1);
+  gpio_hold_en((gpio_num_t)SW_2);
+  gpio_hold_en((gpio_num_t)SW_3);
+  gpio_hold_en((gpio_num_t)SW_4);
+  gpio_hold_en((gpio_num_t)SW_5);
+}
+
 void HardwareRev5::sleepDisplayPins() {
   digitalWrite(LCD_WR, LOW);
   digitalWrite(LCD_RD, LOW);

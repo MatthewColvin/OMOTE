@@ -75,6 +75,7 @@ class HardwareRevX : public HardwareAbstract {
   virtual void configIMUInterruptPolarity();
   virtual void enableWakeupByPin();
   virtual void sleepDisplayPins() = 0;
+  virtual void configPinsForSleepInterrupts() {};
 
   // Tasks
   void startTasks();

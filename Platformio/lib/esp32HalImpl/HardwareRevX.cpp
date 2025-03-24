@@ -70,9 +70,7 @@ void HardwareRevX::init() {
   Serial.begin(115200);
 
   mDisplay = Display::getInstance();
-#if not defined(OMOTE_HARDWARE_REV5)
-  mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
-#endif
+
   mWifiHandler = wifiHandler::getInstance();
 
   static constexpr auto MaxQueueableKeyPresses = 5;

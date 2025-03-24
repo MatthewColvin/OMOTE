@@ -76,8 +76,11 @@ class HardwareRevX : public HardwareAbstract {
   // Tasks
   void startTasks();
 
- private:
+  // Maybe TODO: make not protected?
+ protected:
   std::shared_ptr<Battery> mBattery;
+
+ private:
   std::shared_ptr<Display> mDisplay;
   std::shared_ptr<wifiHandler> mWifiHandler;
   std::shared_ptr<Keys> mKeys;

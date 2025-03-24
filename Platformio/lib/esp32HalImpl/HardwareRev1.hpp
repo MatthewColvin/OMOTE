@@ -8,6 +8,8 @@ class HardwareRev1 : public HardwareRevX {
   HardwareRev1() = default;
   virtual ~HardwareRev1() = default;
 
+  void init() override;
+
  private:
   void initIO() override;
 };

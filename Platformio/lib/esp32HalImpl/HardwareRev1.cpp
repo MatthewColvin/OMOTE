@@ -1,5 +1,13 @@
 #include "HardwareRev1.hpp"
 
+#include "omoteconfig.h"
+
+void HardwareRev1::init() {
+#if not defined(OMOTE_HARDWARE_REV5)
+  mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
+#endif
+}
+
 void HardwareRev1::initIO() {
   HardwareRevX::initIO();
 #if not defined(OMOTE_HARDWARE_REV5)

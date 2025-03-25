@@ -1,8 +1,8 @@
 #pragma once
 
-#include "HardwareRev1.hpp"
+#include "HardwareRevX.hpp"
 
-class HardwareRev5 : public HardwareRev1 {
+class HardwareRev5 : public HardwareRevX {
  public:
   HardwareRev5() = default;
   virtual ~HardwareRev5() = default;

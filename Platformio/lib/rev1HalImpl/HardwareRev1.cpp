@@ -1,5 +1,6 @@
 #include "HardwareRev1.hpp"
 
+#include "Rev1PinDefs.h"
 #include "omoteconfig.h"
 
 void HardwareRev1::init() {

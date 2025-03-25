@@ -1,5 +1,4 @@
-#ifndef HARDWARE_REV1_HPP
-#define HARDWARE_REV1_HPP
+#pragma once
 
 #include "HardwareRevX.hpp"
 
@@ -16,5 +15,3 @@ class HardwareRev1 : public HardwareRevX {
   void sleepDisplayPins() override;
   void configPinsForSleepInterrupts() override;
 };
-
-#endif  // HARDWARE_REV1_HPP

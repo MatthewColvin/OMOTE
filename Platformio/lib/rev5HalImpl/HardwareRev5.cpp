@@ -3,7 +3,7 @@
 #include <Adafruit_TCA8418.h>
 
 void HardwareRev5::init() {
-  HardwareRev1::init();
+  HardwareRevX::init();
 
   static constexpr auto MaxQueueableKeyPresses = 5;
   mKeysQueueHandle =

@@ -54,8 +54,8 @@ class HardwareRevX : public HardwareAbstract {
   virtual bool getWakeupByIMUEnabled() override;
   virtual void setWakeupByIMUEnabled(bool wakeupByIMUEnabled) override;
 
-  virtual uint16_t getSleepTimeout() override;
-  virtual void setSleepTimeout(uint16_t sleepTimeout) override;
+  virtual uint32_t getSleepTimeout() override;
+  virtual void setSleepTimeout(uint32_t sleepTimeout) override;
 
   /// @brief To be ran in loop out in main
   // TODO move to a freertos task
@@ -67,9 +67,12 @@ class HardwareRevX : public HardwareAbstract {
   void restorePreferences();
   void setupIMU();
 
-  virtual void keyboardScan() {};
-
-  void activityDetection();
+  virtual bool keyboardScan() {return false;};
+  virtual bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) {return false;};
+  virtual void updateBacklightMode(uint16_t lightLevel) {};
+  virtual bool fuelGaugeScan(float &soc, float &voltage) {return false;};
+ 
+  bool activityDetection();
   void enterSleep();
   void configIMUInterrupts();
   virtual void configIMUInterruptPolarity();
@@ -84,33 +87,25 @@ class HardwareRevX : public HardwareAbstract {
  protected:
   std::shared_ptr<Battery> mBattery;
   std::shared_ptr<Keys> mKeys;
+  std::shared_ptr<Display> mDisplay;
 
  private:
-  std::shared_ptr<Display> mDisplay;
   std::shared_ptr<wifiHandler> mWifiHandler;
   std::shared_ptr<IRTransceiver> mIr;
   std::shared_ptr<EspStats> mStats = nullptr;
 
-#if defined(OMOTE_HARDWARE_REV5)
-  //  Battery gas gauge
-  SFE_MAX1704X fuelGauge = SFE_MAX1704X(MAX1704X_MAX17048);
-
-#if defined(OMOTE_KEYBRD_3661)
-  // light sensor
-  Adafruit_LTR303 ltr = Adafruit_LTR303();
-#endif
-#endif
  protected:  // Maybe todo: make private?
   // IMU Motion Detection
   LIS3DH IMU =
       LIS3DH(I2C_MODE, 0x19);  // Default constructor is I2C, addr 0x19.
+  Preferences preferences;
+
  private:
   int standbyTimer = SLEEP_TIMEOUT;
   int sleepTimeout = SLEEP_TIMEOUT;
   int motion = 0;
   WakeReason wakeup_reason;
 
-  Preferences preferences;
   bool wakeupByIMUEnabled = true;
   byte currentDevice = 1;  // Current Device to control (allows switching
                            // mappings between devices)

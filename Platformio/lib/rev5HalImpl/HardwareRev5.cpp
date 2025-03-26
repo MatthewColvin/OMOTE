@@ -11,8 +11,12 @@ void HardwareRev5::init() {
 
   mKeys = std::make_shared<Keys>(mKeysQueueHandle);
   setupKeyboard();
+  setupFuelGauge();
+#ifdef OMOTE_KEYBRD_3661
+  setupLightSensor();
+#endif
 
-  Serial.printf("Finished Rev5 Hardware Init in %dms\r\n", millis());
+  debugPrint("Finished Rev5 Hardware Setup in %dms", millis());
 }
 
 void HardwareRev5::initIO() {
@@ -41,53 +45,113 @@ void HardwareRev5::setupKeyboard() {
   keypad.writeRegister(TCA8418_REG_GPI_EM_2, KEYPAD_COLS_BITMASK);
 }
 
-void HardwareRev5::keyboardScan() {
+void HardwareRev5::setupLightSensor() {
+  if (ltr.begin()) {
+    ltr.setGain(LTR3XX_GAIN_8);
+    ltr.setIntegrationTime(LTR3XX_INTEGTIME_100);
+    ltr.setMeasurementRate(LTR3XX_MEASRATE_100);
+    mlightSensorInitSuccessful = true;
+    // Serial.println("LTR-303 initialised!");
+  } else
+    Serial.println("Couldn't find LTR-303 sensor!");
+}
+
+bool HardwareRev5::lightSensorScan(uint16_t &visPlusIrLevel,
+                                   uint16_t &irLevel) {
+  bool retVal = false;
+  if (mlightSensorInitSuccessful) {
+    if (ltr.newDataAvailable())
+      retVal = ltr.readBothChannels(visPlusIrLevel, irLevel);
+  }
+  return retVal;
+}
+
+ void HardwareRev5::updateBacklightMode(uint16_t lightLevel) {
+  #ifdef OMOTE_KEYBRD_3661 //do we have a light sensor
+  static bool backlight_mode_is_day = true;
+  static bool firstMeas = true;
+
+  if(firstMeas) {
+    firstMeas = false;
+    return;
+  }
+  
+  if(backlight_mode_is_day) { //hysteresis
+    if(lightLevel < 20) {
+      backlight_mode_is_day = false;
+      mDisplay->setDayMode(backlight_mode_is_day);
+    }
+  } else {
+    if(lightLevel >60) {
+      backlight_mode_is_day = true;
+      mDisplay->setDayMode(backlight_mode_is_day);
+    }
+  }
+  #endif
+ }
+
+void HardwareRev5::setupFuelGauge() {
+  if (!fuelGauge.begin()) Serial.println("Couldn't find MAX17048 sensor!");
+}
+
+bool HardwareRev5::fuelGaugeScan(float &soc, float &voltage) {
+  voltage = fuelGauge.getVoltage();
+  soc = fuelGauge.getSOC();
+  return true;
+}
+
+bool HardwareRev5::keyboardScan() {
   // std::array<keyPressDataStruct, KEYPAD_ROWS * KEYPAD_COLS>
   // keyPressData =
   // {0,0,KEY_IDLE};
-
+  bool keyPressed = false;
   uint8_t keyCode = 0;
   uint8_t row = 0, col = 0;
   uint8_t keyIndex = 0;
   // keyStateEnum keyState = KEY_IDLE;
-  bool keyPressed = false;
+  KeyPressAbstract::KeyEvent event;
   uint8_t intStat = keypad.readRegister(TCA8418_REG_INT_STAT);
   if (intStat & 0x01)  // Byte 0: K_INT (keyboard interrupt)
   {
     // datasheet page 16 - Table 2
     keyCode = keypad.getEvent();
-    if (keyCode & 0x80) keyPressed = true;
+    if (keyCode & 0x80)
+      event.mType = KeyPressAbstract::KeyEvent::Type::Press;
+    else
+      event.mType = KeyPressAbstract::KeyEvent::Type::Release;
 
     keyCode &= 0x7F;
 
     if (keyCode > 96)  //  GPIO
     {
       keyCode -= 97;
+// this only happens for key 'o' (off). Map this to vacant pos in matrix
 #ifdef OMOTE_KEYBRD_3661
-      // this only happens for key 'o' (off). Map this to 0/5
       row = 0;
       col = 5;
 #else
-      // this only happens for key 'o' (off). Map this to 1/1
       row = 1;
       col = 1;
 #endif
-      Serial.println(keyCode);
+      // Serial.println(keyCode);
     } else {
       // process matrix
       keyCode--;
       row = keyCode / 10;
       col = keyCode % 10;
+      if ((row >= KEYPAD_ROWS) || (col >= KEYPAD_COLS))
+        return false;  // invalid key, should bever occur but don't process if
+                       // it does
     }
     keyIndex = col + (row * KEYPAD_COLS);
+    keyPressed = true;
     Serial.printf("Row:%d, Col %d, Index:%d\r\n", row, col, keyIndex);
 
     //  clear the EVENT IRQ flag
     keypad.writeRegister(TCA8418_REG_INT_STAT, 1);
 
     BaseType_t higherPriorityTaskAwoke;
-    KeyPressAbstract::KeyEvent event =
-        Keys::CharKeyToKeyId(indexToChar[keyIndex], keyPressed);
+    event.mId = Keys::CharKeyToKeyId(indexToChar[keyIndex]);
     xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
   }
 
@@ -106,6 +170,7 @@ void HardwareRev5::keyboardScan() {
   //  check pending events
   // int intstat = keypad.readRegister(TCA8418_REG_INT_STAT); why, won't it just
   // loose events??
+  return keyPressed;
 }
 
 void HardwareRev5::configIMUInterruptPolarity() {

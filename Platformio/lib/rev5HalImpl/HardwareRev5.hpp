@@ -18,22 +18,51 @@ class HardwareRev5 : public HardwareRevX {
   void sleepDisplayPins() override;
 
   void setupKeyboard();
+  void setupFuelGauge();
 
-  void keyboardScan() override;
+  void setupLightSensor();
+
+  bool keyboardScan() override;
+  bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) override;
+  void updateBacklightMode(uint16_t lightLevel) override;
+  bool fuelGaugeScan(float &soc, float &voltage) override;
 
   // keypad scanning
   Adafruit_TCA8418 keypad;
 
+  //  Battery gas gauge
+  SFE_MAX1704X fuelGauge = SFE_MAX1704X(MAX1704X_MAX17048);
+
+#if defined(OMOTE_KEYBRD_3661)
+  // light sensor
+  Adafruit_LTR303 ltr = Adafruit_LTR303();
+#endif
+
   QueueHandle_t mKeysQueueHandle;
+
+  bool mlightSensorInitSuccessful = false;
+
+  // Note: 'off' is not actually in matrix but dedicated pin, mapped to vacant
+  // position in matrix for processing
+#if defined(OMOTE_KEYBRD_3661)
   char indexToChar[KEYPAD_ROWS * KEYPAD_COLS] = {
-      '+', '-', 'i',
-      'L', 'b', 'o',  // volume+, volume-,    info,    left,  back,  NotUsed
-      't', 'm', 'k',
-      'h', '<', '=',  //  return,    mute,      OK,    home,  rewind,  stop,
-      '^', 'g', 'd',
-      'p', 's', 'T',  // channel+,   guide,    down,    play,   pause,  TV
-      'v', 'u', 'x',
-      'r', 'S', 'A',  // channel-,      up,    exit,  record,  stream,  audio
-      'c', 'R', '>',
-      'B', 'D', 'Y'};  //    config,   right, forward,     STB,     DVD,  BLURAY
+      '+', '-', 'i',   //  volume+, volume-,    info,
+      'L', 'b', 'o',   //     left,    back,     off,
+      't', 'm', 'k',   //   return,    mute,      OK,
+      'h', '<', '=',   //     home,  rewind,    stop,
+      '^', 'g', 'd',   // channel+,   guide,    down,
+      'p', 's', 'T',   //     play,   pause,      TV,
+      'v', 'u', 'x',   // channel-,      up,    exit,
+      'r', 'S', 'A',   //   record,  stream,   audio,
+      'c', 'R', '>',   //   config,   right, forward,
+      'B', 'D', 'Y'};  //      STB,     DVD,  BLURAY,
+#else
+  // Note: ? row/column entry is unused in hardware key matrix
+  char indexToChar[KEYPAD_ROWS * KEYPAD_COLS] = {
+      '?', 'p', 'c', '<', '=',   //       ?,     play,  config, rewind,   stop
+      '>', 'o', 'b', 'u', 'L',   // forward,      off,    back,     up,   left
+      '4', 'v', '1', '3', '2',   //    blue, channel-,     red, yellow,  green
+      'i', 'R', '+', 'k', 'd',   //    info,    right, Volume+,     OK,   down
+      's', '^', '-', 'm', 'r'},  //  source, channel+, Volume-,   mute, record
+#endif
 };

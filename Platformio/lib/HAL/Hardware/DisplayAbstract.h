@@ -9,6 +9,8 @@ class DisplayAbstract {
   virtual void setBrightness(uint8_t brightness) = 0;
   virtual uint8_t getBrightness() = 0;
   virtual void turnOff() = 0;
+  virtual void setDayMode(bool isDay) = 0;
+  virtual void getTouchData() = 0;
 
   void ForceRefresh();
 

@@ -65,6 +65,8 @@ class Display : public DisplayAbstract {
   virtual void setBrightness(uint8_t brightness) override;
   virtual uint8_t getBrightness() override;
   virtual void turnOff() override;
+  virtual void setDayMode(bool isDay) override;
+  virtual void getTouchData() override;
 
   std::shared_ptr<Notification<TouchPointType>> TouchNotification() {
     return mTouchEvent;
@@ -115,4 +117,9 @@ class Display : public DisplayAbstract {
   uint8_t mBrightness = 0;       // Current display brightness
   uint8_t mAwakeBrightness = 0;  // Current setting for brightness when awake
   bool mIsAsleep = false;
+  bool mIsDay = true;
+
+  bool mHaveTouch = false;
+  uint16_t mTouchX = 0;
+  uint16_t mTouchY = 0;
 };

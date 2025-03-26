@@ -70,6 +70,7 @@ void HardwareRevX::init() {
   mIr = std::make_shared<IRTransceiver>();
 
   restorePreferences();
+  standbyTimer = getSleepTimeout();
 
   mTouchHandler.SetNotification(mDisplay->TouchNotification());
   mTouchHandler = [this]([[maybe_unused]] auto touchPoint) {
@@ -78,8 +79,7 @@ void HardwareRevX::init() {
 
   setupIMU();
 
-  // debugPrint("Finished Hardware Setup in %d", millis());
-  Serial.printf("Finished Based Hardware Setup in %dms\r\n", millis());
+  debugPrint("Finished RevX Hardware Setup in %dms", millis());
 }
 
 void HardwareRevX::debugPrint(const char *fmt, ...) {
@@ -121,26 +121,34 @@ std::chrono::milliseconds HardwareRevX::execTime() {
   return std::chrono::milliseconds(millis());
 }
 
-void HardwareRevX::activityDetection() {
-  static int accXold;
-  static int accYold;
-  static int accZold;
-  int accX = IMU.readFloatAccelX() * 1000;
-  int accY = IMU.readFloatAccelY() * 1000;
-  int accZ = IMU.readFloatAccelZ() * 1000;
+bool HardwareRevX::activityDetection() {
+  bool activityDetected = false;
+  static int accXold = IMU.readFloatAccelX() * 1000;
+  static int accYold = IMU.readFloatAccelY() * 1000;
+  static int accZold = IMU.readFloatAccelZ() * 1000;
+  static int accXbuf[4], accYbuf[4], accZbuf[4];
+  static int motion = 0;
+  static uint8_t bufferIndex = 0;
 
-  // determine motion value as da/dt
-  motion = (abs(accXold - accX) + abs(accYold - accY) + abs(accZold - accZ));
-  // Calculate time to standby
-  standbyTimer -= 100;
-  if (standbyTimer < 0) standbyTimer = 0;
-  // If the motion exceeds the threshold, the standbyTimer is reset
-  if (motion > MOTION_THRESHOLD) standbyTimer = sleepTimeout;
+  accXbuf[bufferIndex] = IMU.readFloatAccelX() * 1000;
+  accYbuf[bufferIndex] = IMU.readFloatAccelY() * 1000;
+  accZbuf[bufferIndex] = IMU.readFloatAccelZ() * 1000;
 
-  // Store the current acceleration and time
-  accXold = accX;
-  accYold = accY;
-  accZold = accZ;
+  bufferIndex++;
+  if (bufferIndex >= 4) {
+    bufferIndex = 0;
+    int accX = (accXbuf[0] + accXbuf[1] + accXbuf[2] + accXbuf[3]) / 4;
+    int accY = (accYbuf[0] + accYbuf[1] + accYbuf[2] + accYbuf[3]) / 4;
+    int accZ = (accZbuf[0] + accZbuf[1] + accZbuf[2] + accZbuf[3]) / 4;
+    // determine motion value as da/dt
+    motion = (abs(accXold - accX) + abs(accYold - accY) + abs(accZold - accZ));
+    // Store the current acceleration and time
+    accXold = accX;
+    accYold = accY;
+    accZold = accZ;
+    if (motion > MOTION_THRESHOLD) activityDetected = true;
+  }
+  return activityDetected;
 }
 
 char HardwareRevX::getCurrentDevice() { return currentDevice; }
@@ -155,9 +163,9 @@ void HardwareRevX::setWakeupByIMUEnabled(bool wakeupByIMUEnabled) {
   this->wakeupByIMUEnabled = wakeupByIMUEnabled;
 }
 
-uint16_t HardwareRevX::getSleepTimeout() { return sleepTimeout; }
+uint32_t HardwareRevX::getSleepTimeout() { return sleepTimeout; }
 
-void HardwareRevX::setSleepTimeout(uint16_t sleepTimeout) {
+void HardwareRevX::setSleepTimeout(uint32_t sleepTimeout) {
   this->sleepTimeout = sleepTimeout;
   standbyTimer = sleepTimeout;
 }
@@ -290,9 +298,11 @@ void HardwareRevX::restorePreferences() {
 
 void HardwareRevX::setupIMU() {
   // Setup hal
-  IMU.settings.accelSampleRate =
-      50;  // Hz.  Can be: 0,1,10,25,50,100,200,400,1600,5000 Hz
-  IMU.settings.accelRange = 2;  // Max G force readable.  Can be: 2, 4, 8, 16
+  // Hz.  Can be: 0,1,10,25,50,100,200,400,1600,5000 Hz
+  // Note: 10ms per sample allows guaranteed clean sample between I2C reads
+  IMU.settings.accelSampleRate = 100;
+  // Max G force readable.  Can be: 2, 4, 8, 16
+  IMU.settings.accelRange = 2;
   IMU.settings.adcEnabled = 0;
   IMU.settings.tempEnabled = 0;
   IMU.settings.xAccelEnabled = 1;
@@ -317,8 +327,31 @@ void HardwareRevX::loopHandler() {
   // Refresh IMU data at 10Hz
   static unsigned long IMUTaskTimer = millis();
   if (millis() - IMUTaskTimer >= 25) {
-    activityDetection();
-    keyboardScan();
+    // Calculate time to standby
+    standbyTimer -= 25;
+    if (standbyTimer < 0) standbyTimer = 0;
+
+    if (activityDetection()) standbyTimer = sleepTimeout;
+
+    if (keyboardScan()) standbyTimer = sleepTimeout;
+
+    uint16_t visPlusIrLevel, irLevel;
+    if(lightSensorScan(visPlusIrLevel, irLevel)) {
+      //Serial.printf("ll:%d\r\n", irLevel);
+      updateBacklightMode(irLevel);
+    }
+
+    float soc, voltage;
+    fuelGaugeScan(soc, voltage);
+
+    mDisplay->getTouchData(); //trigger read here to keep all I2C accesses together
+
+    static uint16_t secCount = 0;
+    if(secCount++ >= 40) {
+      secCount = 0;
+      //Serial.printf("IR:%d, V+IR:%d, SOC:%.0f, Volts:%.2f\r\n",irLevel, visPlusIrLevel, soc, voltage);
+    }
+
     if (standbyTimer == 0) {
       Serial.println("Entering Sleep Mode. Goodbye.");
       enterSleep();

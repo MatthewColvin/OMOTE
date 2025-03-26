@@ -15,7 +15,6 @@ struct keyPressDataStruct {
 };
 #endif
 
-
 class Keys : public KeyPressAbstract {
  public:
   Keys();
@@ -23,8 +22,9 @@ class Keys : public KeyPressAbstract {
   void HandleKeyPresses() override;
   void QueueKeyEvent(KeyEvent aJustOccuredKeyEvent) override;
 
-  static KeyEvent CharKeyToKeyId(char keyChar, bool pressed) {return KeyEvent(charKeyToKeyIds.at(keyChar), 
-              pressed? KeyEvent::Type::Press: KeyEvent::Type::Release); }
+  static KeyId CharKeyToKeyId(char keyChar) {
+    return charKeyToKeyIds.at(keyChar);
+  }
 
  protected:
   void GrabKeys();
@@ -41,15 +41,7 @@ class Keys : public KeyPressAbstract {
   static const byte ROWS = KEYPAD_ROWS;  // 5;  // four rows
   static const byte COLS = KEYPAD_COLS;  // 5;  // four columns
 // define the symbols on the buttons of the keypads
-#if defined(OMOTE_HARDWARE_REV5)
-  char hexaKeys[ROWS][COLS] = {
-      {'?', 'p', 'c', '<', '='},  //       ?,     play,  config, rewind,   stop
-      {'>', 'o', 'b', 'u', 'L'},  // forward,      off,    back,     up,   left
-      {'4', 'v', '1', '3', '2'},  //    blue, channel-,     red, yellow,  green
-      {'i', 'R', '+', 'k', 'd'},  //    info,    right, Volume+,     OK,   down
-      {'s', '^', '-', 'm', 'r'},  //  source, channel+, Volume-,   mute, record
-  };
-#else
+#if not defined(OMOTE_HARDWARE_REV5)
   char hexaKeys[ROWS][COLS] = {
       {'s', '^', '-', 'm', 'r'},  //  source, channel+, Volume-,   mute, record
       {'i', 'R', '+', 'k', 'd'},  //    info,    right, Volume+,     OK,   down
@@ -58,7 +50,7 @@ class Keys : public KeyPressAbstract {
       {'?', 'p', 'c', '<', '='}   //       ?,     play,  config, rewind,   stop
   };
 #endif
-  // TODO what is '?' lol
+  // Note: ? row/column entry is unused in hardware key matrix
 
   // TODO Should be able to optomize this out by reordering Ids at some point
   // or even using interrupts to trigger key press queueing

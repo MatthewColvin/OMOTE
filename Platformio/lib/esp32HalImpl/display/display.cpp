@@ -156,6 +156,13 @@ void Display::sleep() {
   }
 }
 
+void Display::setDayMode(bool isDay) {
+  if (isDay != mIsDay) {
+    mIsDay = isDay;
+    startFade();
+  }
+}
+
 void Display::setupBacklight() {
   // Configure the backlight PWM
   // Manual setup because ledcSetup() briefly turns on the backlight
@@ -222,13 +229,17 @@ void Display::turnOff() {
   gpio_hold_en((gpio_num_t)mEnablePin);
 }
 
+void Display::getTouchData() {
+  mHaveTouch = tft.getTouch(&mTouchX, &mTouchY);
+}
+
 void Display::screenInput(lv_indev_t *indev, lv_indev_data_t *data) {
-  uint16_t x, y = 0;
-  if (tft.getTouch(&x, &y)) {
+  if (mHaveTouch) {
+    mHaveTouch = false;
     data->state = LV_INDEV_STATE_PRESSED;
-    data->point.x = x;
-    data->point.y = y;
-    mTouchPoint = {x, y};
+    data->point.x = mTouchX;
+    data->point.y = mTouchY;
+    mTouchPoint = {mTouchX, mTouchY};
     mTouchEvent->notify(mTouchPoint);
   } else {
     data->state = LV_INDEV_STATE_RELEASED;
@@ -252,18 +263,24 @@ void Display::fadeImpl(void *) {
 
 bool Display::fade() {
   // Early return no fade needed.
-  if (mBrightness == mAwakeBrightness || mIsAsleep && mBrightness == 0) {
+  uint8_t targetBrightness;
+  if(mIsDay)
+    targetBrightness = mAwakeBrightness;
+  else
+    targetBrightness = mAwakeBrightness/4;
+
+  if (mBrightness == targetBrightness || mIsAsleep && mBrightness == 0) {
     return true;
   }
 
-  bool fadeDown = mIsAsleep || mBrightness > mAwakeBrightness;
+  bool fadeDown = mIsAsleep || mBrightness > targetBrightness;
   if (fadeDown) {
     setCurrentBrightness(mBrightness - 1);
-    auto setPoint = mIsAsleep ? 0 : mAwakeBrightness;
+    auto setPoint = mIsAsleep ? 0 : targetBrightness;
     return mBrightness == setPoint;
   } else {
     setCurrentBrightness(mBrightness + 1);
-    return mBrightness == mAwakeBrightness;
+    return mBrightness == targetBrightness;
   }
 }
 

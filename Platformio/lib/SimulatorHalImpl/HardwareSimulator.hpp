@@ -41,8 +41,8 @@ class HardwareSimulator : public HardwareAbstract {
   bool getWakeupByIMUEnabled() override;
   void setWakeupByIMUEnabled(bool wakeupByIMUEnabled) override;
 
-  uint16_t getSleepTimeout() override;
-  void setSleepTimeout(uint16_t sleepTimeout) override;
+  uint32_t getSleepTimeout() override;
+  void setSleepTimeout(uint32_t sleepTimeout) override;
 
  private:
   // Completely arbitrary limit on the number of web sockets

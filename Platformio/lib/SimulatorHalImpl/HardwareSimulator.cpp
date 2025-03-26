@@ -78,6 +78,6 @@ bool HardwareSimulator::getWakeupByIMUEnabled() { return true; }
 
 void HardwareSimulator::setWakeupByIMUEnabled(bool wakeupByIMUEnabled) {}
 
-uint16_t HardwareSimulator::getSleepTimeout() { return 20000; }
+uint32_t HardwareSimulator::getSleepTimeout() { return 20000; }
 
-void HardwareSimulator::setSleepTimeout(uint16_t sleepTimeout) {}
+void HardwareSimulator::setSleepTimeout(uint32_t sleepTimeout) {}

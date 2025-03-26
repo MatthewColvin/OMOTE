@@ -20,6 +20,10 @@ void SDLDisplay::setTitle(std::string aNewTitle) {
   SDL_SetWindowTitle(mSimWindow, aNewTitle.c_str());
 }
 
+void SDLDisplay::setDayMode(bool isDay) { mIsDayModeActive = isDay; }
+
+void SDLDisplay::getTouchData() {};
+
 SDLDisplay::SDLDisplay() : DisplayAbstract() {
   lv_group_set_default(lv_group_create());
   mDisplay = lv_sdl_window_create(SDL_HOR_RES, SDL_VER_RES);

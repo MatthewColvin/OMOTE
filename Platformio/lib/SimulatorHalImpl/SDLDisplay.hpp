@@ -11,6 +11,8 @@ class SDLDisplay : public DisplayAbstract {
   virtual void setBrightness(uint8_t brightness) override;
   virtual uint8_t getBrightness() override;
   virtual void turnOff() override;
+  virtual void setDayMode(bool isDay) override;
+  virtual void getTouchData() override;
 
   void setTitle(std::string aNewTitle);
 
@@ -19,4 +21,6 @@ class SDLDisplay : public DisplayAbstract {
   SDLDisplay();
   uint8_t mBrightness;
   SDL_Window *mSimWindow;
+
+  bool mIsDayModeActive = false;
 };

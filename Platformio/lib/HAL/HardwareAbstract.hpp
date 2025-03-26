@@ -43,6 +43,6 @@ class HardwareAbstract {
   virtual bool getWakeupByIMUEnabled() = 0;
   virtual void setWakeupByIMUEnabled(bool wakeupByIMUEnabled) = 0;
 
-  virtual uint16_t getSleepTimeout() = 0;
-  virtual void setSleepTimeout(uint16_t sleepTimeout) = 0;
+  virtual uint32_t getSleepTimeout() = 0;
+  virtual void setSleepTimeout(uint32_t sleepTimeout) = 0;
 };

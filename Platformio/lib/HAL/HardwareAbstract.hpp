@@ -12,7 +12,7 @@
 #include "Hardware/websockets/webSocketInterface.hpp"
 #include "Hardware/wifiHandlerInterface.h"
 #include "Notification.hpp"
-
+#include "lfs.h"
 class HardwareAbstract {
  public:
   HardwareAbstract();
@@ -25,7 +25,7 @@ class HardwareAbstract {
 
   /// @brief Override to allow printing of a message for debugging
   /// @param message - Debug message
-  virtual void debugPrint(const char *fmt, ...) = 0;
+  virtual void debugPrint(const char* fmt, ...) = 0;
 
   virtual std::shared_ptr<BatteryInterface> battery() = 0;
   virtual std::shared_ptr<DisplayAbstract> display() = 0;
@@ -34,6 +34,9 @@ class HardwareAbstract {
   virtual std::shared_ptr<IRInterface> ir() = 0;
   virtual std::shared_ptr<SystemStatsInterface> stats() = 0;
   virtual std::shared_ptr<webSocketInterface> webSocket() = 0;
+  // TODO make Pure Virtual and implement in all hardware implementations
+  // MatthewColvin/OMOTE#12
+  virtual lfs* getLittleFS() { return nullptr; }
 
   virtual std::chrono::milliseconds execTime() = 0;
 

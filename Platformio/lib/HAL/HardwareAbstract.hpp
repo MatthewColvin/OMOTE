@@ -8,11 +8,11 @@
 #include "Hardware/DisplayAbstract.h"
 #include "Hardware/IRInterface.h"
 #include "Hardware/KeyPressAbstract.hpp"
+#include "Hardware/LittleFsInterface.hpp"
 #include "Hardware/SystemStatsInterface.h"
 #include "Hardware/websockets/webSocketInterface.hpp"
 #include "Hardware/wifiHandlerInterface.h"
 #include "Notification.hpp"
-#include "lfs.h"
 class HardwareAbstract {
  public:
   HardwareAbstract();
@@ -36,7 +36,7 @@ class HardwareAbstract {
   virtual std::shared_ptr<webSocketInterface> webSocket() = 0;
   // TODO make Pure Virtual and implement in all hardware implementations
   // MatthewColvin/OMOTE#12
-  virtual lfs* getLittleFS() { return nullptr; }
+  virtual std::shared_ptr<LittleFsInterface> getLittleFS() { return nullptr; }
 
   virtual std::chrono::milliseconds execTime() = 0;
 

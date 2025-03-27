@@ -35,12 +35,24 @@ public:
     Aux2,
     Aux3,
     Aux4,
-    INVALID
+    INVALID,
+    // 3661 Extended keyboard codes
+    Guide,
+    Home,
+    Cycle,
+    Exit,
+    Pause,
+    TV,
+    Stream,
+    STB,
+    Audio,
+    BluRay,
+    DVD
   };
 
   class KeyEvent {
   public:
-    enum class Type { Press, Release, INVALID };
+    enum class Type { Press, Release, Repeat, Short, Long, INVALID };
 
     KeyEvent() = default;
     KeyEvent(const KeyId aId, const Type aType) : mId(aId), mType(aType) {}

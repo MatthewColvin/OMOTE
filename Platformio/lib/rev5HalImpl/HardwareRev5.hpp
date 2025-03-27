@@ -48,10 +48,10 @@ class HardwareRev5 : public HardwareRevX {
   char indexToChar[KEYPAD_ROWS * KEYPAD_COLS] = {
       '+', '-', 'i',   //  volume+, volume-,    info,
       'L', 'b', 'o',   //     left,    back,     off,
-      't', 'm', 'k',   //   return,    mute,      OK,
+      'y', 'm', 'k',   //    cycle,    mute,      OK,
       'h', '<', '=',   //     home,  rewind,    stop,
       '^', 'g', 'd',   // channel+,   guide,    down,
-      'p', 's', 'T',   //     play,   pause,      TV,
+      'p', 'P', 'T',   //     play,   pause,      TV,
       'v', 'u', 'x',   // channel-,      up,    exit,
       'r', 'S', 'A',   //   record,  stream,   audio,
       'c', 'R', '>',   //   config,   right, forward,

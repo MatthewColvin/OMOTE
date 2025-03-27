@@ -66,29 +66,29 @@ bool HardwareRev5::lightSensorScan(uint16_t &visPlusIrLevel,
   return retVal;
 }
 
- void HardwareRev5::updateBacklightMode(uint16_t lightLevel) {
-  #ifdef OMOTE_KEYBRD_3661 //do we have a light sensor
+void HardwareRev5::updateBacklightMode(uint16_t lightLevel) {
+#ifdef OMOTE_KEYBRD_3661  // do we have a light sensor
   static bool backlight_mode_is_day = true;
   static bool firstMeas = true;
 
-  if(firstMeas) {
+  if (firstMeas) {
     firstMeas = false;
     return;
   }
-  
-  if(backlight_mode_is_day) { //hysteresis
-    if(lightLevel < 20) {
+
+  if (backlight_mode_is_day) {  // hysteresis
+    if (lightLevel < 20) {
       backlight_mode_is_day = false;
       mDisplay->setDayMode(backlight_mode_is_day);
     }
   } else {
-    if(lightLevel >60) {
+    if (lightLevel > 60) {
       backlight_mode_is_day = true;
       mDisplay->setDayMode(backlight_mode_is_day);
     }
   }
-  #endif
- }
+#endif
+}
 
 void HardwareRev5::setupFuelGauge() {
   if (!fuelGauge.begin()) Serial.println("Couldn't find MAX17048 sensor!");
@@ -100,25 +100,26 @@ bool HardwareRev5::fuelGaugeScan(float &soc, float &voltage) {
   return true;
 }
 
+struct keyState {
+  unsigned long firstPressedTime = 0;
+  unsigned long lastRepeatedTime = 0;
+  bool isPressed = false;
+  bool wasPressed = false;
+  bool longSent = false;
+};
+
 bool HardwareRev5::keyboardScan() {
-  // std::array<keyPressDataStruct, KEYPAD_ROWS * KEYPAD_COLS>
-  // keyPressData =
-  // {0,0,KEY_IDLE};
+  static keyState keyStates[KEYPAD_ROWS * KEYPAD_COLS];
   bool keyPressed = false;
   uint8_t keyCode = 0;
   uint8_t row = 0, col = 0;
   uint8_t keyIndex = 0;
-  // keyStateEnum keyState = KEY_IDLE;
-  KeyPressAbstract::KeyEvent event;
   uint8_t intStat = keypad.readRegister(TCA8418_REG_INT_STAT);
   if (intStat & 0x01)  // Byte 0: K_INT (keyboard interrupt)
   {
     // datasheet page 16 - Table 2
     keyCode = keypad.getEvent();
-    if (keyCode & 0x80)
-      event.mType = KeyPressAbstract::KeyEvent::Type::Press;
-    else
-      event.mType = KeyPressAbstract::KeyEvent::Type::Release;
+    if (keyCode & 0x80) keyPressed = true;
 
     keyCode &= 0x7F;
 
@@ -144,15 +145,20 @@ bool HardwareRev5::keyboardScan() {
                        // it does
     }
     keyIndex = col + (row * KEYPAD_COLS);
-    keyPressed = true;
     Serial.printf("Row:%d, Col %d, Index:%d\r\n", row, col, keyIndex);
 
     //  clear the EVENT IRQ flag
     keypad.writeRegister(TCA8418_REG_INT_STAT, 1);
 
-    BaseType_t higherPriorityTaskAwoke;
-    event.mId = Keys::CharKeyToKeyId(indexToChar[keyIndex]);
-    xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+    // process
+    if (keyPressed) {  // new press so initialise structure
+      keyStates[keyIndex].firstPressedTime = millis();
+      keyStates[keyIndex].lastRepeatedTime =
+          keyStates[keyIndex].firstPressedTime;
+      keyStates[keyIndex].isPressed = true;
+    } else {
+      keyStates[keyIndex].isPressed = false;
+    }
   }
 
   if (intStat & 0x02)  // Byte 1: GPI_INT (GPIO interrupt)
@@ -170,6 +176,48 @@ bool HardwareRev5::keyboardScan() {
   //  check pending events
   // int intstat = keypad.readRegister(TCA8418_REG_INT_STAT); why, won't it just
   // loose events??
+
+  // process keys
+  KeyPressAbstract::KeyEvent event;
+  BaseType_t higherPriorityTaskAwoke;
+  unsigned long timeNow = millis();
+  for (uint16_t index = 0; index < (KEYPAD_ROWS * KEYPAD_COLS); index++) {
+    if (keyStates[index].isPressed != keyStates[index].wasPressed) {
+      // change of state
+      event.mId = Keys::CharKeyToKeyId(indexToChar[index]);
+      if (keyStates[index].isPressed) {
+        keyStates[index].longSent = false;
+        event.mType = KeyPressAbstract::KeyEvent::Type::Press;
+        xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+      } else {
+        event.mType = KeyPressAbstract::KeyEvent::Type::Release;
+        xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+        if (timeNow - keyStates[index].firstPressedTime < 500) {
+          event.mType = KeyPressAbstract::KeyEvent::Type::Short;
+          xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+        }
+      }
+      keyStates[index].wasPressed = keyStates[index].isPressed;
+    } else {
+      if (keyStates[index].isPressed) {  // no change but still pressed
+        if (timeNow - keyStates[index].lastRepeatedTime > 200) {
+          // time to repeat
+          keyStates[index].lastRepeatedTime = timeNow;
+          event.mId = Keys::CharKeyToKeyId(indexToChar[index]);
+          event.mType = KeyPressAbstract::KeyEvent::Type::Repeat;
+          xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+        }
+        if ((timeNow - keyStates[index].firstPressedTime >= 500) &&
+            !keyStates[index].longSent) {
+          // time to repeat
+          keyStates[index].longSent = true;
+          event.mId = Keys::CharKeyToKeyId(indexToChar[index]);
+          event.mType = KeyPressAbstract::KeyEvent::Type::Long;
+          xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+        }
+      }
+    }
+  }
   return keyPressed;
 }
 

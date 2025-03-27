@@ -6,15 +6,6 @@
 #include "Hardware/KeyPressAbstract.hpp"
 #include "omoteconfig.h"
 
-#if defined(OMOTE_HARDWARE_REV5)
-enum keyStateEnum { KEY_IDLE, KEY_PRESSED, KEY_RELEASED };
-struct keyPressDataStruct {
-  unsigned long timestamp = 0;
-  char keyIndex = 0;
-  keyStateEnum keyState = KEY_IDLE;
-};
-#endif
-
 class Keys : public KeyPressAbstract {
  public:
   Keys();
@@ -83,7 +74,20 @@ class Keys : public KeyPressAbstract {
       {'1', KeyId::Aux1},
       {'2', KeyId::Aux2},
       {'3', KeyId::Aux3},
-      {'4', KeyId::Aux4}};
+      {'4', KeyId::Aux4},
+      {'?', KeyId::INVALID},  // no physical key, should not happen
+      // 3661 Extended keyboard codes
+      {'g', KeyId::Guide},
+      {'h', KeyId::Home},
+      {'y', KeyId::Cycle},
+      {'x', KeyId::Exit},
+      {'P', KeyId::Pause},
+      {'T', KeyId::TV},
+      {'S', KeyId::Stream},
+      {'B', KeyId::STB},
+      {'A', KeyId::Audio},
+      {'Y', KeyId::BluRay},
+      {'D', KeyId::DVD}};
 
 #if not defined(OMOTE_HARDWARE_REV5)
   byte rowPins[ROWS] = {SW_A, SW_B, SW_C, SW_D,

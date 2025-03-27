@@ -5,6 +5,7 @@
 #include "lfs.h"
 class LittleFsInterface {
  public:
+  static constexpr auto LFSInstanceNeverCreated = -10;
   struct Config {
     lfs_size_t readSize;
     lfs_size_t progSize;
@@ -18,7 +19,11 @@ class LittleFsInterface {
   virtual ~LittleFsInterface() = default;
 
   void init();
-  virtual lfs *get();
+
+  lfs_t *get() { return &mLfs; }
+
+  bool mount();
+  void unmount();
 
  protected:
   virtual Config getDataFormatConfig() = 0;
@@ -40,54 +45,8 @@ class LittleFsInterface {
                       const void *buffer, lfs_size_t size);
   static int EraseImpl(const lfs_config *c, lfs_block_t block);
   static int SyncImpl(const lfs_config *c);
+
+  bool mMounted = false;
+  lfs_t mLfs;
+  lfs_config mConfig;
 };
-
-inline int LittleFsInterface::ReadImpl(const lfs_config *c, lfs_block_t block,
-                                       lfs_off_t off, void *buffer,
-                                       lfs_size_t size) {
-  if (mInstance) {
-    return mInstance->Read(c, block, off, buffer, size);
-  }
-}
-
-inline int LittleFsInterface::ProgImpl(const lfs_config *c, lfs_block_t block,
-                                       lfs_off_t off, const void *buffer,
-                                       lfs_size_t size) {
-  if (mInstance) {
-    return mInstance->Prog(c, block, off, buffer, size);
-  }
-}
-
-inline int LittleFsInterface::EraseImpl(const lfs_config *c,
-                                        lfs_block_t block) {
-  if (mInstance) {
-    return mInstance->Erase(c, block);
-  }
-}
-
-inline int LittleFsInterface::SyncImpl(const lfs_config *c) {
-  if (mInstance) {
-    return mInstance->Sync(c);
-  }
-}
-
-inline void LittleFsInterface::init() {
-  auto aConfig = getDataFormatConfig();
-
-  const struct lfs_config cfg = {// block device operations
-                                 .read = ReadImpl,
-                                 .prog = ProgImpl,
-                                 .erase = EraseImpl,
-                                 .sync = SyncImpl,
-
-                                 // block device configuration
-                                 .read_size = aConfig.readSize,
-                                 .prog_size = aConfig.progSize,
-                                 .block_size = aConfig.blockSize,
-                                 .block_count = aConfig.blockCount,
-                                 .block_cycles = aConfig.blockCycles,
-                                 .cache_size = aConfig.cacheSize,
-                                 .lookahead_size = aConfig.lookaheadSize
-
-  };
-}

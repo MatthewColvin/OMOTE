@@ -1,0 +1,75 @@
+#include "LittleFsInterface.hpp"
+
+bool LittleFsInterface::mount() {
+  init();
+  int err = lfs_mount(&mLfs, &mConfig);
+  if (err) {
+    // First time mount might fail, try formatting
+    err = lfs_format(&mLfs, &mConfig);
+    if (err) return false;
+
+    err = lfs_mount(&mLfs, &mConfig);
+    if (err) return false;
+  }
+  mMounted = true;
+  return true;
+}
+
+void LittleFsInterface::unmount() {
+  if (mMounted) {
+    lfs_unmount(&mLfs);
+    mMounted = false;
+  }
+}
+
+int LittleFsInterface::ReadImpl(const lfs_config *c, lfs_block_t block,
+                                lfs_off_t off, void *buffer, lfs_size_t size) {
+  if (mInstance) {
+    return mInstance->Read(c, block, off, buffer, size);
+  }
+  return LFSInstanceNeverCreated;
+}
+
+int LittleFsInterface::ProgImpl(const lfs_config *c, lfs_block_t block,
+                                lfs_off_t off, const void *buffer,
+                                lfs_size_t size) {
+  if (mInstance) {
+    return mInstance->Prog(c, block, off, buffer, size);
+  }
+  return LFSInstanceNeverCreated;
+}
+
+int LittleFsInterface::EraseImpl(const lfs_config *c, lfs_block_t block) {
+  if (mInstance) {
+    return mInstance->Erase(c, block);
+  }
+  return LFSInstanceNeverCreated;
+}
+
+int LittleFsInterface::SyncImpl(const lfs_config *c) {
+  if (mInstance) {
+    return mInstance->Sync(c);
+  }
+  return LFSInstanceNeverCreated;
+}
+
+void LittleFsInterface::init() {
+  auto aConfig = getDataFormatConfig();
+
+  const struct lfs_config cfg = {// block device operations
+                                 .read = ReadImpl,
+                                 .prog = ProgImpl,
+                                 .erase = EraseImpl,
+                                 .sync = SyncImpl,
+
+                                 // block device configuration
+                                 .read_size = aConfig.readSize,
+                                 .prog_size = aConfig.progSize,
+                                 .block_size = aConfig.blockSize,
+                                 .block_count = aConfig.blockCount,
+                                 .block_cycles = aConfig.blockCycles,
+                                 .cache_size = aConfig.cacheSize,
+                                 .lookahead_size = aConfig.lookaheadSize
+
+  };
+}

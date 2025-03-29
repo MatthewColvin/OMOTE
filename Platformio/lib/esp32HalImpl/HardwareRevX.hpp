@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "EspStats.hpp"
+#include "Hardware/Littlefs/LittleFsInterface.hpp"
 #include "HardwareAbstract.hpp"
 #include "IRTransceiver.hpp"
 #include "SparkFunLIS3DH.h"
@@ -71,7 +72,7 @@ class HardwareRevX : public HardwareAbstract {
   virtual bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) {return false;};
   virtual void updateBacklightMode(uint16_t lightLevel) {};
   virtual bool fuelGaugeScan(float &soc, float &voltage) {return false;};
- 
+
   bool activityDetection();
   void enterSleep();
   void configIMUInterrupts();
@@ -88,6 +89,7 @@ class HardwareRevX : public HardwareAbstract {
   std::shared_ptr<Battery> mBattery;
   std::shared_ptr<Keys> mKeys;
   std::shared_ptr<Display> mDisplay;
+  std::shared_ptr<LittleFsInterface> mLittleFs;
 
  private:
   std::shared_ptr<wifiHandler> mWifiHandler;

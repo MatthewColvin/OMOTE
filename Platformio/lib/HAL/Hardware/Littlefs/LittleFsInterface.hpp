@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "Hardware/Littlefs/File.hpp"
 #include "lfs.h"
 class LittleFsInterface {
  public:
@@ -18,14 +19,18 @@ class LittleFsInterface {
 
   virtual ~LittleFsInterface() = default;
 
-  void init();
-
   lfs_t *get() { return &mLfs; }
 
   bool mount();
   void unmount();
 
+  File open(std::string aFilePath, int aFlags = LFS_O_RDWR | LFS_O_CREAT) {
+    return File(aFilePath, get(), aFlags);
+  }
+
  protected:
+  void init();
+
   virtual Config getDataFormatConfig() = 0;
 
   virtual int Read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off,

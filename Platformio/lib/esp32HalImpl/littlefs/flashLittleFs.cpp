@@ -12,7 +12,6 @@ FlashLittleFs::FlashLittleFs() : mPartition(nullptr), mMounted(false) {
 std::shared_ptr<FlashLittleFs> FlashLittleFs::getInstance() {
   if (!mInstance) {
     mInstance = std::shared_ptr<LittleFsInterface>(new FlashLittleFs());
-    mInstance->init();
   }
   return std::static_pointer_cast<FlashLittleFs>(mInstance);
 }

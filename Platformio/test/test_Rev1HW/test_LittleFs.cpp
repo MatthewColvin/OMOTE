@@ -101,3 +101,44 @@ TEST_F(TestLittleFs, DirectoryOperations) {
   ASSERT_EQ(lfs_remove(fs->get(), "/testdir/test.txt"), 0);
   ASSERT_EQ(lfs_remove(fs->get(), dirPath), 0);
 }
+
+TEST_F(TestLittleFs, TestWriteReadInterfaceFile) {
+  auto fileName = "/fileInterface.txt";
+  std::string testStr = "This is a string test for the interface API";
+  auto handleOpenError = []() { return; };
+  {
+    auto file = fs->open(fileName, LFS_O_WRONLY | LFS_O_CREAT);
+    ASSERT_TRUE(file);
+    file ? file.write(testStr) : handleOpenError();
+    ASSERT_TRUE(file);
+  }  // file closes on scope end
+  {
+    auto file = fs->open(fileName, LFS_O_RDONLY);
+    ASSERT_TRUE(file);
+    auto valOutOfFlash = file.read(testStr.length());
+    ASSERT_TRUE(file);
+    ASSERT_EQ(valOutOfFlash, testStr);
+  }
+  {
+    auto file = fs->open(fileName, LFS_O_RDONLY);
+    ASSERT_TRUE(file);
+    auto valOutWithExtraSize = file.read(testStr.length() + 20);
+    ASSERT_TRUE(file);
+    ASSERT_EQ(valOutWithExtraSize, testStr);
+  }
+  {
+    auto firstPart = testStr.substr(0, 4);
+    auto secondPart = testStr.substr(firstPart.length());
+
+    auto file = fs->open(fileName, LFS_O_RDONLY);
+    ASSERT_TRUE(file);
+
+    auto firstInFlash = file.read(firstPart.length());
+    ASSERT_TRUE(file);
+    ASSERT_EQ(firstPart, firstInFlash);
+
+    auto theRestInFlash = file.read(secondPart.length());
+    ASSERT_TRUE(file);
+    ASSERT_EQ(secondPart, theRestInFlash);
+  }
+}

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Hardware/LittleFsInterface.hpp"
+#include "Hardware/Littlefs/LittleFsInterface.hpp"
 #include "esp_partition.h"
 
 class FlashLittleFs : public LittleFsInterface {

@@ -23,6 +23,7 @@ class FlashLittleFs : public LittleFsInterface {
   const esp_partition_t *mPartition;
   bool mMounted;
 
+  // Tightly coupled to the Rev1Partitions for setup.
   static constexpr const char *PARTITION_LABEL = "storage";
   static constexpr size_t READ_SIZE = 16;
   static constexpr size_t PROG_SIZE = 16;

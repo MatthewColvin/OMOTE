@@ -46,6 +46,7 @@ class HardwareRevX : public HardwareAbstract {
   virtual std::shared_ptr<IRInterface> ir() override;
   virtual std::shared_ptr<SystemStatsInterface> stats() override;
   virtual std::shared_ptr<webSocketInterface> webSocket() override;
+  virtual std::shared_ptr<LittleFsInterface> getLittleFS() override;
 
   virtual std::chrono::milliseconds execTime() override;
 

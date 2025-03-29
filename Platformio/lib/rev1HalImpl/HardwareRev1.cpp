@@ -1,11 +1,13 @@
 #include "HardwareRev1.hpp"
 
 #include "Rev1PinDefs.h"
+#include "littlefs/flashLittleFs.hpp"
 #include "omoteconfig.h"
 
 void HardwareRev1::init() {
   HardwareRevX::init();
   mKeys = std::make_shared<Keys>();
+  mLittleFs = FlashLittleFs::getInstance();
 }
 
 void HardwareRev1::initIO() {

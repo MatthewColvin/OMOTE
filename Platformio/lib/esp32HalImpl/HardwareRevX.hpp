@@ -90,6 +90,7 @@ class HardwareRevX : public HardwareAbstract {
   std::shared_ptr<Battery> mBattery;
   std::shared_ptr<Keys> mKeys;
   std::shared_ptr<Display> mDisplay;
+  std::shared_ptr<LittleFsInterface> mLittleFs;
 
  private:
   std::shared_ptr<wifiHandler> mWifiHandler;

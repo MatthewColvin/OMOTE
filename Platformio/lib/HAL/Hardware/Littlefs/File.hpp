@@ -37,7 +37,7 @@ class File {
     return bytesRead > 0 ? readData : "";
   }
 
-  void write(std::string &aStringToWrite) {
+  void write(const std::string &aStringToWrite) {
     auto bytesWritten = lfs_file_write(mLfs, &mFile, aStringToWrite.c_str(),
                                        aStringToWrite.length());
     if (bytesWritten != aStringToWrite.length()) {

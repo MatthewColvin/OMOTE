@@ -8,7 +8,7 @@
 #include "Hardware/DisplayAbstract.h"
 #include "Hardware/IRInterface.h"
 #include "Hardware/KeyPressAbstract.hpp"
-#include "Hardware/LittleFsInterface.hpp"
+#include "Hardware/Littlefs/LittleFsInterface.hpp"
 #include "Hardware/SystemStatsInterface.h"
 #include "Hardware/websockets/webSocketInterface.hpp"
 #include "Hardware/wifiHandlerInterface.h"

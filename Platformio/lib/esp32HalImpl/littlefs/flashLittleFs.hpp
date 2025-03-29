@@ -27,8 +27,8 @@ class FlashLittleFs : public LittleFsInterface {
   static constexpr size_t READ_SIZE = 16;
   static constexpr size_t PROG_SIZE = 16;
   static constexpr size_t BLOCK_SIZE = 4096;
-  static constexpr size_t BLOCK_COUNT = 256;  // 1MB partition
-  static constexpr size_t CACHE_SIZE = 256;
+  static constexpr size_t BLOCK_COUNT = 512;  // 2MB partition
+  static constexpr size_t CACHE_SIZE = 512;  // Increased for better performance
   static constexpr size_t LOOKAHEAD_SIZE = 128;
   static constexpr int32_t BLOCK_CYCLES = 500;
 };

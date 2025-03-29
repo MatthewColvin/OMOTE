@@ -1,7 +1,9 @@
 #include "LittleFsInterface.hpp"
 
 bool LittleFsInterface::mount() {
-  init();
+  if (!mInited) {
+    init();
+  }
   int err = lfs_mount(&mLfs, &mConfig);
   if (err) {
     // First time mount might fail, try formatting
@@ -55,21 +57,15 @@ int LittleFsInterface::SyncImpl(const lfs_config *c) {
 
 void LittleFsInterface::init() {
   auto aConfig = getDataFormatConfig();
-
-  const struct lfs_config cfg = {// block device operations
-                                 .read = ReadImpl,
-                                 .prog = ProgImpl,
-                                 .erase = EraseImpl,
-                                 .sync = SyncImpl,
-
-                                 // block device configuration
-                                 .read_size = aConfig.readSize,
-                                 .prog_size = aConfig.progSize,
-                                 .block_size = aConfig.blockSize,
-                                 .block_count = aConfig.blockCount,
-                                 .block_cycles = aConfig.blockCycles,
-                                 .cache_size = aConfig.cacheSize,
-                                 .lookahead_size = aConfig.lookaheadSize
-
-  };
+  mConfig.read = ReadImpl;
+  mConfig.prog = ProgImpl;
+  mConfig.erase = EraseImpl;
+  mConfig.sync = SyncImpl;
+  mConfig.read_size = aConfig.readSize;
+  mConfig.prog_size = aConfig.progSize;
+  mConfig.block_size = aConfig.blockSize;
+  mConfig.block_count = aConfig.blockCount;
+  mConfig.block_cycles = aConfig.blockCycles;
+  mConfig.cache_size = aConfig.cacheSize;
+  mConfig.lookahead_size = aConfig.lookaheadSize;
 }

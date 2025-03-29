@@ -46,7 +46,8 @@ class LittleFsInterface {
   static int EraseImpl(const lfs_config *c, lfs_block_t block);
   static int SyncImpl(const lfs_config *c);
 
+  bool mInited = false;
   bool mMounted = false;
-  lfs_t mLfs;
-  lfs_config mConfig;
+  lfs_t mLfs{0};
+  lfs_config mConfig{0};
 };

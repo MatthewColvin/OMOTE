@@ -1,8 +1,9 @@
-# Magic import line found on https://docs.platformio.org/en/latest/scripting/actions.html
-Import("env")
 import SCons
 import SCons.Environment
 import subprocess
+
+from SCons.Script import DefaultEnvironment
+env = DefaultEnvironment()
 
 buildEnv : SCons.Environment.Base = env
 
@@ -61,17 +62,19 @@ def PrintInfo():
     print("Detected Platform:", buildEnv["PLATFORM"])
     print('')
 
-def before_upload(source, target, env):
-    print("before_upload")
 
-def after_upload(source, target, env):
-    print("after_upload")
-
-# Custom actions when launching simulator
-buildEnv.AddPreAction("upload", before_upload)
-buildEnv.AddPostAction("upload", after_upload)
-
+def remove_espLittleFsLib():
+    """
+    Remove espLittleFsLib from the build environment if it exists.
+    This is a workaround to avoid conflicts with the LittleFS library.
+    """
+    lib = "-lesp_littlefs"
+    if lib in buildEnv.get('LIBS', []):
+        buildEnv['LIBS'].remove(lib)
+        print(f"Removed {lib} from LIBS to avoid conflicts.")
+        print('')
 
 PrintInfo()
 EnsureSubmoduleCheckout()
 verifyDependencies()
+remove_espLittleFsLib()

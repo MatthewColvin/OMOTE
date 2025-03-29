@@ -25,7 +25,8 @@ void wifiHandler::WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t aEventInfo) {
       for (int i = 0; i < no_networks; i++) {
         auto ssid = WiFi.SSID(i).c_str() ? std::string(WiFi.SSID(i).c_str())
                                          : "No SSID";
-        info[i] = WifiInfo(ssid, WiFi.RSSI(i));
+        bool isConnected = (WiFi.isConnected() && (WiFi.SSID()==WiFi.SSID(i)))?true:false;
+        info[i] = WifiInfo(ssid, WiFi.RSSI(i), isConnected);
       }
       mScanNotification->notify(info);
       if (WiFi.isConnected() == false) {

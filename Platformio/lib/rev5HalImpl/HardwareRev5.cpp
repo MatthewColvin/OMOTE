@@ -11,7 +11,6 @@ void HardwareRev5::init() {
 
   mKeys = std::make_shared<Keys>(mKeysQueueHandle);
   setupKeyboard();
-  setupFuelGauge();
 #ifdef OMOTE_KEYBRD_3661
   setupLightSensor();
 #endif
@@ -88,16 +87,6 @@ void HardwareRev5::updateBacklightMode(uint16_t lightLevel) {
     }
   }
 #endif
-}
-
-void HardwareRev5::setupFuelGauge() {
-  if (!fuelGauge.begin()) Serial.println("Couldn't find MAX17048 sensor!");
-}
-
-bool HardwareRev5::fuelGaugeScan(float &soc, float &voltage) {
-  voltage = fuelGauge.getVoltage();
-  soc = fuelGauge.getSOC();
-  return true;
 }
 
 struct keyState {

@@ -23,6 +23,7 @@ class ID {
     BrightnessSlider,
     Joystick,
     Arc,
+    StatusBar,
     INVALID_WIDGET_ID
   };
 
@@ -31,6 +32,7 @@ class ID {
     DisplaySettings,
     WifiSettings,
     SystemSettings,
+    MqttSettings,
     IrLearner,
     Demo,
     Tv,

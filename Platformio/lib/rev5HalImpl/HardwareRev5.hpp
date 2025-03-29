@@ -18,20 +18,15 @@ class HardwareRev5 : public HardwareRevX {
   void sleepDisplayPins() override;
 
   void setupKeyboard();
-  void setupFuelGauge();
 
   void setupLightSensor();
 
   bool keyboardScan() override;
   bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) override;
   void updateBacklightMode(uint16_t lightLevel) override;
-  bool fuelGaugeScan(float &soc, float &voltage) override;
 
   // keypad scanning
   Adafruit_TCA8418 keypad;
-
-  //  Battery gas gauge
-  SFE_MAX1704X fuelGauge = SFE_MAX1704X(MAX1704X_MAX17048);
 
 #if defined(OMOTE_KEYBRD_3661)
   // light sensor

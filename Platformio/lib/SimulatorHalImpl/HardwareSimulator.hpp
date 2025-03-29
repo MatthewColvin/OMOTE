@@ -15,7 +15,7 @@ class HardwareSimulator : public HardwareAbstract {
   HardwareSimulator();
 
   void init() override {};
-  void loopHandler() override {};
+  void loopHandler() override;
 
   void debugPrint(const char *fmt, ...) override {
     va_list arguments;

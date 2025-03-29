@@ -29,6 +29,7 @@
 #define SDA 1
 
 #define CRG_STAT 8
+#define ADC_BAT -1 //not usde, needed to keep common battery constructor
 
 #define ACC_INT 5
 #define TCA_INT 4

@@ -235,7 +235,7 @@ void Display::getTouchData() {
 
 void Display::screenInput(lv_indev_t *indev, lv_indev_data_t *data) {
   if (mHaveTouch) {
-    mHaveTouch = false;
+    //mHaveTouch = false;
     data->state = LV_INDEV_STATE_PRESSED;
     data->point.x = mTouchX;
     data->point.y = mTouchY;

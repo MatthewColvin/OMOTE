@@ -19,8 +19,8 @@ void wifiHandlerSim::connect(std::string ssid, std::string password) {
 }
 
 static const WifiInfo wifis[] = {
-    WifiInfo("High Signal Wifi", -49), WifiInfo("Mid Signal Wifi", -55),
-    WifiInfo("Low Signal Wifi", -65), WifiInfo("No Signal Wifi", -90)};
+    WifiInfo("High Signal Wifi", -49, false), WifiInfo("Mid Signal Wifi", -55, true),
+    WifiInfo("Low Signal Wifi", -65, false), WifiInfo("No Signal Wifi", -90, false)};
 
 void wifiHandlerSim::scan() {
   if (mFakeScanThread.joinable()) {

@@ -17,11 +17,12 @@ HardwareSimulator::HardwareSimulator()
       std::stringstream title;
       switch (dataToShow) {
         case 0:
-          title << "Batt:" << mBattery->getPercentage() << "%" << std::endl;
+          //title << "Batt:" << mBattery->getPercentage() << "%" << std::endl;
+          //dataToShow = -1;
           break;
         case 1:
-          title << "BKLght: " << static_cast<int>(mDisplay->getBrightness())
-                << std::endl;
+          //title << "BKLght: " << static_cast<int>(mDisplay->getBrightness())
+          //      << std::endl;
           dataToShow = -1;
           break;
         default:
@@ -34,6 +35,8 @@ HardwareSimulator::HardwareSimulator()
     }
   });
 }
+
+void HardwareSimulator::loopHandler() { mBattery->getPercentage(); }
 
 std::shared_ptr<BatteryInterface> HardwareSimulator::battery() {
   return mBattery;

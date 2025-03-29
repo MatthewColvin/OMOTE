@@ -4,6 +4,7 @@
 #include "IRTransceiver.hpp"
 #include "display.hpp"
 #include "esp32WebSocket.hpp"
+#include "observerHandles.hpp"
 #include "wifihandler.hpp"
 
 void HardwareRevX::initIO() {
@@ -69,6 +70,8 @@ void HardwareRevX::init() {
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>();
 
+  mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
+
   restorePreferences();
   standbyTimer = getSleepTimeout();
 
@@ -78,6 +81,10 @@ void HardwareRevX::init() {
   };
 
   setupIMU();
+
+  UI::observerHandles::registerTextHandle(BATT_STATUS, OBSERVER_BUF_SIZE, "");
+  UI::observerHandles::registerTextHandle(WIFI_STATUS, OBSERVER_BUF_SIZE, "");
+  UI::observerHandles::registerIntHandle(SOC_STATUS, 0);
 
   debugPrint("Finished RevX Hardware Setup in %dms", millis());
 }
@@ -336,20 +343,43 @@ void HardwareRevX::loopHandler() {
     if (keyboardScan()) standbyTimer = sleepTimeout;
 
     uint16_t visPlusIrLevel, irLevel;
-    if(lightSensorScan(visPlusIrLevel, irLevel)) {
-      //Serial.printf("ll:%d\r\n", irLevel);
+    if (lightSensorScan(visPlusIrLevel, irLevel)) {
+      // Serial.printf("ll:%d\r\n", irLevel);
       updateBacklightMode(irLevel);
     }
 
-    float soc, voltage;
-    fuelGaugeScan(soc, voltage);
+    mDisplay->getTouchData();  // trigger read here to keep all I2C accesses
+                               // together
 
-    mDisplay->getTouchData(); //trigger read here to keep all I2C accesses together
-
-    static uint16_t secCount = 0;
-    if(secCount++ >= 40) {
+    static uint16_t secCount = 20;  // update immediately on power up
+    if (secCount++ >= 20) {
       secCount = 0;
-      //Serial.printf("IR:%d, V+IR:%d, SOC:%.0f, Volts:%.2f\r\n",irLevel, visPlusIrLevel, soc, voltage);
+      int32_t iSoc = mBattery->getPercentage();
+      if (iSoc > 99) iSoc = 99;
+      UI::observerHandles::setInt(SOC_STATUS, iSoc);
+
+      if(mBattery->isConnected())
+        UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_USB);
+      else {
+        if (iSoc < 13)
+          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_EMPTY);
+        else if (iSoc < 38)
+          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_1);
+        else if (iSoc < 63)
+          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_2);
+        else if (iSoc < 88)
+          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_3);
+        else
+          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_FULL);
+      }
+
+      wifiHandlerInterface::wifiStatus wifiStatus = mWifiHandler->GetStatus();
+      if (wifiStatus.isConnected)
+        UI::observerHandles::setText(WIFI_STATUS, LV_SYMBOL_WIFI);
+      else
+        UI::observerHandles::setText(WIFI_STATUS, "");
+      // Serial.printf("IR:%d, V+IR:%d, SOC:%.0f, Volts:%.2f\r\n",irLevel,
+      // visPlusIrLevel, soc, voltage);
     }
 
     if (standbyTimer == 0) {

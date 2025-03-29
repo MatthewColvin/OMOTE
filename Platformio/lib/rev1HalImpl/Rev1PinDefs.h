@@ -35,7 +35,7 @@
 
 #define SCL 22
 #define SDA 19
-#define ACC_INT 20
+#define ACC_INT 13
 
 #define CRG_STAT 21  // battery charger feedback
 

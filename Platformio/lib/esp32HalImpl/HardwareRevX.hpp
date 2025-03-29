@@ -8,7 +8,6 @@
 #include <memory>
 
 #include "EspStats.hpp"
-#include "Hardware/Littlefs/LittleFsInterface.hpp"
 #include "HardwareAbstract.hpp"
 #include "IRTransceiver.hpp"
 #include "SparkFunLIS3DH.h"
@@ -20,7 +19,6 @@
 #include "wifihandler.hpp"
 #if defined(OMOTE_HARDWARE_REV5)
 #include <Adafruit_TCA8418.h>
-#include <SparkFun_MAX1704x_Fuel_Gauge_Arduino_Library.h>
 #if defined(OMOTE_KEYBRD_3661)
 #include <Adafruit_LTR329_LTR303.h>
 
@@ -28,6 +26,8 @@
 #include "Touch_FT5x26.h"
 #endif
 #endif
+
+#define OBSERVER_BUF_SIZE 10
 
 class HardwareRevX : public HardwareAbstract {
  public:
@@ -68,10 +68,11 @@ class HardwareRevX : public HardwareAbstract {
   void restorePreferences();
   void setupIMU();
 
-  virtual bool keyboardScan() {return false;};
-  virtual bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) {return false;};
+  virtual bool keyboardScan() { return false; };
+  virtual bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) {
+    return false;
+  };
   virtual void updateBacklightMode(uint16_t lightLevel) {};
-  virtual bool fuelGaugeScan(float &soc, float &voltage) {return false;};
 
   bool activityDetection();
   void enterSleep();
@@ -89,7 +90,6 @@ class HardwareRevX : public HardwareAbstract {
   std::shared_ptr<Battery> mBattery;
   std::shared_ptr<Keys> mKeys;
   std::shared_ptr<Display> mDisplay;
-  std::shared_ptr<LittleFsInterface> mLittleFs;
 
  private:
   std::shared_ptr<wifiHandler> mWifiHandler;

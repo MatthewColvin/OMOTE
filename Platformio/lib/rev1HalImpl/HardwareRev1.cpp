@@ -6,7 +6,6 @@
 void HardwareRev1::init() {
   HardwareRevX::init();
   mKeys = std::make_shared<Keys>();
-  mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
 }
 
 void HardwareRev1::initIO() {

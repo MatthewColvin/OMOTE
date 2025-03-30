@@ -1,5 +1,6 @@
 #include "StatusBar.hpp"
 
+#include "ActiveDeviceList.hpp"
 #include "Colors.hpp"
 #include "PopUpScreen.hpp"
 #include "ScreenBase.hpp"
@@ -9,8 +10,9 @@
 
 namespace UI::Widget {
 
-StatusBar::StatusBar()
+StatusBar::StatusBar(ActiveDevices &aActiveDevices)
     : Base(ID::Widgets::StatusBar),
+      mActiveDevices(aActiveDevices),
       mTopBarBatteryLabel(AddNewElement<Widget::Label>("")),
       mTopBarWiFiLabel(AddNewElement<Widget::Label>("")),
       mTopBarSOCLabel(AddNewElement<Widget::Label>("--%")),
@@ -56,6 +58,9 @@ void StatusBar::SettingsPress() {
       std::make_unique<Page::SettingsPage>(), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
 }
 
-void StatusBar::ActiveListPress() {}
+void StatusBar::ActiveListPress() {
+  UI::Screen::Manager::getInstance().pushPopUp(
+      std::make_unique<Page::ActiveDeviceList>(mActiveDevices), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
+}
 
-}  // namespace UI::Widget
+} // namespace UI::Widget

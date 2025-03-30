@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ActiveDevices.hpp"
 #include "Button.hpp"
 #include "Label.hpp"
 #include "WidgetBase.hpp"
@@ -11,11 +12,13 @@ class StatusBar : public Base {
   static constexpr auto Height = 0.0625f * SCREEN_HEIGHT;
   static constexpr lv_opa_t Transparency = LV_OPA_20;
 
-  StatusBar();
+  StatusBar(ActiveDevices &aActiveDevices);
 
  private:
   void SettingsPress();
   void ActiveListPress();
+
+  ActiveDevices &mActiveDevices;
 
   Widget::Button *mTopBarSettingsButton;
   Widget::Button *mTopBarActiveListButton;

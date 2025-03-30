@@ -10,10 +10,10 @@
 
 using namespace UI::Screen;
 
-HomeScreen::HomeScreen(ActiveDevices& aActiveDevices)
+HomeScreen::HomeScreen(ActiveDevices &aActiveDevices)
     : Base(UI::ID::Screens::Home),
       mActiveDevices(aActiveDevices),
-      mStatusBar(AddNewElement<Widget::StatusBar>()),
+      mStatusBar(AddNewElement<Widget::StatusBar>(aActiveDevices)),
       mTabView(AddNewElement<Page::TabView>(ID(ID::Pages::INVALID_PAGE_ID))) {
   SetBgColor(UI::Color::BLACK);
   SetPushAnimation(LV_SCR_LOAD_ANIM_FADE_IN);

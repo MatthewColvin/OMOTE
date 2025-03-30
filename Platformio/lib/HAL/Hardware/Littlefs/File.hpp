@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <string>
 
@@ -27,7 +28,7 @@ class File {
 
   std::string read(size_t aMaxReadSize) {
     auto totalSize = lfs_file_size(mLfs, &mFile);
-    auto sizeToFileEnd = totalSize - mFile.pos;
+    size_t sizeToFileEnd = totalSize - mFile.pos;
     auto readSize = std::min(aMaxReadSize, sizeToFileEnd);
 
     std::string readData;

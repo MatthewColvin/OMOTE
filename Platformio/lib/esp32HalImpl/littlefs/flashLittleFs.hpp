@@ -28,7 +28,10 @@ class FlashLittleFs : public LittleFsInterface {
   static constexpr size_t READ_SIZE = 16;
   static constexpr size_t PROG_SIZE = 16;
   static constexpr size_t BLOCK_SIZE = 4096;
-  static constexpr size_t BLOCK_COUNT = 512;  // 2MB partition
+  // (475blocks * 4096bytes / 1024bytes) = 1900k size in Partitions file
+  // Used one Less block because bumping right up to the
+  // coredump was causing the coredumps to fail
+  static constexpr size_t BLOCK_COUNT = 474;
   static constexpr size_t CACHE_SIZE = 512;  // Increased for better performance
   static constexpr size_t LOOKAHEAD_SIZE = 128;
   static constexpr int32_t BLOCK_CYCLES = 500;

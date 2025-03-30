@@ -14,10 +14,12 @@ class Request;
 
 class Session : public ISession {
  public:
-  Session(std::unique_ptr<Request> aRequest,
+  Session(std::unique_ptr<Request> aStartRequest,
+          std::unique_ptr<Request> aEndRequest = nullptr,
           std::shared_ptr<MessageHandler> aMessageHandler = nullptr,
           std::shared_ptr<Json::IChunkProcessor> aChunkProcessor = nullptr);
 
+  std::unique_ptr<Request> GetStartRequest() override;
   Request* BorrowStartRequest() override;
   Request* BorrowEndRequest() override;
 

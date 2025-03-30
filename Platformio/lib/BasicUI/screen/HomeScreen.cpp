@@ -10,8 +10,9 @@
 
 using namespace UI::Screen;
 
-HomeScreen::HomeScreen()
+HomeScreen::HomeScreen(ActiveDevices& aActiveDevices)
     : Base(UI::ID::Screens::Home),
+      mActiveDevices(aActiveDevices),
       mStatusBar(AddNewElement<Widget::StatusBar>()),
       mTabView(AddNewElement<Page::TabView>(ID(ID::Pages::INVALID_PAGE_ID))) {
   SetBgColor(UI::Color::BLACK);

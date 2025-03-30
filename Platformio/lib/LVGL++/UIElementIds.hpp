@@ -24,6 +24,9 @@ class ID {
     Joystick,
     Arc,
     StatusBar,
+    MainTopBar,
+    LED,
+    Image,
     INVALID_WIDGET_ID
   };
 
@@ -38,6 +41,7 @@ class ID {
     Tv,
     CarController,
     HomeAssistDeviceList,
+    ActiveDeviceList,
     INVALID_PAGE_ID
   };
 

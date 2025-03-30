@@ -1,9 +1,9 @@
 #pragma once
-#include "Notification.hpp"
-
 #include <memory>
+
+#include "Notification.hpp"
 class KeyPressAbstract {
-public:
+ public:
   // Keys from Top Down left to right.
   enum class KeyId {
     Power,
@@ -51,11 +51,14 @@ public:
   };
 
   class KeyEvent {
-  public:
+   public:
     enum class Type { Press, Release, Repeat, Short, Long, INVALID };
 
     KeyEvent() = default;
     KeyEvent(const KeyId aId, const Type aType) : mId(aId), mType(aType) {}
+
+    inline bool isPress() { return mType == Type::Press; }
+    inline bool isKey(KeyId aKeyId) { return mId == aKeyId; }
 
     KeyId mId = KeyId::INVALID;
     Type mType = Type::INVALID;
@@ -67,7 +70,7 @@ public:
   /// @param aKeyEventHandler - Callable the Handles KeyEvent
   void RegisterKeyPressHandler(std::function<bool(KeyEvent)> aKeyEventHandler);
 
-protected:
+ protected:
   /// @brief Function ment to be called regularly to allow
   ///        proccesssing of key presses by calling mKeyEventHandler
   ///        best case this is done on a seprate thread/task

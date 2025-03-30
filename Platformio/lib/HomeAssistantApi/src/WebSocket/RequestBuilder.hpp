@@ -89,16 +89,20 @@ class TriggerBuilder {
   }
 
   TriggerBuilder& SetFromState(const std::string& aFrom) {
-    mTrigger.AddMember("from",
-                       MemConciousValue().SetString(aFrom.c_str(), mAllocator),
-                       mAllocator);
+    if (!aFrom.empty()) {
+      mTrigger.AddMember(
+          "from", MemConciousValue().SetString(aFrom.c_str(), mAllocator),
+          mAllocator);
+    }
     return *this;
   }
 
   TriggerBuilder& SetToState(const std::string& aTo) {
-    mTrigger.AddMember("to",
-                       MemConciousValue().SetString(aTo.c_str(), mAllocator),
-                       mAllocator);
+    if (!aTo.empty()) {
+      mTrigger.AddMember("to",
+                         MemConciousValue().SetString(aTo.c_str(), mAllocator),
+                         mAllocator);
+    }
     return *this;
   }
 
@@ -119,6 +123,7 @@ class RequestBuilder {
   RequestBuilder& AddField(const std::string& aKey, const std::string& aValue);
   RequestBuilder& AddField(const std::string& aKey, int aValue);
   RequestBuilder& AddField(const std::string& aKey, bool aValue);
+  RequestBuilder& AddTargetEntity(const std::string& aEntityId);
   RequestBuilder& AddTrigger(
       std::function<void(TriggerBuilder&)> aTriggerBuilder);
 
@@ -126,7 +131,7 @@ class RequestBuilder {
   Request Build();  // keep original for backward compatibility
 
   static std::unique_ptr<Request> CreateTriggerSubscription(
-      int aId, const std::string& aEntityId, const std::string& aFrom,
+      const std::string& aEntityId, const std::string& aFrom,
       const std::string& aTo);
 
  private:
@@ -171,6 +176,18 @@ inline RequestBuilder& RequestBuilder::AddField(const std::string& aKey,
   return *this;
 }
 
+inline RequestBuilder& RequestBuilder::AddTargetEntity(
+    const std::string& aEntityId) {
+  MemConciousValue targetEntity;
+  targetEntity.SetString(aEntityId.c_str(), mAllocator);
+
+  MemConciousValue targetObject;
+  targetObject.SetObject();
+  targetObject.AddMember("entity_id", targetEntity, mAllocator);
+  mDocument.AddMember("target", targetObject, mAllocator);
+  return *this;
+}
+
 inline RequestBuilder& RequestBuilder::AddTrigger(
     std::function<void(TriggerBuilder&)> aTriggerBuilder) {
   TriggerBuilder builder(mAllocator);
@@ -186,11 +203,11 @@ inline std::unique_ptr<Request> RequestBuilder::BuildUnique() {
 inline Request RequestBuilder::Build() { return Request(std::move(mDocument)); }
 
 inline std::unique_ptr<Request> RequestBuilder::CreateTriggerSubscription(
-    int aId, const std::string& aEntityId, const std::string& aFrom,
+    const std::string& aEntityId, const std::string& aFrom,
     const std::string& aTo) {
   return RequestBuilder()
       .SetType(RequestTypes::SUBSCRIBE_TRIGGER)
-      .SetId(aId)
+      .SetId(0)  // Id set by API
       .AddTrigger([&](TriggerBuilder& builder) {
         builder.SetPlatform("state")
             .SetEntityId(aEntityId)

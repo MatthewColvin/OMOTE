@@ -16,7 +16,7 @@ static std::map<std::string, Message::Type> typeMap = {
     {"event", Message::Type::event},
     {"result", Message::Type::result}};
 
-Message::Message(const MemConciousDocument &aMessageJson) {
+Message::Message(const MemConsciousDocument &aMessageJson) {
   SaveBasicInfo(aMessageJson);
   switch (mType) {
   case Type::event:
@@ -30,7 +30,7 @@ Message::Message(const MemConciousDocument &aMessageJson) {
 
 Message::~Message() {};
 
-void Message::SaveBasicInfo(const MemConciousDocument &aMessageJson) {
+void Message::SaveBasicInfo(const MemConsciousDocument &aMessageJson) {
   if (aMessageJson.HasMember("id") && aMessageJson["id"].IsInt()) {
     mId = aMessageJson["id"].GetInt();
   }
@@ -43,7 +43,7 @@ void Message::SaveBasicInfo(const MemConciousDocument &aMessageJson) {
   }
 }
 
-void Message::SaveStateInfo(const MemConciousDocument &aMessageJson) {
+void Message::SaveStateInfo(const MemConsciousDocument &aMessageJson) {
   if (auto oldStateVal = GetNestedField(
           aMessageJson, {"event", "variables", "trigger", "from_state"});
       oldStateVal) {
@@ -56,7 +56,7 @@ void Message::SaveStateInfo(const MemConciousDocument &aMessageJson) {
   }
 }
 
-void Message::SaveResultInfo(const MemConciousDocument &aMessageJson) {
+void Message::SaveResultInfo(const MemConsciousDocument &aMessageJson) {
   if (aMessageJson.HasMember("result") && aMessageJson["result"].IsArray()) {
     const auto &resultArray = aMessageJson["result"].GetArray();
     for (const auto &item : resultArray) {

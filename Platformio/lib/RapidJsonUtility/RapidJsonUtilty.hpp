@@ -10,7 +10,7 @@ using BigMessageHandle = rapidjson::BaseReaderHandler<>;
 
 class MemConciousAllocator;
 
-using MemConciousDocument =
+using MemConsciousDocument =
     rapidjson::GenericDocument<rapidjson::UTF8<>, MemConciousAllocator>;
 using MemConciousValue =
     rapidjson::GenericValue<rapidjson::UTF8<>, MemConciousAllocator>;
@@ -38,6 +38,6 @@ std::string ToPrettyString(rapidjson::Document &aDoc);
 const MemConciousValue *GetNestedField(const MemConciousValue &aValue,
                                        const std::vector<std::string> &aFields);
 
-MemConciousDocument GetDocument(const std::string &aStringToParse);
+MemConsciousDocument GetDocument(const std::string &aStringToParse);
 
-std::string ToString(const MemConciousDocument &aDoc);
+std::string ToString(const MemConsciousDocument &aDoc);

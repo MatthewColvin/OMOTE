@@ -286,7 +286,7 @@ void HardwareRevX::configIMUInterrupts() {
 }
 
 void HardwareRevX::configIMUInterruptPolarity() {
-  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x02);  // For active-low interrupt
+  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x00);  // For active-high interrupt
 }
 
 void HardwareRevX::restorePreferences() {
@@ -362,7 +362,7 @@ void HardwareRevX::loopHandler() {
       if (iSoc > 99) iSoc = 99;
       UI::observerHandles::setInt(SOC_STATUS, iSoc);
 
-      if(mBattery->isConnected())
+      if (mBattery->isConnected())
         UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_USB);
       else {
         if (iSoc < 13)

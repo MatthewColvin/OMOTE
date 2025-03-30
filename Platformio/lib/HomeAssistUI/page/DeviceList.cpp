@@ -2,6 +2,7 @@
 
 #include "AddDevice.hpp"
 #include "HardwareFactory.hpp"
+#include "HomeAssistDevices/HomeAssistDeviceFactory.hpp"
 #include "HomeAssistDevices/Light.hpp"
 #include "List.hpp"
 #include "Roller.hpp"
@@ -69,19 +70,8 @@ bool DeviceList::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
 }
 
 void DeviceList::StoreEntity(const std::string &aEntity) {
-  constexpr auto lightStr = "light";
-  size_t dotPos = aEntity.find('.');
-  std::string prefix =
-      (dotPos != std::string::npos) ? aEntity.substr(0, dotPos) : aEntity;
-
-  auto knownTypeIt = PrefixToType.find(prefix);
-  auto isKnownType = knownTypeIt != PrefixToType.end();
-  if (isKnownType) {
-    const auto entityType = knownTypeIt->second;
-    mEntityMap[entityType].push_back(aEntity);
-  } else {
-    mEntityMap[EntityType::Other].push_back(aEntity);
-  }
+  auto type = HomeAssist::HomeAssistDeviceFactory::GetType(aEntity);
+  mEntityMap[type].push_back(aEntity);
 }
 
 void DeviceList::HandleDevicesQueryComplete(
@@ -113,13 +103,7 @@ void DeviceList::AddEntityTypeListItem(
     auto entityListPage = std::make_unique<AddDevice>(
         mActiveDevices, aEntities,
         [aEntityType, this](const auto &aName) -> IDevice::Ptr {
-          using namespace HomeAssist::Device;
-          switch (aEntityType) {
-          case EntityType::Light:
-            return std::make_shared<Light>(aName, mApi);
-          default:
-            return nullptr;
-          }
+          return HomeAssist::HomeAssistDeviceFactory::Create(aName, mApi);
         });
 
     UI::Screen::Manager::getInstance().pushPopUp(std::move(entityListPage));

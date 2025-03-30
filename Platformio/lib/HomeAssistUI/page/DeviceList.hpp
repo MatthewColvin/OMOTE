@@ -1,6 +1,7 @@
 #pragma once
 #include "ActiveDevices.hpp"
 #include "Arc.hpp"
+#include "HomeAssistDevices/HomeAssistDeviceFactory.hpp"
 #include "PageBase.hpp"
 #include "SessionProcessors/DevicesQueryProcessor.hpp"
 #include "WebSocket/Api.hpp"
@@ -18,15 +19,7 @@ namespace UI::Page {
 
 class DeviceList : public Base {
 public:
-  enum class EntityType : uint8_t {
-    Light,
-    Button,
-    Sensor,
-    BinarySensor,
-    Automation,
-    Switch,
-    Other
-  };
+  using EntityType = HomeAssist::HomeAssistDeviceFactory::EntityType;
 
   DeviceList(HomeAssist::WebSocket::Api &aApi, ActiveDevices &aActiveDevices);
   virtual ~DeviceList() = default;

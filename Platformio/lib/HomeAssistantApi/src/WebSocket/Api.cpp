@@ -10,6 +10,7 @@
 #include "WebSocket/Session/AuthSession.hpp"
 #include "WebSocket/Session/ISession.hpp"
 #include "rapidjson/document.h"
+#include <mutex>
 
 namespace HomeAssist::WebSocket {
 
@@ -110,6 +111,7 @@ void Api::ProcessMessages() {
 }
 
 void Api::CleanUpSessions() {
+  std::lock_guard lock(mSessionMutex);
   for (auto sessionIter = mSessions.begin(); sessionIter != mSessions.end();) {
     if ((*sessionIter).second == nullptr) {
       sessionIter = mSessions.erase(sessionIter);
@@ -138,6 +140,7 @@ void Api::AddSession(std::unique_ptr<ISession> aNewSession) {
   }
   auto newRequestId = mNextRequestId++;
   aNewSession->BorrowStartRequest()->SetId(newRequestId);
+  std::lock_guard lock(mSessionMutex);
   mSessions[newRequestId] = std::move(aNewSession);
 }
 

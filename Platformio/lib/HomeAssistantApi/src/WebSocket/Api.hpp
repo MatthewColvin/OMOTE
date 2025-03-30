@@ -47,6 +47,7 @@ class Api {
   void AttemptConnection(bool aHonorTimeInterval = true);
 
  private:
+  std::recursive_mutex mSessionMutex;
   static constexpr auto NotUsedTime = std::chrono::minutes(10000);
   std::chrono::milliseconds mLastConnectRetry = NotUsedTime;
   std::chrono::milliseconds mConnectionTime = NotUsedTime;

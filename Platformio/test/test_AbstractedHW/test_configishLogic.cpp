@@ -1,14 +1,17 @@
 #include <gtest/gtest.h>
 
 #include "HardwareFactory.hpp"
+#include "littlefs/flashLittleFs.hpp"
 #include "rapidjson/writer.h"
-
 class TestHardwareLittleFs : public ::testing::Test {
 protected:
   void SetUp() override {
     hw = &HardwareFactory::getAbstract();
     ASSERT_TRUE(hw != nullptr);
     fs = hw->getLittleFS();
+    if (fs) {
+      fs->mount();
+    }
     ASSERT_TRUE(fs != nullptr);
   }
 
@@ -48,14 +51,12 @@ TEST_F(TestHardwareLittleFs, AppendToFile) {
   ASSERT_TRUE(file);
   file.write(firstWrite);
   ASSERT_TRUE(file);
-
   // Append more content
   file = fs->open(testPath, LFS_O_WRONLY | LFS_O_APPEND);
   ASSERT_TRUE(file);
   file.write(secondWrite);
   ASSERT_TRUE(file);
-
-  // Read and verify
+  // Reopen to verify content
   file = fs->open(testPath, LFS_O_RDONLY);
   ASSERT_TRUE(file);
   auto readData = file.read(firstWrite.length() + secondWrite.length());
@@ -64,8 +65,9 @@ TEST_F(TestHardwareLittleFs, AppendToFile) {
 }
 
 TEST_F(TestHardwareLittleFs, CreateAndVerifyConfig) {
+
   // Create test config document
-  rapidjson::Document doc;
+  MemConsciousDocument doc;
   doc.SetObject();
   auto &allocator = doc.GetAllocator();
 
@@ -85,13 +87,13 @@ TEST_F(TestHardwareLittleFs, CreateAndVerifyConfig) {
   doc.AddMember("name", "TestDevice", allocator);
   doc.AddMember("version", 1, allocator);
 
-  rapidjson::Value settings(rapidjson::kObjectType);
+  MemConciousValue settings(rapidjson::kObjectType);
   settings.AddMember("enabled", true, allocator);
   settings.AddMember("interval", 1000, allocator);
   settings.AddMember("threshold", 3.14, allocator);
   doc.AddMember("settings", settings, allocator);
 
-  rapidjson::Value tags(rapidjson::kArrayType);
+  MemConciousValue tags(rapidjson::kArrayType);
   tags.PushBack("test", allocator);
   tags.PushBack("debug", allocator);
   doc.AddMember("tags", tags, allocator);
@@ -102,20 +104,22 @@ TEST_F(TestHardwareLittleFs, CreateAndVerifyConfig) {
   rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
   doc.Accept(writer);
 
+  std::string aConfigString(buffer.GetString());
+
   auto file = fs->open(testPath, LFS_O_WRONLY | LFS_O_CREAT);
   ASSERT_TRUE(file);
-  file.write(buffer.GetString());
+  file.write(aConfigString);
   ASSERT_TRUE(file);
 
   // Read and verify
   file = fs->open(testPath, LFS_O_RDONLY);
   ASSERT_TRUE(file);
-  auto readData = file.read(buffer.GetLength());
+  auto readData = file.read(aConfigString.length());
   ASSERT_TRUE(file);
-  EXPECT_EQ(readData, buffer.GetString());
+  EXPECT_EQ(readData, aConfigString);
 
   // Parse and verify content
-  rapidjson::Document readDoc;
+  MemConsciousDocument readDoc;
   readDoc.Parse(readData.c_str());
 
   EXPECT_TRUE(readDoc.HasMember("name"));

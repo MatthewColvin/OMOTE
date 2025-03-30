@@ -2,9 +2,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cstring>
 #include <string>
 
 #include "lfs.h"
+#include <Arduino.h>
 
 class File {
 public:
@@ -12,34 +14,68 @@ public:
 
   File(std::string aFileName, lfs_t *aLfs,
        int aFlags = LFS_O_RDWR | LFS_O_CREAT)
-      : mLfs(aLfs) {
-    mLastStatus = lfs_file_open(mLfs, &mFile, aFileName.c_str(), aFlags);
+      : mLfs(aLfs), mFile(std::make_unique<lfs_file_t>()) {
+    mLastStatus = lfs_file_open(mLfs, mFile.get(), aFileName.c_str(), aFlags);
     mIsOpen = mLastStatus == 0;
   }
 
   // Don't allow copy as then you would could have double close issues
   File(const File &) = delete;
   File &operator=(const File &) = delete;
-  // Moving is fine as then you will be fine with the close
-  File(File &&) = default;
-  File &operator=(File &&) = default;
 
-  virtual ~File() { close(); }
+  // Moving is fine as then you will be fine with the close
+  File(File &&aOther) noexcept
+      : mFile(std::move(aOther.mFile)),
+        mLfs(aOther.mLfs),
+        mLastStatus(aOther.mLastStatus),
+        mIsOpen(aOther.mIsOpen) {
+    // Clear the source object's members WITHOUT closing the file
+    aOther.mLfs = nullptr;
+    aOther.mIsOpen = false;
+  }
+
+  File &operator=(File &&aOther) noexcept {
+    if (this != &aOther) {
+      // Close our current file if we have one
+      close();
+
+      // Take ownership of the other file's members
+      mFile = std::move(aOther.mFile);
+      mLfs = aOther.mLfs;
+      mLastStatus = aOther.mLastStatus;
+      mIsOpen = aOther.mIsOpen;
+
+      // Clear the source object's members WITHOUT closing the file
+      aOther.mLfs = nullptr;
+      aOther.mIsOpen = false;
+    }
+    return *this;
+  }
+
+  virtual ~File() {
+    close();
+  }
 
   std::string read(size_t aMaxReadSize) {
-    auto totalSize = lfs_file_size(mLfs, &mFile);
-    size_t sizeToFileEnd = totalSize - mFile.pos;
+    if (!mLfs) {
+      return "No LFS Ptr";
+    }
+    auto totalSize = lfs_file_size(mLfs, mFile.get());
+    size_t sizeToFileEnd = totalSize - mFile->pos;
     auto readSize = std::min(aMaxReadSize, sizeToFileEnd);
 
     std::string readData;
     readData.resize(readSize);
     auto bytesRead =
-        lfs_file_read(mLfs, &mFile, readData.data(), readData.size());
+        lfs_file_read(mLfs, mFile.get(), readData.data(), readData.size());
     return bytesRead > 0 ? readData : "";
   }
 
   void write(const std::string &aStringToWrite) {
-    auto bytesWritten = lfs_file_write(mLfs, &mFile, aStringToWrite.c_str(),
+    if (!mLfs) {
+      return;
+    }
+    auto bytesWritten = lfs_file_write(mLfs, mFile.get(), aStringToWrite.c_str(),
                                        aStringToWrite.length());
     if (bytesWritten != aStringToWrite.length()) {
       mLastStatus = -9; // Todo name this?
@@ -47,25 +83,38 @@ public:
   }
 
   lfs_soff_t seek(lfs_soff_t offset, int whence) {
-    return lfs_file_seek(mLfs, &mFile, offset, whence);
+    if (!mLfs) {
+      return 0;
+    }
+    return lfs_file_seek(mLfs, mFile.get(), offset, whence);
   }
 
-  int tell(lfs_soff_t &offset) { return lfs_file_tell(mLfs, &mFile); }
+  int tell(lfs_soff_t &offset) {
+    if (!mLfs) {
+      return 0;
+    }
+    return lfs_file_tell(mLfs, mFile.get());
+  }
 
-  int size(lfs_soff_t &size) { return lfs_file_size(mLfs, &mFile); }
+  int size(lfs_soff_t &size) {
+    if (!mLfs) {
+      return 0;
+    }
+    return lfs_file_size(mLfs, mFile.get());
+  }
 
-  operator bool() const { return mLastStatus == 0; }
+  operator bool() const { return mLfs && mLastStatus == 0 && mIsOpen; }
 
 protected:
   // No need to manually call it will call on falling out of scope
   void close() {
-    if (mIsOpen) {
-      mLastStatus = lfs_file_close(mLfs, &mFile);
+    if (mLfs && mIsOpen) {
+      mLastStatus = lfs_file_close(mLfs, mFile.get());
     }
   }
 
 private:
-  lfs_file_t mFile{0};
+  std::unique_ptr<lfs_file_t> mFile = nullptr;
   lfs_t *mLfs;
   lfsStatusCode mLastStatus = 0;
   bool mIsOpen = false;

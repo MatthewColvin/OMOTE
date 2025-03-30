@@ -4,6 +4,9 @@ bool LittleFsInterface::mount() {
   if (!mInited) {
     init();
   }
+  if (mMounted) {
+    return false;
+  }
   int err = lfs_mount(&mLfs, &mConfig);
   if (err) {
     // First time mount might fail, try formatting

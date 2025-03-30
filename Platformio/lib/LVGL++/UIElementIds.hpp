@@ -27,6 +27,7 @@ class ID {
     MainTopBar,
     LED,
     Image,
+    Roller,
     INVALID_WIDGET_ID
   };
 
@@ -42,6 +43,7 @@ class ID {
     CarController,
     HomeAssistDeviceList,
     ActiveDeviceList,
+    AddDevicePage,
     INVALID_PAGE_ID
   };
 

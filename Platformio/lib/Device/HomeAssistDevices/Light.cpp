@@ -71,9 +71,6 @@ void Light::SendLightCommand(const std::string& service) {
                      .AddTargetEntity(mEntityId)
                      .BuildUnique();
 
-  HardwareFactory::getAbstract().debugPrint(
-      "%s", request->GetRequestMessage().c_str());
-
   auto session = std::make_unique<WebSocket::Session>(std::move(request));
   mApi.AddSession(std::move(session));
 }

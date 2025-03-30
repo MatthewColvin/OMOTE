@@ -18,15 +18,12 @@ HomeScreen::HomeScreen(ActiveDevices& aActiveDevices)
   SetBgColor(UI::Color::BLACK);
   SetPushAnimation(LV_SCR_LOAD_ANIM_FADE_IN);
 
-  static constexpr auto ContentHeight = SCREEN_HEIGHT - Widget::StatusBar::Height;
-
+  static constexpr auto ContentHeight =
+      SCREEN_HEIGHT - Widget::StatusBar::Height;
   mTabView->SetHeight(ContentHeight);
+  mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
 
   // Adds pages to the Tab view
-  mTabView->SetHeight(ContentHeight);
-
-  mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
-  // mTabView->AddTab(std::make_unique<Page::SettingsPage>());
   mTabView->AddTab(std::make_unique<Page::IrLearner>());
   mTabView->AddTab(std::make_unique<Page::Demo>());
 }

@@ -44,5 +44,5 @@
 #define LEDC_SPEED_MODE LEDC_HIGH_SPEED_MODE
 
 #define BUTTON_PIN_BITMASK                                             \
-  ((0x01 << SW_A) | (0x01 << SW_B) | (0x01 << SW_C) | (0x01 << SW_D) | \
-   (0x01 << SW_E) | (0X01 << ACC_INT))
+  ((1ULL << SW_A) | (1ULL << SW_B) | (1ULL << SW_C) | (1ULL << SW_D) | \
+   (1ULL << SW_E) | (1ULL << ACC_INT))

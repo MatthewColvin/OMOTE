@@ -7,7 +7,7 @@
 template <typename T>
 class SimulatorMPMCQueue : public SimulatorSPSCQueue<T>,
                            public MPMCQueueInterface<T> {
- public:
+public:
   SimulatorMPMCQueue(uint32_t size) : SimulatorSPSCQueue<T>(size) {};
   bool push(T obj);
   bool push(T obj, bool overwrite);
@@ -16,8 +16,8 @@ class SimulatorMPMCQueue : public SimulatorSPSCQueue<T>,
   bool isFull();
   bool isEmpty();
 
- private:
-  T* data;
+private:
+  T *data;
   uint32_t size;
   uint32_t rd_index;
   uint32_t wr_index;

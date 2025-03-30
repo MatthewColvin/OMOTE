@@ -9,7 +9,7 @@
 namespace UI::Screen {
 
 class Manager {
- public:
+public:
   static Manager &getInstance();
 
   void pushScreen(Screen::Base::Ptr aScreen);
@@ -24,11 +24,11 @@ class Manager {
 
   bool distributeKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent);
 
- private:
+private:
   Manager();
   static Manager mManager;
 
   std::vector<Screen::Base::Ptr> mScreens;
 };
 
-}  // namespace UI::Screen
+} // namespace UI::Screen

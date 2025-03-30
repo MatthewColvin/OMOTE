@@ -25,7 +25,7 @@ void loop() {
   // Wait for 2 seconds to run tests
   if (millis() > 2000 && !sRanTests) {
     // Run tests
-    auto& hw = HardwareFactory::getAbstract();
+    auto &hw = HardwareFactory::getAbstract();
     auto testsPassed = RUN_ALL_TESTS();
     auto debugMessage = testsPassed ? "Tests Passed" : "Tests Failed";
     hw.debugPrint(debugMessage);

@@ -7,8 +7,9 @@
 #include "Notification.hpp"
 
 class ActiveDevices {
- public:
-  enum class ListEvent { Added, Removed };
+public:
+  enum class ListEvent { Added,
+                         Removed };
   using KeyHandledNotification =
       Notification<IDevice::Ptr, KeyPressAbstract::KeyEvent>::Ptr;
   using ListUpdatedNotification = Notification<ListEvent>::Ptr;
@@ -16,14 +17,14 @@ class ActiveDevices {
   ActiveDevices() = default;
 
   void addDevice(IDevice::Ptr device);
-  void removeDevice(const std::string& deviceName);
+  void removeDevice(const std::string &deviceName);
   bool handleKeyEvent(KeyPressAbstract::KeyEvent event);
   std::deque<IDevice::Ptr> getDevices() const;
 
   ListUpdatedNotification getListUpdateNotification();
   KeyHandledNotification getKeyPressHandledNotification();
 
- private:
+private:
   std::deque<IDevice::Ptr> mDevices;
   // Notification fired when a KeyEvent has been handled by a specific device
 

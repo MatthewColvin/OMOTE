@@ -320,7 +320,7 @@ void IRTransceiver::loopHandleRx() {
     // Get Data and copy into vector then free
     uint16_t *rawData = resultToRawArray(&mCurrentResults);
     received.data.assign(rawData, rawData + rawLength);
-    delete[](rawData);
+    delete[] (rawData);
     mIRReceived->notify(received, humanReadable);
   }
 }

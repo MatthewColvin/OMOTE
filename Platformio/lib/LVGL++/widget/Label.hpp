@@ -5,7 +5,7 @@
 
 namespace UI::Widget {
 class Label : public Base {
- public:
+public:
   Label(std::string aText);
 
   void SetText(std::string aText);
@@ -15,4 +15,4 @@ class Label : public Base {
   void BindTextEvent(uint32_t key, const char *fmt);
 };
 
-}  // namespace UI::Widget
+} // namespace UI::Widget

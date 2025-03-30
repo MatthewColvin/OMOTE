@@ -3,11 +3,11 @@
 namespace HomeAssist {
 
 class HomeAssistantAccess {
- public:
+public:
   static std::shared_ptr<IHomeAssistApi> GetApiAccess();
 
- private:
+private:
   static std::weak_ptr<IHomeAssistApi> mCurrentApiAccess;
 };
 
-}  // namespace HomeAssist
+} // namespace HomeAssist

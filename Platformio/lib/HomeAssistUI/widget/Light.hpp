@@ -7,7 +7,7 @@ class Label;
 class Slider;
 
 class Light : public Base {
- public:
+public:
   Light(std::string aEntityId);
   ~Light() override;
 
@@ -20,7 +20,7 @@ class Light : public Base {
   lv_style_t mIndicatorStyle;
   lv_style_t mMainStyle;
 
- private:
+private:
   void UpdateSlider();
 
   Label *mLabel;
@@ -28,4 +28,4 @@ class Light : public Base {
   HomeAssist::Light mLightController;
 };
 
-}  // namespace UI::Widget
+} // namespace UI::Widget

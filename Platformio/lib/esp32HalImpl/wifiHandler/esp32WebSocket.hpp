@@ -1,6 +1,6 @@
 #pragma once
 
-#include <WiFiUdp.h>  // Required before esp_websocket_client.h include
+#include <WiFiUdp.h> // Required before esp_websocket_client.h include
 // Issue seemed fixed but unsure current status
 // https://github.com/espressif/arduino-esp32/issues/4405
 
@@ -11,8 +11,11 @@
 #include "wifihandler.hpp"
 
 class esp32WebSocket : public webSocketInterface {
- public:
-  enum class ProcessingStep { Append, Drop, Partial, Reserve };
+public:
+  enum class ProcessingStep { Append,
+                              Drop,
+                              Partial,
+                              Reserve };
 
   esp32WebSocket(std::shared_ptr<wifiHandler> aWifiHandler);
 
@@ -21,7 +24,7 @@ class esp32WebSocket : public webSocketInterface {
   void sendMessage(const std::string &message) override;
   void setMessageCallback(MessageCallback callback) override;
 
- private:
+private:
   void proccessEventData(esp_websocket_event_data_t *aEventData);
   void printDebugInfo(esp_websocket_event_data_t *aEventData,
                       ProcessingStep aNextStep);

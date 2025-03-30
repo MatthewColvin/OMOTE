@@ -19,7 +19,8 @@ observerHandles::~observerHandles() {
 
 bool observerHandles::registerTextHandle(uint32_t key, uint16_t size,
                                          const char *Val) {
-  if (mHandleMap.count(key)) return false;
+  if (mHandleMap.count(key))
+    return false;
 
   obsData obs;
   obs.type = String;
@@ -34,7 +35,8 @@ bool observerHandles::registerTextHandle(uint32_t key, uint16_t size,
 }
 
 bool observerHandles::registerIntHandle(uint32_t key, int32_t val) {
-  if (mHandleMap.count(key)) return false;
+  if (mHandleMap.count(key))
+    return false;
 
   obsData obs;
   obs.type = Int;

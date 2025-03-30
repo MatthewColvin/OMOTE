@@ -19,46 +19,41 @@ Contributors:
 
 #include <lgfx/v1/Touch.hpp>
 
-namespace lgfx
-{
- inline namespace v1
- {
+namespace lgfx {
+inline namespace v1 {
 //----------------------------------------------------------------------------
 
-  struct Touch_FT5x26 : public ITouch
-  {
-    Touch_FT5x26(void)
-    {
-      _cfg.i2c_addr = 0x38;
-      _cfg.x_min = 0;
-      _cfg.x_max = 319;
-      _cfg.y_min = 0;
-      _cfg.y_max = 319;
-      _cfg.freq  = 400000;
-    }
+struct Touch_FT5x26 : public ITouch {
+  Touch_FT5x26(void) {
+    _cfg.i2c_addr = 0x38;
+    _cfg.x_min = 0;
+    _cfg.x_max = 319;
+    _cfg.y_min = 0;
+    _cfg.y_max = 319;
+    _cfg.freq = 400000;
+  }
 
-    bool init(void) override;
+  bool init(void) override;
 
-    void wakeup(void) override;
+  void wakeup(void) override;
 
-    void sleep(void) override;
+  void sleep(void) override;
 
-    uint_fast8_t getTouchRaw(touch_point_t* tp, uint_fast8_t count) override;
+  uint_fast8_t getTouchRaw(touch_point_t *tp, uint_fast8_t count) override;
 
-  private:
-    enum
-    {
-      max_touch_points = 10
-    };
-
-    bool _flg_released = false;
-
-    bool _check_init(void);
-    bool _write_reg(uint8_t reg, uint8_t val);
-    bool _read_reg(uint8_t reg, uint8_t *data, size_t length);
-    size_t _read_data(uint8_t* data);
+private:
+  enum {
+    max_touch_points = 10
   };
 
+  bool _flg_released = false;
+
+  bool _check_init(void);
+  bool _write_reg(uint8_t reg, uint8_t val);
+  bool _read_reg(uint8_t reg, uint8_t *data, size_t length);
+  size_t _read_data(uint8_t *data);
+};
+
 //----------------------------------------------------------------------------
- }
-}
+} // namespace v1
+} // namespace lgfx

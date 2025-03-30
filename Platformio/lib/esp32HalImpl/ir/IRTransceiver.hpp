@@ -7,7 +7,7 @@
 #include "Hardware/IRInterface.h"
 
 class IRTransceiver : public IRInterface, protected IRsend, protected IRrecv {
- public:
+public:
   IRTransceiver();
   virtual ~IRTransceiver();
 
@@ -28,7 +28,7 @@ class IRTransceiver : public IRInterface, protected IRsend, protected IRrecv {
   void disableRx() override;
   void loopHandleRx() override;
 
- private:
+private:
   void maxOutTaskPriority();
   void restoreTaskPriority();
   BaseType_t mPreSendPriority = 0;

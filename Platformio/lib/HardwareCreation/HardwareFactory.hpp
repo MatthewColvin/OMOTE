@@ -6,7 +6,7 @@
  * @brief The HardwareFactory is responsible for making the
  */
 class HardwareFactory {
- public:
+public:
   static void Init();
 
   static HardwareAbstract &getAbstract();

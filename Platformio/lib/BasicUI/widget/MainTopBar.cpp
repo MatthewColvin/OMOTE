@@ -5,7 +5,7 @@
 #include "ScreenManager.hpp"
 namespace UI::Widget {
 
-MainTopBar::MainTopBar(ActiveDevices& aActiveDevices)
+MainTopBar::MainTopBar(ActiveDevices &aActiveDevices)
     : Base(ID::Widgets::MainTopBar),
       mActiveDevices(aActiveDevices),
       mDeviceLabel(AddNewElement<Widget::Label>("")),
@@ -16,7 +16,7 @@ MainTopBar::MainTopBar(ActiveDevices& aActiveDevices)
 
   // Configure LED
   mLed->SetHeight(GetContentHeight() / 3);
-  mLed->SetWidth(GetContentHeight() / 3);  // Make it square
+  mLed->SetWidth(GetContentHeight() / 3); // Make it square
 
   // Configure device label
   mDeviceLabel->SetHeight(mLed->GetContentHeight());
@@ -39,7 +39,7 @@ MainTopBar::MainTopBar(ActiveDevices& aActiveDevices)
 }
 
 void MainTopBar::DisplayTopPrioityDeviceInfo() {
-  const auto& devices = mActiveDevices.getDevices();
+  const auto &devices = mActiveDevices.getDevices();
   DisplayDeviceInfo(devices.empty() ? nullptr : devices.back());
 }
 
@@ -61,11 +61,11 @@ void MainTopBar::OpenActiveDevicesPage() {
       LV_SCR_LOAD_ANIM_OVER_BOTTOM);
 }
 
-void MainTopBar::OnLvglEvent(lv_event_t* aEvent) {
+void MainTopBar::OnLvglEvent(lv_event_t *aEvent) {
   auto code = lv_event_get_code(aEvent);
   if (code == LV_EVENT_PRESSED) {
     OpenActiveDevicesPage();
   }
 }
 
-}  // namespace UI::Widget
+} // namespace UI::Widget

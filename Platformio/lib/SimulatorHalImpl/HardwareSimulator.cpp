@@ -16,17 +16,17 @@ HardwareSimulator::HardwareSimulator()
     while (true) {
       std::stringstream title;
       switch (dataToShow) {
-        case 0:
-          //title << "Batt:" << mBattery->getPercentage() << "%" << std::endl;
-          //dataToShow = -1;
-          break;
-        case 1:
-          //title << "BKLght: " << static_cast<int>(mDisplay->getBrightness())
-          //      << std::endl;
-          dataToShow = -1;
-          break;
-        default:
-          dataToShow = -1;
+      case 0:
+        // title << "Batt:" << mBattery->getPercentage() << "%" << std::endl;
+        // dataToShow = -1;
+        break;
+      case 1:
+        // title << "BKLght: " << static_cast<int>(mDisplay->getBrightness())
+        //       << std::endl;
+        dataToShow = -1;
+        break;
+      default:
+        dataToShow = -1;
       }
       dataToShow++;
 
@@ -56,7 +56,7 @@ std::shared_ptr<SystemStatsInterface> HardwareSimulator::stats() {
 }
 
 std::shared_ptr<webSocketInterface> HardwareSimulator::webSocket() {
-  for (auto& socket : mWebSockets) {
+  for (auto &socket : mWebSockets) {
     if (socket.expired()) {
       auto newsocket = std::make_shared<webSocketSimulator>();
       socket = newsocket;

@@ -2,7 +2,7 @@
 
 namespace UI::Page {
 
-ActiveDeviceList::ActiveDeviceList(ActiveDevices& devices)
+ActiveDeviceList::ActiveDeviceList(ActiveDevices &devices)
     : Base(ID::Pages::ActiveDeviceList),
       mDevices(devices),
       mDeviceList(nullptr) {
@@ -18,13 +18,13 @@ void ActiveDeviceList::RefreshDeviceList() {
   }
   mDeviceList = AddNewElement<UI::Widget::List>();
 
-  for (const auto& device : devices) {
+  for (const auto &device : devices) {
     mDeviceList->AddItem(
         device->GetName(),
-        nullptr,  // no symbol
-        [] {}     // empty callback since we're just displaying devices
+        nullptr, // no symbol
+        [] {}    // empty callback since we're just displaying devices
     );
   }
 }
 
-}  // namespace UI::Page
+} // namespace UI::Page

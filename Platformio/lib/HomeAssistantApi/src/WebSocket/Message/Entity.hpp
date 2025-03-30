@@ -7,22 +7,22 @@
 namespace HomeAssist::WebSocket {
 
 class Message::Entity {
- public:
-  Entity(const MemConciousValue& aStateValue);
+public:
+  Entity(const MemConciousValue &aStateValue);
   virtual ~Entity();
 
   std::string GetId();
   std::string GetState();
 
-  Attributes* BorrowAttributes();
+  Attributes *BorrowAttributes();
 
- private:
-  void SaveBasicInfo(const MemConciousValue& aStateValue);
-  void SaveAttributes(const MemConciousValue& aAttributesListValue);
+private:
+  void SaveBasicInfo(const MemConciousValue &aStateValue);
+  void SaveAttributes(const MemConciousValue &aAttributesListValue);
 
   std::string mEntityId;
   std::string mState;
   std::unique_ptr<Attributes> mAttributes;
 };
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

@@ -14,7 +14,7 @@ Session::Session(std::unique_ptr<Request> aStartRequest,
       mMessageHandler(aMessageHandler),
       mChunkProcessor(aChunkProcessor) {}
 
-bool Session::ProcessMessage(const Message& aMessage) {
+bool Session::ProcessMessage(const Message &aMessage) {
   if (auto handler = mMessageHandler.lock(); handler) {
     return handler->ProcessMessage(aMessage);
   }
@@ -37,12 +37,12 @@ std::unique_ptr<Request> Session::GetStartRequest() {
   return std::move(mStartRequest);
 }
 
-Request* Session::BorrowStartRequest() { return mStartRequest.get(); }
+Request *Session::BorrowStartRequest() { return mStartRequest.get(); }
 
-Request* Session::BorrowEndRequest() { return mEndRequest.get(); }
+Request *Session::BorrowEndRequest() { return mEndRequest.get(); }
 
 bool Session::IsPreferringChunkProcessing() {
   return mMessageHandler.expired() && !mChunkProcessor.expired();
 }
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

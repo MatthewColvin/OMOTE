@@ -38,7 +38,7 @@ IProcessMessage::IProcessMessage(
 IProcessMessage::~IProcessMessage() = default;
 
 bool IProcessMessage::ProcessDocument(
-    const MemConciousDocument& aRecievedDocument) {
+    const MemConciousDocument &aRecievedDocument) {
   if (mDocProcessor) {
     return mDocProcessor(aRecievedDocument);
   }
@@ -50,7 +50,7 @@ bool IProcessMessage::HasChunkProcessor() { return mChunkProcessor != nullptr; }
 // MatthewColvin/OMOTE#6 pass final size in here and track currently processed
 // byte to allow for for calling status update callback
 IProcessMessage::ProcessResult IProcessMessage::ProcessChunk(
-    const std::string& aJsonChunk, const size_t aTotalJsonSize) {
+    const std::string &aJsonChunk, const size_t aTotalJsonSize) {
   if (!mChunkProcessor) {
     return {ProcessResult::StatusCode::MissingChunkProcessor};
   }
@@ -107,7 +107,7 @@ bool IProcessMessage::IsProcessingChunks() const {
   return mCurrentChunkBasedTotalJsonSize != ChunkMessageSizeNotProcessing;
 }
 void IProcessMessage::EndChunkProcessing(
-    const ProcessResult& aResultToEndWith) {
+    const ProcessResult &aResultToEndWith) {
   mCurrentChunkBasedTotalJsonSize = ChunkMessageSizeNotProcessing;
   mOffsetIntoChunkBasedJson = 0;
   if (mChunkProcessor) {
@@ -152,7 +152,7 @@ void IProcessMessage::UpdateBufferAndMetaData() {
 }
 
 IProcessMessage::ProcessResult IProcessMessage::ProcessJsonAsDoc(
-    const std::string& aJsonString) {
+    const std::string &aJsonString) {
   MemConciousDocument aDoc;
   aDoc.Parse(aJsonString.data());
   if (aDoc.HasParseError()) {
@@ -183,4 +183,4 @@ size_t IProcessMessage::GetUnProcessedBufferCapacity() {
   return mUnprocessedBuffer.capacity();
 }
 
-}  // namespace Json
+} // namespace Json

@@ -89,31 +89,31 @@ void esp32WebSocket::proccessEventData(esp_websocket_event_data_t *aEventData) {
   }
   auto dataLength = static_cast<uint>(aEventData->data_len);
   auto nextStep = getNextStep(aEventData);
-  printDebugInfo(aEventData, nextStep);
+  // printDebugInfo(aEventData, nextStep);
   using Step = ProcessingStep;
   switch (nextStep) {
-    case Step::Reserve:
-      mIncomingMessage.reserve(aEventData->payload_len);
-      [[fallthrough]];
-    case Step::Append:
-      mIncomingMessage += {aEventData->data_ptr, dataLength};
-      break;
-    case Step::Partial:
-      if (mJsonHandler) {
-        if (IsStartOfMessage) {
-          // Grab 10% of current heap to process chunkwise message on
-          auto freeHeap = esp_get_free_heap_size();
-          auto buffSize = freeHeap * .10;
-          mJsonHandler->SetMaxProcessBufferSize(buffSize);
-        }
-        mPartialProcessingFailed = !mJsonHandler->ProcessChunk(
-            {aEventData->data_ptr, dataLength}, aEventData->payload_len);
+  case Step::Reserve:
+    mIncomingMessage.reserve(aEventData->payload_len);
+    [[fallthrough]];
+  case Step::Append:
+    mIncomingMessage += {aEventData->data_ptr, dataLength};
+    break;
+  case Step::Partial:
+    if (mJsonHandler) {
+      if (IsStartOfMessage) {
+        // Grab 10% of current heap to process chunkwise message on
+        auto freeHeap = esp_get_free_heap_size();
+        auto buffSize = freeHeap * .10;
+        mJsonHandler->SetMaxProcessBufferSize(buffSize);
       }
-      break;
-    case Step::Drop:
-      break;
-    default:
-      break;
+      mPartialProcessingFailed = !mJsonHandler->ProcessChunk(
+          {aEventData->data_ptr, dataLength}, aEventData->payload_len);
+    }
+    break;
+  case Step::Drop:
+    break;
+  default:
+    break;
   }
 
   auto isMessageGathered = aEventData->payload_len == mIncomingMessage.length();
@@ -211,22 +211,22 @@ void esp32WebSocket::websocket_event_handler(void *handler_args,
   esp32WebSocket *self = static_cast<esp32WebSocket *>(handler_args);
 
   switch (event_id) {
-    case WEBSOCKET_EVENT_CONNECTED:
-      ESP_LOGI(TAG, "WebSocket connected");
-      self->Connected();
-      break;
-    case WEBSOCKET_EVENT_DISCONNECTED:
-      ESP_LOGI(TAG, "WebSocket disconnected");
-      self->Disconnected();
-      break;
-    case WEBSOCKET_EVENT_ERROR:
-      ESP_LOGI(TAG, "WebSocket error");
-      break;
-    case WEBSOCKET_EVENT_DATA:
-      self->proccessEventData(
-          static_cast<esp_websocket_event_data_t *>(event_data));
-      break;
-    default:
-      break;
+  case WEBSOCKET_EVENT_CONNECTED:
+    ESP_LOGI(TAG, "WebSocket connected");
+    self->Connected();
+    break;
+  case WEBSOCKET_EVENT_DISCONNECTED:
+    ESP_LOGI(TAG, "WebSocket disconnected");
+    self->Disconnected();
+    break;
+  case WEBSOCKET_EVENT_ERROR:
+    ESP_LOGI(TAG, "WebSocket error");
+    break;
+  case WEBSOCKET_EVENT_DATA:
+    self->proccessEventData(
+        static_cast<esp_websocket_event_data_t *>(event_data));
+    break;
+  default:
+    break;
   }
 }

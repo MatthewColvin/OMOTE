@@ -7,7 +7,7 @@
 #define OBS_BUF_SIZE 10
 
 class BatterySimulator : public BatteryInterface {
- public:
+public:
   BatterySimulator()
       : mCreationTime(std::chrono::high_resolution_clock::now()) {
     UI::observerHandles::registerTextHandle(BATT_STATUS, OBS_BUF_SIZE, "");
@@ -25,10 +25,12 @@ class BatterySimulator : public BatteryInterface {
         100 - ((batteryRunTime / std::chrono::duration<float, std::ratio<60LL>>(
                                      minToBatteryZero)) *
                100);
-    if (fakeBattPercentage < 0) fakeBattPercentage = 0;
+    if (fakeBattPercentage < 0)
+      fakeBattPercentage = 0;
 
     int32_t iSoc = fakeBattPercentage;
-    if (iSoc > 99) iSoc = 99;
+    if (iSoc > 99)
+      iSoc = 99;
     UI::observerHandles::setInt(SOC_STATUS, iSoc);
     if (iSoc < 13)
       UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_EMPTY);
@@ -46,6 +48,6 @@ class BatterySimulator : public BatteryInterface {
 
   virtual bool isCharging() override { return false; }
 
- private:
+private:
   std::chrono::_V2::system_clock::time_point mCreationTime;
 };

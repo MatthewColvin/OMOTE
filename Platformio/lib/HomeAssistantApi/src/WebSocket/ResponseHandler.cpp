@@ -8,14 +8,14 @@ using namespace Json;
 
 namespace HomeAssist::WebSocket {
 
-ResponseHandler::ResponseHandler(Api& aApi)
+ResponseHandler::ResponseHandler(Api &aApi)
     : IProcessMessage(
-          [this](const auto& aDoc) { return ProcessResponseDoc(aDoc); },
+          [this](const auto &aDoc) { return ProcessResponseDoc(aDoc); },
           std::make_unique<ChunkForwarder>(aApi)),
       mApi(aApi) {}
 
 bool ResponseHandler::ProcessResponseDoc(
-    const MemConciousDocument& aDocFromSocket) {
+    const MemConciousDocument &aDocFromSocket) {
   // auto prettyDebugString = ToPrettyString(aDocFromSocket);
   // HardwareFactory::getAbstract().debugPrint("%s", prettyDebugString.c_str());
 
@@ -32,10 +32,10 @@ bool ResponseHandler::ProcessResponseDoc(
 }
 
 bool ResponseHandler::HandleRedirectToChunkProcessor(
-    const MemConciousDocument& aDoc) {
+    const MemConciousDocument &aDoc) {
   if (aDoc.HasMember("id") && aDoc["id"].IsInt()) {
     auto sessionId = aDoc["id"].GetInt();
-    if (auto& session = mApi.mSessions[sessionId]; session) {
+    if (auto &session = mApi.mSessions[sessionId]; session) {
       if (session->IsPreferringChunkProcessing()) {
         if (auto processor = session->GetChunkProcessor(); processor) {
           aDoc.Accept(*processor);
@@ -49,4 +49,4 @@ bool ResponseHandler::HandleRedirectToChunkProcessor(
 
 ResponseHandler::~ResponseHandler() {}
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

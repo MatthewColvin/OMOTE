@@ -11,11 +11,10 @@ MqttSettings::MqttSettings(std::shared_ptr<wifiHandlerInterface> aWifi)
     : Base(ID::Pages::MqttSettings), mWifi(aWifi),
       mList(AddNewElement<Widget::List>()), mPasswordGetter(nullptr) {
 
-  mList->AddItem("Broker", NULL, [this] {OpenPasswordKeyboard(broker, "broker");});
-  mList->AddItem("Port", NULL, [this] {OpenPasswordKeyboard(port, "1883");});
-  mList->AddItem("User", NULL, [this] {OpenPasswordKeyboard(user, "user");});
-  mList->AddItem("Password", NULL, [this] {OpenPasswordKeyboard(password, "password");});
-
+  mList->AddItem("Broker", NULL, [this] { OpenPasswordKeyboard(broker, "broker"); });
+  mList->AddItem("Port", NULL, [this] { OpenPasswordKeyboard(port, "1883"); });
+  mList->AddItem("User", NULL, [this] { OpenPasswordKeyboard(user, "user"); });
+  mList->AddItem("Password", NULL, [this] { OpenPasswordKeyboard(password, "password"); });
 }
 
 void MqttSettings::OpenPasswordKeyboard(field aField, std::string aText) {
@@ -26,7 +25,8 @@ void MqttSettings::OpenPasswordKeyboard(field aField, std::string aText) {
   auto keyboard = std::make_unique<Widget::Keyboard>(
       [this](auto aField) {
         mPasswordGetter->AnimateOut();
-        }, aText);
+      },
+      aText);
   keyboard->OnKeyboardAnimatedOut([this] {
     // Keyboard is done animating out remove it and null the ref
     RemoveElement(mPasswordGetter);
@@ -37,5 +37,4 @@ void MqttSettings::OpenPasswordKeyboard(field aField, std::string aText) {
 
 void MqttSettings::SetHeight(lv_coord_t aHeight) {
   Base::SetHeight(aHeight);
-  
 };

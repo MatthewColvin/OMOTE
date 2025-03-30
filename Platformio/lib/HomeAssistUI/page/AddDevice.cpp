@@ -2,8 +2,8 @@
 
 using namespace UI::Page;
 
-AddDevice::AddDevice(ActiveDevices& aActiveDevices,
-                     const std::vector<std::string>& aDeviceNames,
+AddDevice::AddDevice(ActiveDevices &aActiveDevices,
+                     const std::vector<std::string> &aDeviceNames,
                      DeviceCreatorTy aDeviceCreationCallback)
     : Base(ID::Pages::AddDevicePage),
       mInstructionLabel(AddNewElement<Widget::Label>("Scroll to device:")),
@@ -18,7 +18,7 @@ AddDevice::AddDevice(ActiveDevices& aActiveDevices,
 
   mDeviceTypeRoller->SetWidth(GetContentWidth());
   mDeviceTypeRoller->SetHeight(lv_pct(50));
-  for (auto& deviceName : aDeviceNames) {
+  for (auto &deviceName : aDeviceNames) {
     mDeviceTypeRoller->AddItem(deviceName, deviceName);
   }
 

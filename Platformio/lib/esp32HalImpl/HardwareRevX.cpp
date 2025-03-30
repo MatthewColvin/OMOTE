@@ -18,9 +18,9 @@ void HardwareRevX::initIO() {
   pinMode(IR_LED, OUTPUT);
   pinMode(IR_VCC, OUTPUT);
 #if defined(OMOTE_KEYBRD_3661)
-  digitalWrite(IR_LED, LOW);  // HIGH on - LOW off
+  digitalWrite(IR_LED, LOW); // HIGH on - LOW off
 #else
-  digitalWrite(IR_LED, HIGH);  // HIGH off - LOW on
+  digitalWrite(IR_LED, HIGH); // HIGH off - LOW on
 #endif
   IR_VCC_OFF;
 
@@ -157,7 +157,8 @@ bool HardwareRevX::activityDetection() {
     accXold = accX;
     accYold = accY;
     accZold = accZ;
-    if (motion > MOTION_THRESHOLD) activityDetected = true;
+    if (motion > MOTION_THRESHOLD)
+      activityDetected = true;
   }
   return activityDetected;
 }
@@ -193,21 +194,21 @@ void HardwareRevX::enterSleep() {
 
   // Configure IMU
   uint8_t intDataRead;
-  IMU.readRegister(&intDataRead, LIS3DH_INT1_SRC);  // clear interrupt
+  IMU.readRegister(&intDataRead, LIS3DH_INT1_SRC); // clear interrupt
   configIMUInterrupts();
   IMU.readRegister(&intDataRead,
-                   LIS3DH_INT1_SRC);  // really clear interrupt
+                   LIS3DH_INT1_SRC); // really clear interrupt
 
   // Prepare IO states
-  digitalWrite(LCD_DC, LOW);  // LCD control signals off
+  digitalWrite(LCD_DC, LOW); // LCD control signals off
   digitalWrite(LCD_CS, LOW);
 
   sleepDisplayPins();
 
-  digitalWrite(LCD_EN, HIGH);  // LCD logic off
-  digitalWrite(LCD_BL, HIGH);  // LCD backlight off
-  pinMode(CRG_STAT, INPUT);    // Disable Pull-Up
-  digitalWrite(IR_VCC, LOW);   // IR Receiver off
+  digitalWrite(LCD_EN, HIGH); // LCD logic off
+  digitalWrite(LCD_BL, HIGH); // LCD backlight off
+  pinMode(CRG_STAT, INPUT);   // Disable Pull-Up
+  digitalWrite(IR_VCC, LOW);  // IR Receiver off
 
   configPinsForSleepInterrupts();
 
@@ -238,11 +239,11 @@ void HardwareRevX::configIMUInterrupts() {
   // dataToWrite |= 0x40;//6D, 0 = interrupt source, 1 = 6 direction source
   // Set these to enable individual axes of generation source (or direction)
   //  -- high and low are used generically
-  dataToWrite |= 0x20;  // Z high
+  dataToWrite |= 0x20; // Z high
   // dataToWrite |= 0x10;//Z low
-  dataToWrite |= 0x08;  // Y high
+  dataToWrite |= 0x08; // Y high
   // dataToWrite |= 0x04;//Y low
-  dataToWrite |= 0x02;  // X high
+  dataToWrite |= 0x02; // X high
   // dataToWrite |= 0x01;//X low
   if (wakeupByIMUEnabled)
     IMU.writeRegister(LIS3DH_INT1_CFG, 0b00101010);
@@ -259,14 +260,14 @@ void HardwareRevX::configIMUInterrupts() {
   dataToWrite = 0;
   // minimum duration of the interrupt
   // LSB equals 1/(sample rate)
-  dataToWrite |= 0x00;  // 1 * 1/50 s = 20ms
+  dataToWrite |= 0x00; // 1 * 1/50 s = 20ms
   IMU.writeRegister(LIS3DH_INT1_DURATION, dataToWrite);
 
   // LIS3DH_CTRL_REG5
   // Int1 latch interrupt and 4D on  int1 (preserve fifo en)
   IMU.readRegister(&dataToWrite, LIS3DH_CTRL_REG5);
-  dataToWrite &= 0xF3;  // Clear bits of interest
-  dataToWrite |= 0x08;  // Latch interrupt (Cleared by reading int1_src)
+  dataToWrite &= 0xF3; // Clear bits of interest
+  dataToWrite |= 0x08; // Latch interrupt (Cleared by reading int1_src)
   // dataToWrite |= 0x04; //Pipe 4D detection from 6D recognition to int1?
   IMU.writeRegister(LIS3DH_CTRL_REG5, dataToWrite);
 
@@ -277,8 +278,8 @@ void HardwareRevX::configIMUInterrupts() {
   // Choose source for pin 1
   dataToWrite = 0;
   // dataToWrite |= 0x80; //Click detect on pin 1
-  dataToWrite |= 0x40;  // AOI1 event (Generator 1 interrupt on pin 1)
-  dataToWrite |= 0x20;  // AOI2 event ()
+  dataToWrite |= 0x40; // AOI1 event (Generator 1 interrupt on pin 1)
+  dataToWrite |= 0x20; // AOI2 event ()
   // dataToWrite |= 0x10; //Data ready
   // dataToWrite |= 0x04; //FIFO watermark
   // dataToWrite |= 0x02; //FIFO overrun
@@ -286,7 +287,7 @@ void HardwareRevX::configIMUInterrupts() {
 }
 
 void HardwareRevX::configIMUInterruptPolarity() {
-  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x00);  // For active-high interrupt
+  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x00); // For active-high interrupt
 }
 
 void HardwareRevX::restorePreferences() {
@@ -296,7 +297,8 @@ void HardwareRevX::restorePreferences() {
   if (preferences.getBool("alreadySetUp")) {
     wakeupByIMUEnabled = preferences.getBool("wkpByIMU");
     backlight_brightness = preferences.getUChar("blBrightness");
-    if (backlight_brightness < 30) backlight_brightness = 30;
+    if (backlight_brightness < 30)
+      backlight_brightness = 30;
     currentDevice = preferences.getUChar("currentDevice");
     sleepTimeout = preferences.getUInt("sleepTimeout");
     // setting the default to prevent a 0ms sleep timeout
@@ -321,7 +323,7 @@ void HardwareRevX::setupIMU() {
   IMU.settings.zAccelEnabled = 1;
   IMU.begin();
   uint8_t intDataRead;
-  IMU.readRegister(&intDataRead, LIS3DH_INT1_SRC);  // clear interrupt
+  IMU.readRegister(&intDataRead, LIS3DH_INT1_SRC); // clear interrupt
 }
 
 void HardwareRevX::startTasks() {}
@@ -340,11 +342,14 @@ void HardwareRevX::loopHandler() {
   if (millis() - IMUTaskTimer >= 25) {
     // Calculate time to standby
     standbyTimer -= 25;
-    if (standbyTimer < 0) standbyTimer = 0;
+    if (standbyTimer < 0)
+      standbyTimer = 0;
 
-    if (activityDetection()) standbyTimer = sleepTimeout;
+    if (activityDetection())
+      standbyTimer = sleepTimeout;
 
-    if (keyboardScan()) standbyTimer = sleepTimeout;
+    if (keyboardScan())
+      standbyTimer = sleepTimeout;
 
     uint16_t visPlusIrLevel, irLevel;
     if (lightSensorScan(visPlusIrLevel, irLevel)) {
@@ -352,14 +357,15 @@ void HardwareRevX::loopHandler() {
       updateBacklightMode(irLevel);
     }
 
-    mDisplay->getTouchData();  // trigger read here to keep all I2C accesses
-                               // together
+    mDisplay->getTouchData(); // trigger read here to keep all I2C accesses
+                              // together
 
-    static uint16_t secCount = 20;  // update immediately on power up
+    static uint16_t secCount = 20; // update immediately on power up
     if (secCount++ >= 20) {
       secCount = 0;
       int32_t iSoc = mBattery->getPercentage();
-      if (iSoc > 99) iSoc = 99;
+      if (iSoc > 99)
+        iSoc = 99;
       UI::observerHandles::setInt(SOC_STATUS, iSoc);
 
       if (mBattery->isConnected())

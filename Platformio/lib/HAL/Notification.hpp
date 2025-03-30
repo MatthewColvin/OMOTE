@@ -10,7 +10,7 @@ template <class... notifyData>
 class Notification {
   friend class Handler<notifyData...>;
 
- public:
+public:
   typedef std::function<void(notifyData...)> HandlerTy;
   typedef int HandlerID;
   using Ptr = std::shared_ptr<Notification<notifyData...>>;
@@ -18,11 +18,11 @@ class Notification {
   Notification() { mIdMaker = 0; };
   void notify(notifyData... notifySendData);
 
- protected:
+protected:
   HandlerID onNotify(HandlerTy aHandler);
   void unregister(HandlerID aHandler);
 
- private:
+private:
   std::map<HandlerID, HandlerTy> mFunctionHandlers;
   HandlerID mIdMaker;
 };
@@ -58,7 +58,7 @@ void Notification<handlerData...>::unregister(HandlerID aHandlerId) {
 
 template <class... notifyData>
 class Handler {
- public:
+public:
   typedef std::function<void(notifyData...)> callableTy;
   void operator=(Handler &other) = delete;
 
@@ -89,7 +89,7 @@ class Handler {
     mNotification = aNotification;
   }
 
- private:
+private:
   std::shared_ptr<Notification<notifyData...>> mNotification = nullptr;
   int mHandlerId = -1;
 };

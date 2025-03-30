@@ -42,20 +42,20 @@ LGFX::LGFX(void) {
     cfg.pin_busy = -1;
     cfg.memory_width = SCREEN_WIDTH;
     cfg.memory_height = SCREEN_HEIGHT;
-    cfg.offset_x         =     0;  
-    cfg.offset_y         =     0;  
-    cfg.dummy_read_pixel =     8;  
-    cfg.dummy_read_bits  =     1;  
-    cfg.readable         =  true;  
-    cfg.invert           = false;  
-    cfg.rgb_order        = false;  
-    cfg.dlen_16bit       = false;  
-    cfg.bus_shared       =  true; 
+    cfg.offset_x = 0;
+    cfg.offset_y = 0;
+    cfg.dummy_read_pixel = 8;
+    cfg.dummy_read_bits = 1;
+    cfg.readable = true;
+    cfg.invert = false;
+    cfg.rgb_order = false;
+    cfg.dlen_16bit = false;
+    cfg.bus_shared = true;
     cfg.panel_width = SCREEN_WIDTH;
     cfg.panel_height = SCREEN_HEIGHT;
-    #ifdef OMOTE_KEYBRD_3661
-    cfg.invert           = true;
-    #endif
+#ifdef OMOTE_KEYBRD_3661
+    cfg.invert = true;
+#endif
     cfg.offset_rotation = 2;
     _panel_instance.config(cfg);
   }
@@ -95,13 +95,13 @@ Display::Display(int backlight_pin, int enable_pin)
     getInstance()->flushDisplay(aDisplay, aArea, aPxMap);
   });
 
-  #if defined (OMOTE_HARDWARE_REV5)
+#if defined(OMOTE_HARDWARE_REV5)
   lv_display_set_buffers(mDisplay, bufA, bufB, DRAW_BUF_SIZE,
                          LV_DISPLAY_RENDER_MODE_FULL);
-  #else
+#else
   lv_display_set_buffers(mDisplay, bufA, bufB, DRAW_BUF_SIZE,
                          LV_DISPLAY_RENDER_MODE_PARTIAL);
-  #endif
+#endif
 
   Serial.println("Display buffers set");
 
@@ -122,18 +122,18 @@ Display::Display(int backlight_pin, int enable_pin)
   digitalWrite(mBacklightPin, HIGH);
 #endif
 
-  setupBacklight();  // This eliminates the flash of the backlight
+  setupBacklight(); // This eliminates the flash of the backlight
 
 #if not defined(OMOTE_HARDWARE_REV5)
   // Slowly charge the VSW voltage to prevent a brownout
   // Workaround for hardware rev 1!
   for (int i = 0; i < 100; i++) {
-    digitalWrite(this->mEnablePin, HIGH);  // LCD Logic off
+    digitalWrite(this->mEnablePin, HIGH); // LCD Logic off
     delayMicroseconds(1);
-    digitalWrite(this->mEnablePin, LOW);  // LCD Logic on
+    digitalWrite(this->mEnablePin, LOW); // LCD Logic on
   }
 #else
-  digitalWrite(this->mEnablePin, LOW);  // LCD Logic on
+  digitalWrite(this->mEnablePin, LOW); // LCD Logic on
 #endif
 
   setupTFT();
@@ -175,7 +175,7 @@ void Display::setupBacklight() {
 #ifdef OMOTE_KEYBRD_3661
   ledc_channel_left.flags.output_invert = 0;
 #else
-  ledc_channel_left.flags.output_invert = 1;  // Can't do this with ledcSetup()
+  ledc_channel_left.flags.output_invert = 1; // Can't do this with ledcSetup()
 #endif
   ledc_channel_left.duty = 0;
   ledc_channel_left.hpoint = 0;
@@ -235,7 +235,7 @@ void Display::getTouchData() {
 
 void Display::screenInput(lv_indev_t *indev, lv_indev_data_t *data) {
   if (mHaveTouch) {
-    //mHaveTouch = false;
+    // mHaveTouch = false;
     data->state = LV_INDEV_STATE_PRESSED;
     data->point.x = mTouchX;
     data->point.y = mTouchY;
@@ -250,7 +250,7 @@ void Display::fadeImpl(void *) {
   bool fadeDone = false;
   while (!fadeDone) {
     fadeDone = getInstance()->fade();
-    vTaskDelay(3 / portTICK_PERIOD_MS);  // 3 miliseconds between steps
+    vTaskDelay(3 / portTICK_PERIOD_MS); // 3 miliseconds between steps
     // 0 - 255 will take about .75 seconds to fade up.
   }
 
@@ -258,16 +258,16 @@ void Display::fadeImpl(void *) {
   getInstance()->mDisplayFadeTask = nullptr;
   xSemaphoreGive(getInstance()->mFadeTaskMutex);
 
-  vTaskDelete(nullptr);  // Delete Fade Task
+  vTaskDelete(nullptr); // Delete Fade Task
 }
 
 bool Display::fade() {
   // Early return no fade needed.
   uint8_t targetBrightness;
-  if(mIsDay)
+  if (mIsDay)
     targetBrightness = mAwakeBrightness;
   else
-    targetBrightness = mAwakeBrightness/4;
+    targetBrightness = mAwakeBrightness / 4;
 
   if (mBrightness == targetBrightness || mIsAsleep && mBrightness == 0) {
     return true;
@@ -309,11 +309,10 @@ void Display::flushDisplay(lv_disp_t *disp, const lv_area_t *area,
     if(buf[i] != 0x0010)
       Serial.printf("E:%d\r\n",i);
   }*/
-  
 
   tft.startWrite();
   tft.setAddrWindow(area->x1, area->y1, w, h);
-  //tft.writePixelsDMA((uint16_t *)pixelMap, w * h, true);
+  // tft.writePixelsDMA((uint16_t *)pixelMap, w * h, true);
   tft.pushPixelsDMA((uint16_t *)pixelMap, w * h);
   tft.endWrite();
 

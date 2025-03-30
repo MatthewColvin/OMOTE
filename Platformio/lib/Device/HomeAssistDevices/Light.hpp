@@ -11,8 +11,8 @@
 namespace HomeAssist::Device {
 
 class Light : public IDevice {
- public:
-  Light(const std::string& entityId, WebSocket::Api& api);
+public:
+  Light(const std::string &entityId, WebSocket::Api &api);
   ~Light() override = default;
 
   // IDevice interface implementation
@@ -30,14 +30,14 @@ class Light : public IDevice {
   void Toggle();
   bool IsOn() const { return mIsOn; }
 
- private:
+private:
   void SetupStateSubscription();
-  void HandleStateChange(const WebSocket::Message& message);
-  void SendLightCommand(const std::string& service);
+  void HandleStateChange(const WebSocket::Message &message);
+  void SendLightCommand(const std::string &service);
 
   std::string mEntityId;
-  WebSocket::Api& mApi;
+  WebSocket::Api &mApi;
   bool mIsOn = false;
 };
 
-}  // namespace HomeAssist::Device
+} // namespace HomeAssist::Device

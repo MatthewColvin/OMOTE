@@ -5,7 +5,7 @@
 #include "littlefs/flashLittleFs.hpp"
 
 class TestLittleFs : public ::testing::Test {
- protected:
+protected:
   void SetUp() override {
     fs = FlashLittleFs::getInstance();
     ASSERT_TRUE(fs != nullptr);
@@ -27,7 +27,7 @@ TEST_F(TestLittleFs, MountUnmount) {
 }
 
 TEST_F(TestLittleFs, WriteAndReadFile) {
-  const char* testPath = "/test.txt";
+  const char *testPath = "/test.txt";
   const std::string testData = "Hello, LittleFS!";
 
   // Write file
@@ -49,8 +49,8 @@ TEST_F(TestLittleFs, WriteAndReadFile) {
 }
 
 TEST_F(TestLittleFs, FileDelete) {
-  const char* testPath = "/delete_test.txt";
-  const char* testData = "Test Data";
+  const char *testPath = "/delete_test.txt";
+  const char *testData = "Test Data";
 
   // Create file
   lfs_file_t file;
@@ -69,7 +69,7 @@ TEST_F(TestLittleFs, FileDelete) {
 }
 
 TEST_F(TestLittleFs, DirectoryOperations) {
-  const char* dirPath = "/testdir";
+  const char *dirPath = "/testdir";
 
   // Create directory
   ASSERT_EQ(lfs_mkdir(fs->get(), dirPath), 0);
@@ -111,7 +111,7 @@ TEST_F(TestLittleFs, TestWriteReadInterfaceFile) {
     ASSERT_TRUE(file);
     file ? file.write(testStr) : handleOpenError();
     ASSERT_TRUE(file);
-  }  // file closes on scope end
+  } // file closes on scope end
   {
     auto file = fs->open(fileName, LFS_O_RDONLY);
     ASSERT_TRUE(file);

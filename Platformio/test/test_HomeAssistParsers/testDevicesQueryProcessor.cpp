@@ -11,14 +11,14 @@ using namespace testing;
 using namespace Json;
 
 class DevicesQueryProcessorTest : public Test {
- protected:
+protected:
   std::vector<std::string> capturedEntities;
-  UI::DevicesQueryProcessor* processor;
+  UI::DevicesQueryProcessor *processor;
   std::unique_ptr<MockIProcessMessage> messageProcessor;
 
   void SetUp() override {
     auto process = std::make_unique<UI::DevicesQueryProcessor>(
-        [this](const std::string& entityId) {
+        [this](const std::string &entityId) {
           capturedEntities.push_back(entityId);
         });
     processor = process.get();
@@ -98,13 +98,13 @@ TEST_F(DevicesQueryProcessorTest, ShouldHandleChunkedInput) {
   std::string chunk2 = R"({"ei":"light.lamp"},{"ei":"light.shower"})";
   std::string chunk3 = R"(]}})";
 
-  const auto& chunks = {chunk1, chunk2, chunk3};
+  const auto &chunks = {chunk1, chunk2, chunk3};
 
   auto totalLength = std::accumulate(
       chunks.begin(), chunks.end(), 0,
       [](auto total, auto nextStr) { return total + nextStr.length(); });
 
-  for (const auto& chunk : chunks) {
+  for (const auto &chunk : chunks) {
     const bool result = messageProcessor->ProcessChunk(chunk, totalLength);
     ASSERT_TRUE(result);
   }

@@ -8,13 +8,13 @@
 namespace UI::Widget {
 
 class StatusBar : public Base {
- public:
+public:
   static constexpr auto Height = 0.0625f * SCREEN_HEIGHT;
   static constexpr lv_opa_t Transparency = LV_OPA_20;
 
   StatusBar(ActiveDevices &aActiveDevices);
 
- private:
+private:
   void SettingsPress();
   void ActiveListPress();
 
@@ -28,4 +28,4 @@ class StatusBar : public Base {
   Widget::Label *mTopBarActiveListLabel;
 };
 
-}  // namespace UI::Widget
+} // namespace UI::Widget

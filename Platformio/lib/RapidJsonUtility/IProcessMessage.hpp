@@ -24,7 +24,7 @@ class IChunkProcessor;
  * IChunkProcessor interface.
  */
 class IProcessMessage {
- public:
+public:
   struct ProcessResult {
     enum class StatusCode {
       Success,
@@ -33,9 +33,9 @@ class IProcessMessage {
       ParseError,
       MissingChunkProcessor,
       FailedChunkProcessorMemoryLimitMet,
-      FailedChunkProcessingMessageSizeChanged,  // Can only process one message
-                                                // at a time so if size changed
-                                                // were in bad state
+      FailedChunkProcessingMessageSizeChanged, // Can only process one message
+                                               // at a time so if size changed
+                                               // were in bad state
       DocProcessorFailed
     };
     ProcessResult(StatusCode aInternalError,
@@ -49,7 +49,7 @@ class IProcessMessage {
     rapidjson::ParseResult mParseResult{};
   };
 
-  using DocumentProccessor = std::function<bool(const MemConciousDocument&)>;
+  using DocumentProccessor = std::function<bool(const MemConciousDocument &)>;
 
   IProcessMessage();
   IProcessMessage(DocumentProccessor aProccessor = nullptr,
@@ -57,11 +57,11 @@ class IProcessMessage {
   virtual ~IProcessMessage();
 
   // Document Based Processing
-  ProcessResult ProcessJsonAsDoc(const std::string& aJsonString);
+  ProcessResult ProcessJsonAsDoc(const std::string &aJsonString);
 
   // Chunk Based Processing
   bool HasChunkProcessor();
-  ProcessResult ProcessChunk(const std::string& aJsonChunk,
+  ProcessResult ProcessChunk(const std::string &aJsonChunk,
                              size_t aTotalJsonSize);
 
   virtual bool IsChunkProcessingPrefered();
@@ -69,17 +69,17 @@ class IProcessMessage {
   void SetMaxProcessBufferSize(size_t aProcessBufferSize);
   size_t GetMaxProcessBufferSize() const;
 
- protected:
-  bool ProcessDocument(const MemConciousDocument& aRecievedDocument);
+protected:
+  bool ProcessDocument(const MemConciousDocument &aRecievedDocument);
   size_t GetUnProcessedBufferCapacity();
 
- private:
+private:
   DocumentProccessor mDocProcessor = nullptr;
   bool IsProcessingChunks() const;
   bool IsChunkBufferToSmallForProcessing() const;
 
   void UpdateBufferAndMetaData();
-  void EndChunkProcessing(const ProcessResult& aResultToEndWith);
+  void EndChunkProcessing(const ProcessResult &aResultToEndWith);
 
   rapidjson::Reader mChunkReader;
   rapidjson::StringStream mChunkStream;
@@ -94,4 +94,4 @@ class IProcessMessage {
   size_t mMaxBufferSize = DefaultMaxBufferSize;
 };
 
-}  // namespace Json
+} // namespace Json

@@ -1,6 +1,6 @@
 #pragma once
-#include "PageBase.hpp"
 #include "Hardware/wifiHandlerInterface.h"
+#include "PageBase.hpp"
 
 namespace UI::Widget {
 class List;
@@ -9,10 +9,14 @@ class Keyboard;
 } // namespace UI::Widget
 
 namespace UI::Page {
-enum field {broker, port, user, password};
+enum field { broker,
+             port,
+             user,
+             password };
 
 class MqttSettings : public Base {
-using WifiInfo = wifiHandlerInterface::WifiInfo;
+  using WifiInfo = wifiHandlerInterface::WifiInfo;
+
 public:
   MqttSettings(std::shared_ptr<wifiHandlerInterface> aWifi);
 
@@ -21,13 +25,11 @@ public:
   void SetHeight(lv_coord_t aHeight) override;
 
 protected:
-  
   void OpenPasswordKeyboard(field aField, std::string aText);
 
 private:
-
   std::shared_ptr<wifiHandlerInterface> mWifi;
-  
+
   UI::Widget::List *mList;
   UI::Widget::Keyboard *mPasswordGetter;
 };

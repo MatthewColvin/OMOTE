@@ -7,16 +7,16 @@
 namespace UI::Page {
 
 class ActiveDeviceList : public Base {
- public:
-  explicit ActiveDeviceList(ActiveDevices& devices);
+public:
+  explicit ActiveDeviceList(ActiveDevices &devices);
   std::string GetTitle() override { return "Active Devices"; }
 
- private:
+private:
   void RefreshDeviceList();
 
-  ActiveDevices& mDevices;
-  UI::Widget::List* mDeviceList;
+  ActiveDevices &mDevices;
+  UI::Widget::List *mDeviceList;
   Handler<ActiveDevices::ListEvent> mUpdateHandler;
 };
 
-}  // namespace UI::Page
+} // namespace UI::Page

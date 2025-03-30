@@ -8,7 +8,7 @@
 
 namespace HomeAssist::Device {
 
-Light::Light(const std::string& entityId, WebSocket::Api& api)
+Light::Light(const std::string &entityId, WebSocket::Api &api)
     : mEntityId(entityId), mApi(api) {
   SetupStateSubscription();
 }
@@ -37,12 +37,12 @@ void Light::SetupStateSubscription() {
 
   auto request = WebSocket::RequestBuilder::CreateTriggerSubscription(
       mEntityId,
-      "",  // from any state
-      ""   // to any state
+      "", // from any state
+      ""  // to any state
   );
 
   auto messageHandler = std::make_shared<WebSocket::MessageHandler>(
-      [this](const WebSocket::Message& message) {
+      [this](const WebSocket::Message &message) {
         HandleStateChange(message);
         return true;
       });
@@ -53,19 +53,19 @@ void Light::SetupStateSubscription() {
   mApi.AddSession(std::move(session));
 }
 
-void Light::HandleStateChange(const WebSocket::Message& message) {
-  if (auto* state = message.BorrowToState(); state != nullptr) {
+void Light::HandleStateChange(const WebSocket::Message &message) {
+  if (auto *state = message.BorrowToState(); state != nullptr) {
     mIsOn = state->GetState() == "on";
   }
 }
 
-void Light::SendLightCommand(const std::string& service) {
+void Light::SendLightCommand(const std::string &service) {
   // if (!mApi) return;
 
   std::string domain = "light";
   auto request = WebSocket::RequestBuilder()
                      .SetType(WebSocket::RequestTypes::CALL_SERVICE)
-                     .SetId(0)  // ID will be set by Api
+                     .SetId(0) // ID will be set by Api
                      .AddField("domain", domain)
                      .AddField("service", service)
                      .AddTargetEntity(mEntityId)
@@ -75,4 +75,4 @@ void Light::SendLightCommand(const std::string& service) {
   mApi.AddSession(std::move(session));
 }
 
-}  // namespace HomeAssist::Device
+} // namespace HomeAssist::Device

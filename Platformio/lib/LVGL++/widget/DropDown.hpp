@@ -9,7 +9,7 @@ namespace UI::Widget {
 
 template <typename T>
 class DropDown : public Base {
- public:
+public:
   DropDown(std::function<void(T)> aOnItemSelected)
       : Base(lv_dropdown_create(UI::Screen::BackgroundScreen::getLvInstance()),
              ID::Widgets::DropDown),
@@ -33,7 +33,7 @@ class DropDown : public Base {
   // TODO Could Implement a remove Item but need to make sure
   // correct order is retained in data vector.
 
- protected:
+protected:
   void OnLvglEvent(lv_event_t *anEvent) override {
     if (lv_event_get_code(anEvent) == LV_EVENT_VALUE_CHANGED) {
       auto idx = lv_dropdown_get_selected(LvglSelf());
@@ -43,9 +43,9 @@ class DropDown : public Base {
     }
   };
 
- private:
+private:
   std::function<void(T)> mSelectionHandler;
   std::vector<T> mOptionsData;
 };
 
-}  // namespace UI::Widget
+} // namespace UI::Widget

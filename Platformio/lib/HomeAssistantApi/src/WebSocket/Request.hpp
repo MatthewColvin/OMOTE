@@ -8,19 +8,19 @@
 namespace HomeAssist::WebSocket {
 
 class Request {
- public:
-  Request(MemConciousDocument&& aRequestMessage);  // Changed constructor
+public:
+  Request(MemConciousDocument &&aRequestMessage); // Changed constructor
   ~Request() = default;
 
   std::string GetRequestMessage();
 
   void SetId(int aId);
 
- private:
+private:
   MemConciousDocument mRequestMessage;
 };
 
-inline Request::Request(MemConciousDocument&& aRequestMessage)
+inline Request::Request(MemConciousDocument &&aRequestMessage)
     : mRequestMessage(std::move(aRequestMessage)) {}
 
 inline std::string Request::GetRequestMessage() {
@@ -28,11 +28,11 @@ inline std::string Request::GetRequestMessage() {
 }
 
 inline void Request::SetId(int aId) {
-  auto& alloc = mRequestMessage.GetAllocator();
+  auto &alloc = mRequestMessage.GetAllocator();
   if (!mRequestMessage.HasMember("id")) {
     mRequestMessage.AddMember("id", MemConciousValue().SetInt(aId), alloc);
   }
   mRequestMessage["id"] = aId;
 }
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

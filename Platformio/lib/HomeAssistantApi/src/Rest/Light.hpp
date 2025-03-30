@@ -5,7 +5,7 @@
 namespace HomeAssist {
 
 class Light : public Entity {
- public:
+public:
   Light(std::shared_ptr<IHomeAssistApi> anApi, std::string aEntityId)
       : Entity(anApi, aEntityId) {
     auto &parseHandlers = mRefreshParser.GetHandlersRef();
@@ -36,8 +36,8 @@ class Light : public Entity {
     CallService("services/light/turn_on");
   }
 
- private:
+private:
   int mLastBrightness = 0;
 };
 
-}  // namespace HomeAssist
+} // namespace HomeAssist

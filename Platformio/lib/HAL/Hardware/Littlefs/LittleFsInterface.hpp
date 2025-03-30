@@ -5,7 +5,7 @@
 #include "Hardware/Littlefs/File.hpp"
 #include "lfs.h"
 class LittleFsInterface {
- public:
+public:
   static constexpr auto LFSInstanceNeverCreated = -10;
   struct Config {
     lfs_size_t readSize;
@@ -28,7 +28,7 @@ class LittleFsInterface {
     return File(aFilePath, get(), aFlags);
   }
 
- protected:
+protected:
   void init();
 
   virtual Config getDataFormatConfig() = 0;
@@ -43,7 +43,7 @@ class LittleFsInterface {
   // Set this with a getInstance method in the Child Class
   static inline std::shared_ptr<LittleFsInterface> mInstance;
 
- private:
+private:
   static int ReadImpl(const lfs_config *c, lfs_block_t block, lfs_off_t off,
                       void *buffer, lfs_size_t size);
   static int ProgImpl(const lfs_config *c, lfs_block_t block, lfs_off_t off,

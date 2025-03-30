@@ -4,10 +4,10 @@
 namespace UI::Widget {
 class Button;
 class List;
-}  // namespace UI::Widget
+} // namespace UI::Widget
 namespace UI::Page {
 class SettingsPage : public Base {
- public:
+public:
   SettingsPage();
 
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override {
@@ -21,11 +21,11 @@ class SettingsPage : public Base {
   void PushWifiSettings();
   void PushMqttSettings();
 
- protected:
+protected:
   void OnShow() override {};
   void OnHide() override {};
 
   Widget::Button *mButton;
   Widget::List *mSettingsList;
 };
-}  // namespace UI::Page
+} // namespace UI::Page

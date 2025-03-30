@@ -3,7 +3,7 @@
 namespace UI {
 
 class ID {
- public:
+public:
   static constexpr auto INVALID = 0;
 
   enum class Screens {
@@ -54,8 +54,8 @@ class ID {
 
   bool operator==(const ID aOther) const { return aOther.mId == mId; }
 
- private:
+private:
   const int mId;
 };
 
-}  // namespace UI
+} // namespace UI

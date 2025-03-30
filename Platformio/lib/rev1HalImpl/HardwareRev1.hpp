@@ -3,13 +3,13 @@
 #include "HardwareRevX.hpp"
 
 class HardwareRev1 : public HardwareRevX {
- public:
+public:
   HardwareRev1() = default;
   virtual ~HardwareRev1() = default;
 
   void init() override;
 
- private:
+private:
   void initIO() override;
 
   void sleepDisplayPins() override;

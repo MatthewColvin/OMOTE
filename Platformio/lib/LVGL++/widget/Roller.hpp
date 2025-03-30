@@ -10,7 +10,7 @@ namespace UI::Widget {
 
 template <typename T>
 class Roller : public Base {
- public:
+public:
   Roller(std::function<void(T)> aOnItemSelected)
       : Base(lv_roller_create(UI::Screen::BackgroundScreen::getLvInstance()),
              ID::Widgets::Roller),
@@ -42,7 +42,7 @@ class Roller : public Base {
     return mOptionsData[idx];
   }
 
- protected:
+protected:
   void OnLvglEvent(lv_event_t *anEvent) override {
     if (lv_event_get_code(anEvent) == LV_EVENT_VALUE_CHANGED) {
       uint16_t idx = lv_roller_get_selected(LvglSelf());
@@ -52,10 +52,10 @@ class Roller : public Base {
     }
   }
 
- private:
+private:
   std::function<void(T)> mSelectionHandler;
   std::vector<T> mOptionsData;
   std::string mOptions;
 };
 
-}  // namespace UI::Widget
+} // namespace UI::Widget

@@ -8,7 +8,7 @@
 #include "memory.h"
 
 class wifiHandler : public wifiHandlerInterface {
- public:
+public:
   static std::shared_ptr<wifiHandler> getInstance();
 
   // wifiHandlerInterface Implementation
@@ -19,7 +19,7 @@ class wifiHandler : public wifiHandlerInterface {
 
   //
 
- protected:
+protected:
   // MQTT Interface
   void setupMqttBroker(std::string aBrokerIpAddress, int aPort) override;
   void mqttSend(std::string aTopic, std::string aMessage) override;
@@ -33,7 +33,7 @@ class wifiHandler : public wifiHandlerInterface {
    */
   void StoreCredentials();
 
- private:
+private:
   /**
    * @brief Handler for incoming arduino wifi events
    * @param event - a Wifi event

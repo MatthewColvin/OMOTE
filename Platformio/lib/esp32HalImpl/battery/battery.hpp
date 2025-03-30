@@ -1,7 +1,7 @@
 #pragma once
 #include "Hardware/BatteryInterface.h"
 class Battery : public BatteryInterface {
- public:
+public:
   /**
    * @brief Get the Percentage of the battery
    *
@@ -32,7 +32,7 @@ class Battery : public BatteryInterface {
   // none the less we really should not use it.
   Battery() = default;
 
- private:
+private:
   /**
    * @brief Function to get the current voltage of the battery
    *

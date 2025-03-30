@@ -9,11 +9,11 @@
 namespace HAL::WebSocket::Json {
 
 class MockIProcessMessage : public IProcessMessage {
- public:
+public:
   explicit MockIProcessMessage(std::unique_ptr<IChunkProcessor> processor)
       : IProcessMessage(nullptr, std::move(processor)) {}
 
   using IProcessMessage::GetUnProcessedBufferCapacity;
 };
 
-}  // namespace HAL::WebSocket::Json
+} // namespace HAL::WebSocket::Json

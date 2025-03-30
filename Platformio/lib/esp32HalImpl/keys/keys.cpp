@@ -9,9 +9,9 @@ Keys::Keys() {
 
 Keys::Keys(QueueHandle_t queueHandle) {
   mKeyPressQueueHandle = queueHandle;
-  //static constexpr auto MaxQueueableKeyPresses = 5;
-  //mKeyPressQueueHandle = xQueueCreate(MaxQueueableKeyPresses, sizeof(KeyEvent));
-  //xTaskCreate(KeyGrabberTask, "KeyGrabber", 1024, &mKeysMessageBuffer, 1, &mKeyGrabbingTask);
+  // static constexpr auto MaxQueueableKeyPresses = 5;
+  // mKeyPressQueueHandle = xQueueCreate(MaxQueueableKeyPresses, sizeof(KeyEvent));
+  // xTaskCreate(KeyGrabberTask, "KeyGrabber", 1024, &mKeysMessageBuffer, 1, &mKeyGrabbingTask);
   xTaskCreate(KeyProccessor, "KeyProccessor", 4096, this, 1, &mKeyHandlingTask);
 }
 
@@ -19,7 +19,7 @@ void Keys::KeyGrabberTask(void *aSelf) {
   auto self = reinterpret_cast<Keys *>(aSelf);
   while (true) {
     self->GrabKeys();
-    vTaskDelay(5 / portTICK_PERIOD_MS);  // 5 ms between key grabs
+    vTaskDelay(5 / portTICK_PERIOD_MS); // 5 ms between key grabs
   }
 }
 
@@ -48,9 +48,9 @@ void Keys::QueueKeyEvent(KeyEvent aJustOccuredKeyEvent) {
 };
 
 void Keys::GrabKeys() {
-  #if not defined( OMOTE_HARDWARE_REV5 )
+#if not defined(OMOTE_HARDWARE_REV5)
   if (!customKeypad.getKeys()) {
-    return;  // no activity return early.
+    return; // no activity return early.
   }
   for (int i = 0; i < LIST_MAX; i++) {
     if (customKeypad.key[i].kstate == PRESSED ||
@@ -69,5 +69,5 @@ void Keys::GrabKeys() {
       }
     }
   }
-  #endif
+#endif
 }

@@ -4,12 +4,12 @@
 
 namespace UI::Widget {
 class Image : public Base {
- public:
+public:
   /**
    * Construct Image Given a Symbol
    *  EX: Image(LV_SYMBOL_AUDIO);
    */
-  Image(const char* aSymbol);
+  Image(const char *aSymbol);
   virtual ~Image() = default;
 
   void SetRotation(int16_t aAngle);
@@ -18,4 +18,4 @@ class Image : public Base {
   void SetOffset(lv_coord_t aX, lv_coord_t aY);
 };
 
-}  // namespace UI::Widget
+} // namespace UI::Widget

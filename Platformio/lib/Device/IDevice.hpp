@@ -8,7 +8,7 @@
 #include "lvgl.h"
 
 class IDevice {
- public:
+public:
   using Ptr = std::shared_ptr<IDevice>;
   virtual ~IDevice() = default;
 

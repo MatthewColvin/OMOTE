@@ -19,19 +19,19 @@ static const std::map<const std::string, Type> PrefixToType{
     {"light", Type::Light},
     {"sensor", Type::Sensor},
     {"switch", Type::Switch}};
-}  // namespace
+} // namespace
 
 namespace UI::Page {
 
-DeviceList::DeviceList(HomeAssist::WebSocket::Api& aApi,
-                       ActiveDevices& aActiveDevices)
+DeviceList::DeviceList(HomeAssist::WebSocket::Api &aApi,
+                       ActiveDevices &aActiveDevices)
     : Base(ID::Pages::HomeAssistDeviceList),
       mEntityTypeList(AddNewElement<Widget::List>()),
       mLoadingArc(AddNewElement<Widget::Arc>()),
       mApi(aApi),
       mActiveDevices(aActiveDevices),
       mDeviceQueryProcessor(std::make_shared<UI::DevicesQueryProcessor>(
-          [this](const auto& aEntity) { StoreEntity(aEntity); })) {
+          [this](const auto &aEntity) { StoreEntity(aEntity); })) {
   // Initially hide device list
   mEntityTypeList->SetVisiblity(false);
 
@@ -45,7 +45,7 @@ DeviceList::DeviceList(HomeAssist::WebSocket::Api& aApi,
       &DeviceList::HandleDevicesQueryComplete, this, std::placeholders::_1));
 
   mDeviceQueryProcessor->setPercentCompleteCallback(
-      [this](const auto& aPercentComplete) {
+      [this](const auto &aPercentComplete) {
         LvglResourceManager::GetInstance().QueueForLater(
             [this, aPercentComplete]() {
               mLoadingArc->SetValue(aPercentComplete);
@@ -68,7 +68,7 @@ bool DeviceList::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   return false;
 }
 
-void DeviceList::StoreEntity(const std::string& aEntity) {
+void DeviceList::StoreEntity(const std::string &aEntity) {
   constexpr auto lightStr = "light";
   size_t dotPos = aEntity.find('.');
   std::string prefix =
@@ -85,14 +85,14 @@ void DeviceList::StoreEntity(const std::string& aEntity) {
 }
 
 void DeviceList::HandleDevicesQueryComplete(
-    const UI::DevicesQueryProcessor::resultType& aResult) {
+    const UI::DevicesQueryProcessor::resultType &aResult) {
   bool ranSuccessfully = aResult;
   LvglResourceManager::GetInstance().QueueForLater([this, ranSuccessfully]() {
     if (ranSuccessfully) {
       mLoadingArc->SetVisiblity(false);
       mEntityTypeList->AlignTo(this, LV_ALIGN_TOP_MID);
       mEntityTypeList->SetVisiblity(true);
-      for (auto& [type, list] : mEntityMap) {
+      for (auto &[type, list] : mEntityMap) {
         AddEntityTypeListItem(type, list);
       }
     } else {
@@ -102,23 +102,23 @@ void DeviceList::HandleDevicesQueryComplete(
 }
 
 void DeviceList::AddEntityTypeListItem(
-    EntityType aEntityType, const std::vector<std::string>& aEntities) const {
+    EntityType aEntityType, const std::vector<std::string> &aEntities) const {
   auto typeToPrefixMatch =
       std::find_if(PrefixToType.begin(), PrefixToType.end(),
-                   [aEntityType](auto& prefixToEntity) {
+                   [aEntityType](auto &prefixToEntity) {
                      return aEntityType == prefixToEntity.second;
                    });
 
   auto handleEntityTypeSelected = [&aEntities, aEntityType, this]() {
     auto entityListPage = std::make_unique<AddDevice>(
         mActiveDevices, aEntities,
-        [aEntityType, this](const auto& aName) -> IDevice::Ptr {
+        [aEntityType, this](const auto &aName) -> IDevice::Ptr {
           using namespace HomeAssist::Device;
           switch (aEntityType) {
-            case EntityType::Light:
-              return std::make_shared<Light>(aName, mApi);
-            default:
-              return nullptr;
+          case EntityType::Light:
+            return std::make_shared<Light>(aName, mApi);
+          default:
+            return nullptr;
           }
         });
 
@@ -132,4 +132,4 @@ void DeviceList::AddEntityTypeListItem(
   }
 }
 
-}  // namespace UI::Page
+} // namespace UI::Page

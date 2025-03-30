@@ -3,7 +3,7 @@
 
 #include "lvgl.h"
 class DisplayAbstract {
- public:
+public:
   virtual ~DisplayAbstract() = default;
 
   virtual void setBrightness(uint8_t brightness) = 0;
@@ -14,10 +14,10 @@ class DisplayAbstract {
 
   void ForceRefresh();
 
- protected:
+protected:
   DisplayAbstract() = default;
   // Set this in the constructor of the Child Calss
-  lv_display_t* mDisplay{nullptr};
+  lv_display_t *mDisplay{nullptr};
   // Set this with a getInstance method in the Child Class
   static inline std::shared_ptr<DisplayAbstract> mInstance;
 };

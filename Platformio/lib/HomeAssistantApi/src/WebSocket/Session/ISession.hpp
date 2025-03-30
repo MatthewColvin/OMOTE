@@ -13,7 +13,7 @@ class MessageHandler;
 class Request;
 
 class ISession {
- public:
+public:
   virtual ~ISession() = default;
 
   void MarkStarted();
@@ -21,16 +21,16 @@ class ISession {
   bool IsRunning() const;
 
   virtual std::unique_ptr<Request> GetStartRequest() = 0;
-  virtual Request* BorrowStartRequest() = 0;
-  virtual Request* BorrowEndRequest() = 0;
+  virtual Request *BorrowStartRequest() = 0;
+  virtual Request *BorrowEndRequest() = 0;
 
-  virtual bool ProcessMessage(const Message& aMessage) = 0;
+  virtual bool ProcessMessage(const Message &aMessage) = 0;
   virtual bool IsComplete() const = 0;
 
   virtual bool IsPreferringChunkProcessing() = 0;
   virtual std::shared_ptr<Json::IChunkProcessor> GetChunkProcessor() = 0;
 
- protected:
+protected:
   bool mIsRunning = false;
   bool mIsComplete = false;
 };
@@ -39,4 +39,4 @@ inline bool ISession::IsRunning() const { return mIsRunning; }
 inline void ISession::MarkStarted() { mIsRunning = true; }
 inline void ISession::MarkComplete() { mIsComplete = true; }
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

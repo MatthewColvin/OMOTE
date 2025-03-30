@@ -9,12 +9,12 @@
 namespace UI::Page {
 
 class AddDevice : public Base {
- public:
+public:
   using DeviceCreatorTy =
-      std::function<std::shared_ptr<IDevice>(const std::string&)>;
+      std::function<std::shared_ptr<IDevice>(const std::string &)>;
 
-  AddDevice(ActiveDevices& aActiveDevices,
-            const std::vector<std::string>& aDeviceNames,
+  AddDevice(ActiveDevices &aActiveDevices,
+            const std::vector<std::string> &aDeviceNames,
             DeviceCreatorTy aDeviceCreationCallback);
 
   virtual ~AddDevice() = default;
@@ -22,14 +22,14 @@ class AddDevice : public Base {
   // Override from Base so title is shown to user
   std::string GetTitle() override { return "Add Device"; }
 
- private:
+private:
   void OnAddButtonClicked();
 
-  Widget::Label* mInstructionLabel;
-  Widget::Roller<std::string>* mDeviceTypeRoller;
-  Widget::Button* mAddButton;
-  ActiveDevices& mActiveDevices;
+  Widget::Label *mInstructionLabel;
+  Widget::Roller<std::string> *mDeviceTypeRoller;
+  Widget::Button *mAddButton;
+  ActiveDevices &mActiveDevices;
   DeviceCreatorTy mDeviceCreator;
 };
 
-}  // namespace UI::Page
+} // namespace UI::Page

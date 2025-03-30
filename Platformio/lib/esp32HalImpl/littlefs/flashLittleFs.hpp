@@ -4,11 +4,11 @@
 #include "esp_partition.h"
 
 class FlashLittleFs : public LittleFsInterface {
- public:
+public:
   static std::shared_ptr<FlashLittleFs> getInstance();
   ~FlashLittleFs() override;
 
- protected:
+protected:
   Config getDataFormatConfig() override;
   int Read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off,
            void *buffer, lfs_size_t size) override;
@@ -17,7 +17,7 @@ class FlashLittleFs : public LittleFsInterface {
   int Erase(const struct lfs_config *c, lfs_block_t block) override;
   int Sync(const struct lfs_config *c) override;
 
- private:
+private:
   FlashLittleFs();
 
   const esp_partition_t *mPartition;
@@ -32,7 +32,7 @@ class FlashLittleFs : public LittleFsInterface {
   // Used one Less block because bumping right up to the
   // coredump was causing the coredumps to fail
   static constexpr size_t BLOCK_COUNT = 474;
-  static constexpr size_t CACHE_SIZE = 512;  // Increased for better performance
+  static constexpr size_t CACHE_SIZE = 512; // Increased for better performance
   static constexpr size_t LOOKAHEAD_SIZE = 128;
   static constexpr int32_t BLOCK_CYCLES = 500;
 };

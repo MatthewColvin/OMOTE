@@ -7,7 +7,7 @@
 #include "lfs.h"
 
 class File {
- public:
+public:
   using lfsStatusCode = int;
 
   File(std::string aFileName, lfs_t *aLfs,
@@ -42,7 +42,7 @@ class File {
     auto bytesWritten = lfs_file_write(mLfs, &mFile, aStringToWrite.c_str(),
                                        aStringToWrite.length());
     if (bytesWritten != aStringToWrite.length()) {
-      mLastStatus = -9;  // Todo name this?
+      mLastStatus = -9; // Todo name this?
     }
   }
 
@@ -56,7 +56,7 @@ class File {
 
   operator bool() const { return mLastStatus == 0; }
 
- protected:
+protected:
   // No need to manually call it will call on falling out of scope
   void close() {
     if (mIsOpen) {
@@ -64,7 +64,7 @@ class File {
     }
   }
 
- private:
+private:
   lfs_file_t mFile{0};
   lfs_t *mLfs;
   lfsStatusCode mLastStatus = 0;

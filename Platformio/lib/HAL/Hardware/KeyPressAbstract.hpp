@@ -3,7 +3,7 @@
 
 #include "Notification.hpp"
 class KeyPressAbstract {
- public:
+public:
   // Keys from Top Down left to right.
   enum class KeyId {
     Power,
@@ -51,8 +51,13 @@ class KeyPressAbstract {
   };
 
   class KeyEvent {
-   public:
-    enum class Type { Press, Release, Repeat, Short, Long, INVALID };
+  public:
+    enum class Type { Press,
+                      Release,
+                      Repeat,
+                      Short,
+                      Long,
+                      INVALID };
 
     KeyEvent() = default;
     KeyEvent(const KeyId aId, const Type aType) : mId(aId), mType(aType) {}
@@ -70,7 +75,7 @@ class KeyPressAbstract {
   /// @param aKeyEventHandler - Callable the Handles KeyEvent
   void RegisterKeyPressHandler(std::function<bool(KeyEvent)> aKeyEventHandler);
 
- protected:
+protected:
   /// @brief Function ment to be called regularly to allow
   ///        proccesssing of key presses by calling mKeyEventHandler
   ///        best case this is done on a seprate thread/task

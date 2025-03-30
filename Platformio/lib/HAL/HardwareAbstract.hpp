@@ -14,7 +14,7 @@
 #include "Hardware/wifiHandlerInterface.h"
 #include "Notification.hpp"
 class HardwareAbstract {
- public:
+public:
   HardwareAbstract();
 
   /// @brief Override in order to do setup of hardware devices post construction
@@ -25,7 +25,7 @@ class HardwareAbstract {
 
   /// @brief Override to allow printing of a message for debugging
   /// @param message - Debug message
-  virtual void debugPrint(const char* fmt, ...) = 0;
+  virtual void debugPrint(const char *fmt, ...) = 0;
 
   virtual std::shared_ptr<BatteryInterface> battery() = 0;
   virtual std::shared_ptr<DisplayAbstract> display() = 0;

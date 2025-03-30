@@ -30,14 +30,14 @@ void Slider::UpdateOnReleaseOnly(bool aOnReleaseFlag) {
 
 void Slider::OnLvglEvent(lv_event_t *anEvent) {
   switch (lv_event_get_code(anEvent)) {
-    case LV_EVENT_VALUE_CHANGED:
-      if (mOnlyProccessOnRelease) {
-        return;
-      }
-    case LV_EVENT_RELEASED:
-      mOnSliderChange(GetValue());
-      break;
-    default:
-      break;
+  case LV_EVENT_VALUE_CHANGED:
+    if (mOnlyProccessOnRelease) {
+      return;
+    }
+  case LV_EVENT_RELEASED:
+    mOnSliderChange(GetValue());
+    break;
+  default:
+    break;
   }
 }

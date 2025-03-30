@@ -17,7 +17,7 @@ using namespace rapidjson;
 namespace HomeAssist {
 
 class HttpClientApi : public IHomeAssistApi {
- public:
+public:
   HttpClientApi(const std::string &ip = HOMEASSISTANT_IP_ADDRESS,
                 const std::string &port = HOMEASSISTANT_PORT)
       : mIp(ip), mPort(port) {}
@@ -72,7 +72,7 @@ class HttpClientApi : public IHomeAssistApi {
     return std::string(payload.c_str());
   }
 
- private:
+private:
   std::string getURL(const std::string &path) {
     std::string url = "http://" + mIp + ":" + mPort + "/api/" + path;
 #if defined(HOMEASSISTANT_URL)
@@ -85,4 +85,4 @@ class HttpClientApi : public IHomeAssistApi {
   std::string mPort;
 };
 
-}  // namespace HomeAssist
+} // namespace HomeAssist

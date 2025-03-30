@@ -1,5 +1,5 @@
 #pragma once
-#include <Keypad.h>  // modified for inverted logic
+#include <Keypad.h> // modified for inverted logic
 
 #include <map>
 
@@ -7,7 +7,7 @@
 #include "omoteconfig.h"
 
 class Keys : public KeyPressAbstract {
- public:
+public:
   Keys();
   Keys(QueueHandle_t queueHandle);
   void HandleKeyPresses() override;
@@ -17,10 +17,10 @@ class Keys : public KeyPressAbstract {
     return charKeyToKeyIds.at(keyChar);
   }
 
- protected:
+protected:
   void GrabKeys();
 
- private:
+private:
   static void KeyGrabberTask(void *aSelf);
   static void KeyProccessor(void *aSelf);
 
@@ -29,16 +29,16 @@ class Keys : public KeyPressAbstract {
   TaskHandle_t mKeyHandlingTask;
 
   // Keypad declarations
-  static const byte ROWS = KEYPAD_ROWS;  // 5;  // four rows
-  static const byte COLS = KEYPAD_COLS;  // 5;  // four columns
+  static const byte ROWS = KEYPAD_ROWS; // 5;  // four rows
+  static const byte COLS = KEYPAD_COLS; // 5;  // four columns
 // define the symbols on the buttons of the keypads
 #if not defined(OMOTE_HARDWARE_REV5)
   char hexaKeys[ROWS][COLS] = {
-      {'s', '^', '-', 'm', 'r'},  //  source, channel+, Volume-,   mute, record
-      {'i', 'R', '+', 'k', 'd'},  //    info,    right, Volume+,     OK,   down
-      {'4', 'v', '1', '3', '2'},  //    blue, channel-,     red, yellow,  green
-      {'>', 'o', 'b', 'u', 'L'},  // forward,      off,    back,     up,   left
-      {'?', 'p', 'c', '<', '='}   //       ?,     play,  config, rewind,   stop
+      {'s', '^', '-', 'm', 'r'}, //  source, channel+, Volume-,   mute, record
+      {'i', 'R', '+', 'k', 'd'}, //    info,    right, Volume+,     OK,   down
+      {'4', 'v', '1', '3', '2'}, //    blue, channel-,     red, yellow,  green
+      {'>', 'o', 'b', 'u', 'L'}, // forward,      off,    back,     up,   left
+      {'?', 'p', 'c', '<', '='}  //       ?,     play,  config, rewind,   stop
   };
 #endif
   // Note: ? row/column entry is unused in hardware key matrix
@@ -75,7 +75,7 @@ class Keys : public KeyPressAbstract {
       {'2', KeyId::Aux2},
       {'3', KeyId::Aux3},
       {'4', KeyId::Aux4},
-      {'?', KeyId::INVALID},  // no physical key, should not happen
+      {'?', KeyId::INVALID}, // no physical key, should not happen
       // 3661 Extended keyboard codes
       {'g', KeyId::Guide},
       {'h', KeyId::Home},
@@ -91,9 +91,9 @@ class Keys : public KeyPressAbstract {
 
 #if not defined(OMOTE_HARDWARE_REV5)
   byte rowPins[ROWS] = {SW_A, SW_B, SW_C, SW_D,
-                        SW_E};  // connect to the row pinouts of the keypad
+                        SW_E}; // connect to the row pinouts of the keypad
   byte colPins[COLS] = {SW_1, SW_2, SW_3, SW_4,
-                        SW_5};  // connect to the column pinouts of the keypad
+                        SW_5}; // connect to the column pinouts of the keypad
   Keypad customKeypad =
       Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 #endif

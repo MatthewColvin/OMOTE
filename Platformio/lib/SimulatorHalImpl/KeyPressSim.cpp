@@ -4,7 +4,7 @@
 
 KeyPressSim::KeyPressSim() {
   mKeyHandlerThread = std::thread(
-      [this] {  // Delay to avoid issues with thread init issues with SDL
+      [this] { // Delay to avoid issues with thread init issues with SDL
         while (true) {
           HandleKeyPresses();
         }

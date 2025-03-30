@@ -29,7 +29,7 @@ SDLDisplay::SDLDisplay() : DisplayAbstract() {
   mDisplay = lv_sdl_window_create(SDL_HOR_RES, SDL_VER_RES);
   lv_display_set_default(mDisplay);
 
-  lv_indev_t* mouse = lv_sdl_mouse_create();
+  lv_indev_t *mouse = lv_sdl_mouse_create();
   lv_indev_set_group(mouse, lv_group_get_default());
   lv_indev_set_display(mouse, mDisplay);
 

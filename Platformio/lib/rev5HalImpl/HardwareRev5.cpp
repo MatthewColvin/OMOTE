@@ -29,12 +29,12 @@ void HardwareRev5::setupKeyboard() {
     Serial.println("Keypad TCA8418 not found!");
   }
   keypad.matrix(KEYPAD_ROWS, KEYPAD_COLS);
-  keypad.pinMode(5, INPUT_PULLUP);  // SW_PWR
-  keypad.pinMode(6, INPUT_PULLUP);  // SD_DET
+  keypad.pinMode(5, INPUT_PULLUP); // SW_PWR
+  keypad.pinMode(6, INPUT_PULLUP); // SD_DET
 #ifdef OMOTE_KEYBRD_3661
-  keypad.pinMode(14, INPUT);  // USB_3V3
+  keypad.pinMode(14, INPUT); // USB_3V3
 #else
-  keypad.pinMode(13, INPUT);  // USB_3V3
+  keypad.pinMode(13, INPUT); // USB_3V3
 #endif
 
   pinMode(TCA_INT, INPUT);
@@ -66,7 +66,7 @@ bool HardwareRev5::lightSensorScan(uint16_t &visPlusIrLevel,
 }
 
 void HardwareRev5::updateBacklightMode(uint16_t lightLevel) {
-#ifdef OMOTE_KEYBRD_3661  // do we have a light sensor
+#ifdef OMOTE_KEYBRD_3661 // do we have a light sensor
   static bool backlight_mode_is_day = true;
   static bool firstMeas = true;
 
@@ -75,7 +75,7 @@ void HardwareRev5::updateBacklightMode(uint16_t lightLevel) {
     return;
   }
 
-  if (backlight_mode_is_day) {  // hysteresis
+  if (backlight_mode_is_day) { // hysteresis
     if (lightLevel < 20) {
       backlight_mode_is_day = false;
       mDisplay->setDayMode(backlight_mode_is_day);
@@ -104,15 +104,16 @@ bool HardwareRev5::keyboardScan() {
   uint8_t row = 0, col = 0;
   uint8_t keyIndex = 0;
   uint8_t intStat = keypad.readRegister(TCA8418_REG_INT_STAT);
-  if (intStat & 0x01)  // Byte 0: K_INT (keyboard interrupt)
+  if (intStat & 0x01) // Byte 0: K_INT (keyboard interrupt)
   {
     // datasheet page 16 - Table 2
     keyCode = keypad.getEvent();
-    if (keyCode & 0x80) keyPressed = true;
+    if (keyCode & 0x80)
+      keyPressed = true;
 
     keyCode &= 0x7F;
 
-    if (keyCode > 96)  //  GPIO
+    if (keyCode > 96) //  GPIO
     {
       keyCode -= 97;
 // this only happens for key 'o' (off). Map this to vacant pos in matrix
@@ -130,8 +131,8 @@ bool HardwareRev5::keyboardScan() {
       row = keyCode / 10;
       col = keyCode % 10;
       if ((row >= KEYPAD_ROWS) || (col >= KEYPAD_COLS))
-        return false;  // invalid key, should bever occur but don't process if
-                       // it does
+        return false; // invalid key, should bever occur but don't process if
+                      // it does
     }
     keyIndex = col + (row * KEYPAD_COLS);
     Serial.printf("Row:%d, Col %d, Index:%d\r\n", row, col, keyIndex);
@@ -140,7 +141,7 @@ bool HardwareRev5::keyboardScan() {
     keypad.writeRegister(TCA8418_REG_INT_STAT, 1);
 
     // process
-    if (keyPressed) {  // new press so initialise structure
+    if (keyPressed) { // new press so initialise structure
       keyStates[keyIndex].firstPressedTime = millis();
       keyStates[keyIndex].lastRepeatedTime =
           keyStates[keyIndex].firstPressedTime;
@@ -150,7 +151,7 @@ bool HardwareRev5::keyboardScan() {
     }
   }
 
-  if (intStat & 0x02)  // Byte 1: GPI_INT (GPIO interrupt)
+  if (intStat & 0x02) // Byte 1: GPI_INT (GPIO interrupt)
   {
     //  reading the registers is mandatory to clear IRQ flag
     //  can also be used to find the GPIO changed
@@ -188,7 +189,7 @@ bool HardwareRev5::keyboardScan() {
       }
       keyStates[index].wasPressed = keyStates[index].isPressed;
     } else {
-      if (keyStates[index].isPressed) {  // no change but still pressed
+      if (keyStates[index].isPressed) { // no change but still pressed
         if (timeNow - keyStates[index].lastRepeatedTime > 200) {
           // time to repeat
           keyStates[index].lastRepeatedTime = timeNow;
@@ -211,7 +212,7 @@ bool HardwareRev5::keyboardScan() {
 }
 
 void HardwareRev5::configIMUInterruptPolarity() {
-  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x02);  // For active-low interrupt
+  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x02); // For active-low interrupt
 }
 
 void HardwareRev5::enableWakeupByPin() {

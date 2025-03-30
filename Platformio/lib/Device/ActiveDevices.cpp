@@ -10,7 +10,7 @@ void ActiveDevices::addDevice(IDevice::Ptr device) {
   }
 }
 
-void ActiveDevices::removeDevice(const std::string& deviceName) {
+void ActiveDevices::removeDevice(const std::string &deviceName) {
   auto it = std::find_if(
       mDevices.begin(), mDevices.end(),
       [&deviceName](IDevice::Ptr dev) { return dev->GetName() == deviceName; });

@@ -16,11 +16,11 @@ static const auto HomeAssistAuthResponse = R"---(
                                            "\"}";
 
 class AuthSession : public ISession {
- public:
+public:
   AuthSession(std::shared_ptr<webSocketInterface> aHomeAssistSocket);
   ~AuthSession() override = default;
 
-  bool ProcessMessage(const Message& aMessage) override;
+  bool ProcessMessage(const Message &aMessage) override;
 
   bool IsComplete() const override;
 
@@ -30,10 +30,10 @@ class AuthSession : public ISession {
 
   bool IsAuthSent();
 
- private:
+private:
   std::unique_ptr<Request> GetStartRequest() override { return nullptr; }
-  Request* BorrowEndRequest() override { return nullptr; }
-  Request* BorrowStartRequest() override { return nullptr; }
+  Request *BorrowEndRequest() override { return nullptr; }
+  Request *BorrowStartRequest() override { return nullptr; }
   std::shared_ptr<Json::IChunkProcessor> GetChunkProcessor() override {
     return nullptr;
   }
@@ -51,20 +51,20 @@ Api::ConnectionStatus AuthSession::GetConnectionStatus() const {
   return mConnectionStatus;
 }
 
-bool AuthSession::ProcessMessage(const Message& aMessage) {
+bool AuthSession::ProcessMessage(const Message &aMessage) {
   switch (aMessage.GetType()) {
-    case Message::Type::auth_required:
-      SendAuth();
-      return true;
-    case Message::Type::auth_ok:
-      mConnectionStatus = Api::ConnectionStatus::Connected;
-      HardwareFactory::getAbstract().debugPrint("HOLY_SHIT Connected");
-      return true;
-    case Message::Type::auth_invalid:
-      mConnectionStatus = Api::ConnectionStatus::Failed;
-      return true;
-    default:
-      return false;
+  case Message::Type::auth_required:
+    SendAuth();
+    return true;
+  case Message::Type::auth_ok:
+    mConnectionStatus = Api::ConnectionStatus::Connected;
+    HardwareFactory::getAbstract().debugPrint("HOLY_SHIT Connected");
+    return true;
+  case Message::Type::auth_invalid:
+    mConnectionStatus = Api::ConnectionStatus::Failed;
+    return true;
+  default:
+    return false;
   }
 }
 
@@ -80,4 +80,4 @@ void AuthSession::SendAuth() {
 
 bool AuthSession::IsAuthSent() { return mIsAuthSent; }
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

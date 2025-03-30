@@ -14,8 +14,8 @@ namespace UI::Screen {
 #define TOP_BAR_HEIGHT 20
 
 class HomeScreen : public Base {
- public:
-  HomeScreen(ActiveDevices& aActiveDevices);
+public:
+  HomeScreen(ActiveDevices &aActiveDevices);
 
   void SetBgColor(lv_color_t value,
                   lv_style_selector_t selector = LV_PART_MAIN) override;
@@ -24,17 +24,17 @@ class HomeScreen : public Base {
 
   bool GoToPage(ID anId) { return mTabView->GoToTab(anId); }
 
- protected:
+protected:
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
 
- private:
+private:
   void ActiveListPress();
   void SettingsPress();
 
-  ActiveDevices& mActiveDevices;
+  ActiveDevices &mActiveDevices;
 
-  Page::TabView* mTabView;
-  Widget::StatusBar* mStatusBar;
+  Page::TabView *mTabView;
+  Widget::StatusBar *mStatusBar;
 };
 
-}  // namespace UI::Screen
+} // namespace UI::Screen

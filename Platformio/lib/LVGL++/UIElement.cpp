@@ -333,4 +333,4 @@ void UIElement::LvglEventHandler(lv_event_t *anEvent) {
       ->OnLvglEvent(anEvent);
 }
 
-}  // namespace UI
+} // namespace UI

@@ -6,12 +6,12 @@
 namespace UI {
 
 class HomeAssistUI : public BasicUI {
- public:
+public:
   HomeAssistUI();
 
   void loopHandler() override;
 
- private:
+private:
   using ApiConnStatus = HomeAssist::WebSocket::Api::ConnectionStatus;
   Handler<ApiConnStatus> mConnectionStatusHandler;
   void HandleConnectionStatusChange(ApiConnStatus aNewStatus);
@@ -19,4 +19,4 @@ class HomeAssistUI : public BasicUI {
   std::unique_ptr<HomeAssist::WebSocket::Api> mHomeAssistApi = nullptr;
 };
 
-}  // namespace UI
+} // namespace UI

@@ -79,7 +79,7 @@ void Api::ProcessSessions() {
   if (mConnectionStatus != ConnectionStatus::Connected) {
     return;
   }
-  for (auto& session : mSessions) {
+  for (auto &session : mSessions) {
     if (!session.second->IsRunning()) {
       if (auto request = session.second->GetStartRequest(); request) {
         mHomeAssistSocket->sendMessage(request->GetRequestMessage());
@@ -96,13 +96,13 @@ void Api::ProcessMessages() {
   while (mIncomingMessageQueue.size() > 0) {
     auto message = std::move(mIncomingMessageQueue.front());
     mIncomingMessageQueue.pop();
-    auto& session = mSessions[message->GetId()];
+    auto &session = mSessions[message->GetId()];
     if (!session) {
       return;
     }
     session->ProcessMessage(*message);
     if (session->IsComplete()) {
-      if (auto* request = session->BorrowEndRequest(); request) {
+      if (auto *request = session->BorrowEndRequest(); request) {
         mHomeAssistSocket->sendMessage(request->GetRequestMessage());
       }
       session->MarkComplete();
@@ -121,7 +121,7 @@ void Api::CleanUpSessions() {
   }
 }
 
-bool Api::PreProcessMessage(Message& aMessage) {
+bool Api::PreProcessMessage(Message &aMessage) {
   if (mAuthSession && mAuthSession->ProcessMessage(aMessage)) {
     if (mAuthSession->IsComplete()) {
       UpdateConnectionStatus(mAuthSession->GetConnectionStatus());
@@ -167,4 +167,4 @@ void Api::AttemptConnection(bool aHonorTimeInterval) {
   }
 }
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

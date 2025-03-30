@@ -72,4 +72,4 @@ void Light::UpdateSlider() {
 
 void Light::OnShow() { UpdateSlider(); }
 
-}  // namespace UI::Widget
+} // namespace UI::Widget

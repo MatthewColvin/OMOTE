@@ -11,7 +11,7 @@
 #include "wifiHandlerSim.hpp"
 
 class HardwareSimulator : public HardwareAbstract {
- public:
+public:
   HardwareSimulator();
 
   void init() override {};
@@ -44,7 +44,7 @@ class HardwareSimulator : public HardwareAbstract {
   uint32_t getSleepTimeout() override;
   void setSleepTimeout(uint32_t sleepTimeout) override;
 
- private:
+private:
   // Completely arbitrary limit on the number of web sockets
   static constexpr auto WebSocketLimit = 5;
 

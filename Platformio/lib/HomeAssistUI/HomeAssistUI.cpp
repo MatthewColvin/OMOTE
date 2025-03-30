@@ -15,7 +15,7 @@ using namespace UI;
 using namespace HomeAssist::WebSocket;
 
 HomeAssistUI::HomeAssistUI() : BasicUI() {
-  auto& hardware = HardwareFactory::getAbstract();
+  auto &hardware = HardwareFactory::getAbstract();
   auto socket = hardware.webSocket();
   if (!socket) {
     hardware.debugPrint("Unable To Get WebSocket Total Failure Condition!");

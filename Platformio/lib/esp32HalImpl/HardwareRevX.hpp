@@ -30,8 +30,10 @@
 #define OBSERVER_BUF_SIZE 10
 
 class HardwareRevX : public HardwareAbstract {
- public:
-  enum class WakeReason { RESET, IMU, KEYPAD };
+public:
+  enum class WakeReason { RESET,
+                          IMU,
+                          KEYPAD };
 
   HardwareRevX();
 
@@ -63,7 +65,7 @@ class HardwareRevX : public HardwareAbstract {
   // TODO move to a freertos task
   void loopHandler() override;
 
- protected:
+protected:
   // Init Functions to setup hardware
   virtual void initIO();
   void restorePreferences();
@@ -87,32 +89,32 @@ class HardwareRevX : public HardwareAbstract {
   void startTasks();
 
   // Maybe TODO: make not protected?
- protected:
+protected:
   std::shared_ptr<Battery> mBattery;
   std::shared_ptr<Keys> mKeys;
   std::shared_ptr<Display> mDisplay;
   std::shared_ptr<LittleFsInterface> mLittleFs;
 
- private:
+private:
   std::shared_ptr<wifiHandler> mWifiHandler;
   std::shared_ptr<IRTransceiver> mIr;
   std::shared_ptr<EspStats> mStats = nullptr;
 
- protected:  // Maybe todo: make private?
+protected: // Maybe todo: make private?
   // IMU Motion Detection
   LIS3DH IMU =
-      LIS3DH(I2C_MODE, 0x19);  // Default constructor is I2C, addr 0x19.
+      LIS3DH(I2C_MODE, 0x19); // Default constructor is I2C, addr 0x19.
   Preferences preferences;
 
- private:
+private:
   int standbyTimer = SLEEP_TIMEOUT;
   int sleepTimeout = SLEEP_TIMEOUT;
   int motion = 0;
   WakeReason wakeup_reason;
 
   bool wakeupByIMUEnabled = true;
-  byte currentDevice = 1;  // Current Device to control (allows switching
-                           // mappings between devices)
+  byte currentDevice = 1; // Current Device to control (allows switching
+                          // mappings between devices)
 
   static std::shared_ptr<HardwareRevX> mInstance;
   Handler<Display::TouchPointType> mTouchHandler;

@@ -7,22 +7,22 @@
 namespace UI::Widget {
 
 class MainTopBar : public Base {
- public:
+public:
   static constexpr auto Height = 0.15 * SCREEN_HEIGHT;
 
-  MainTopBar(ActiveDevices& aActiveDevices);
+  MainTopBar(ActiveDevices &aActiveDevices);
 
- private:
+private:
   void DisplayTopPrioityDeviceInfo();
   void DisplayDeviceInfo(std::shared_ptr<IDevice> aDeviceToDisplay);
 
-  void OnLvglEvent(lv_event_t* aEvent) override;
+  void OnLvglEvent(lv_event_t *aEvent) override;
   void OpenActiveDevicesPage();
 
-  ActiveDevices& mActiveDevices;
+  ActiveDevices &mActiveDevices;
   Handler<ActiveDevices::ListEvent> mDeviceChangeHandler;
-  Widget::Label* mDeviceLabel;
-  Widget::LED* mLed;
+  Widget::Label *mDeviceLabel;
+  Widget::LED *mLed;
 };
 
-}  // namespace UI::Widget
+} // namespace UI::Widget

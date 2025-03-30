@@ -12,7 +12,9 @@ namespace UI {
 #define WIFI_STATUS 2
 #define DYNAMIC_START 3
 
-enum obsType { None, String, Int };
+enum obsType { None,
+               String,
+               Int };
 
 struct obsData {
   lv_subject_t Handler;
@@ -23,7 +25,7 @@ struct obsData {
 };
 
 class observerHandles {
- public:
+public:
   observerHandles();
   ~observerHandles();
 
@@ -39,8 +41,8 @@ class observerHandles {
 
   static bool bindLabelHandle(lv_obj_t *object, uint32_t key, const char *fmt);
 
- private:
+private:
   static std::map<uint32_t, obsData> mHandleMap;
   static uint32_t mNextID;
 };
-}  // namespace UI
+} // namespace UI

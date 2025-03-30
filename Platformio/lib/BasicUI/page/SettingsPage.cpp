@@ -5,12 +5,12 @@
 #include "DisplaySettings.hpp"
 #include "HardwareFactory.hpp"
 #include "List.hpp"
+#include "MqttSettings.hpp"
 #include "PopUpScreen.hpp"
 #include "ScreenManager.hpp"
 #include "Slider.hpp"
 #include "SystemSettings.hpp"
 #include "WifiSettings.hpp"
-#include "MqttSettings.hpp"
 
 using namespace UI::Page;
 using namespace UI::Color;

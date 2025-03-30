@@ -6,7 +6,7 @@ namespace Json {
 
 class IChunkProcessor
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, IChunkProcessor> {
- public:
+public:
   virtual ~IChunkProcessor() = default;
 
   virtual bool Null() = 0;
@@ -16,11 +16,11 @@ class IChunkProcessor
   virtual bool Int64(int64_t i) = 0;
   virtual bool Uint64(uint64_t u) = 0;
   virtual bool Double(double d) = 0;
-  virtual bool RawNumber(const Ch* str, rapidjson::SizeType length,
+  virtual bool RawNumber(const Ch *str, rapidjson::SizeType length,
                          bool copy) = 0;
-  virtual bool String(const Ch* str, rapidjson::SizeType length, bool copy) = 0;
+  virtual bool String(const Ch *str, rapidjson::SizeType length, bool copy) = 0;
   virtual bool StartObject() = 0;
-  virtual bool Key(const Ch* str, rapidjson::SizeType length, bool copy) = 0;
+  virtual bool Key(const Ch *str, rapidjson::SizeType length, bool copy) = 0;
   virtual bool EndObject(rapidjson::SizeType memberCount) = 0;
   virtual bool StartArray() = 0;
   virtual bool EndArray(rapidjson::SizeType elementCount) = 0;
@@ -42,7 +42,7 @@ class IChunkProcessor
   // a Process Result over here and then In IprocessMessage we could convert it
   // before we pass it in here.
   virtual void Completed(
-      const IProcessMessage::ProcessResult& aCompletionResult) {};
+      const IProcessMessage::ProcessResult &aCompletionResult) {};
 };
 
-}  // namespace Json
+} // namespace Json

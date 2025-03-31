@@ -1,7 +1,7 @@
 #pragma once
 
-#include "DeviceIds.hpp"
 #include "ActiveDevices.hpp"
+#include "DeviceIds.hpp"
 #include "HomeAssistDevices/HomeAssistDeviceFactory.hpp"
 #include "IDevice.hpp"
 
@@ -11,11 +11,15 @@
 class DeviceFactory {
 public:
   DeviceFactory() = default;
+
+  void InitHomeAssistFactory(HomeAssist::WebSocket::Api &aHaApi);
+
   IDevice::Ptr Create(DeviceId aId);
-  IDevice::Ptr CreateHomeAssistDevice(const std::string &aEntityString, HomeAssist::WebSocket::Api &mHaApi);
-  
-  ActiveDevices& getActiveDevices() { return mActiveDevices; }
+  IDevice::Ptr CreateHomeAssistDevice(const std::string &aEntityString);
+
+  ActiveDevices &getActiveDevices() { return mActiveDevices; }
 
 private:
   ActiveDevices mActiveDevices;
+  std::unique_ptr<HomeAssist::HomeAssistDeviceFactory> mHomeAssistFactory;
 };

@@ -9,7 +9,9 @@ namespace HomeAssist {
 
 class HomeAssistDeviceFactory {
 public:
-  static IDevice::Ptr Create(const std::string &aEntityString, WebSocket::Api &mHaApi);
+  explicit HomeAssistDeviceFactory(WebSocket::Api &aHaApi) : mHaApi(aHaApi) {}
+
+  IDevice::Ptr Create(const std::string &aEntityString);
 
   enum class EntityType : uint8_t {
     Light,
@@ -24,7 +26,7 @@ public:
   static EntityType GetType(const std::string &aEntityString);
 
 private:
-  HomeAssistDeviceFactory() = default;
+  WebSocket::Api &mHaApi;
 };
 
 } // namespace HomeAssist

@@ -2,7 +2,6 @@
 
 #include "AddDevice.hpp"
 #include "HardwareFactory.hpp"
-#include "HomeAssistDevices/HomeAssistDeviceFactory.hpp"
 #include "HomeAssistDevices/Light.hpp"
 #include "List.hpp"
 #include "Roller.hpp"
@@ -25,12 +24,12 @@ static const std::map<const std::string, Type> PrefixToType{
 namespace UI::Page {
 
 DeviceList::DeviceList(HomeAssist::WebSocket::Api &aApi,
-                       ActiveDevices &aActiveDevices)
+                       DeviceFactory &aDeviceFactory)
     : Base(ID::Pages::HomeAssistDeviceList),
       mEntityTypeList(AddNewElement<Widget::List>()),
       mLoadingArc(AddNewElement<Widget::Arc>()),
       mApi(aApi),
-      mActiveDevices(aActiveDevices),
+      mDeviceFactory(aDeviceFactory),
       mDeviceQueryProcessor(std::make_shared<UI::DevicesQueryProcessor>(
           [this](const auto &aEntity) { StoreEntity(aEntity); })) {
   // Initially hide device list
@@ -101,9 +100,9 @@ void DeviceList::AddEntityTypeListItem(
 
   auto handleEntityTypeSelected = [&aEntities, aEntityType, this]() {
     auto entityListPage = std::make_unique<AddDevice>(
-        mActiveDevices, aEntities,
+        mDeviceFactory.getActiveDevices(), aEntities,
         [aEntityType, this](const auto &aName) -> IDevice::Ptr {
-          return HomeAssist::HomeAssistDeviceFactory::Create(aName, mApi);
+          return mDeviceFactory.CreateHomeAssistDevice(aName);
         });
 
     UI::Screen::Manager::getInstance().pushPopUp(std::move(entityListPage));

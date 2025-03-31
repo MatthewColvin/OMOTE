@@ -6,10 +6,13 @@ IDevice::Ptr DeviceFactory::Create(DeviceId id) {
   return nullptr;
 }
 
-IDevice::Ptr DeviceFactory::CreateHomeAssistDevice(const std::string &aEntityString, HomeAssist::WebSocket::Api &mHaApi) {
-  auto device = HomeAssist::HomeAssistDeviceFactory::Create(aEntityString, mHaApi);
-  if (device) {
-    mActiveDevices.addDevice(device);
+void DeviceFactory::InitHomeAssistFactory(HomeAssist::WebSocket::Api &aHaApi) {
+  mHomeAssistFactory = std::make_unique<HomeAssist::HomeAssistDeviceFactory>(aHaApi);
+}
+
+IDevice::Ptr DeviceFactory::CreateHomeAssistDevice(const std::string &aEntityString) {
+  if (!mHomeAssistFactory) {
+    return nullptr;
   }
-  return device;
+  return mHomeAssistFactory->Create(aEntityString);
 }

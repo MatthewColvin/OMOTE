@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 
+#include "DeviceFactory.hpp"
 #include "HardwareAbstract.hpp"
 #include "Label.hpp"
 #include "MainTopBar.hpp"
@@ -15,7 +16,7 @@ namespace UI::Screen {
 
 class HomeScreen : public Base {
 public:
-  HomeScreen(ActiveDevices &aActiveDevices);
+  HomeScreen(DeviceFactory &factory);
 
   void SetBgColor(lv_color_t value,
                   lv_style_selector_t selector = LV_PART_MAIN) override;
@@ -31,7 +32,7 @@ private:
   void ActiveListPress();
   void SettingsPress();
 
-  ActiveDevices &mActiveDevices;
+  DeviceFactory &mFactory;
 
   Page::TabView *mTabView;
   Widget::StatusBar *mStatusBar;

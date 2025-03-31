@@ -4,7 +4,7 @@
 
 namespace HomeAssist {
 
-IDevice::Ptr HomeAssistDeviceFactory::Create(const std::string &aEntityString, WebSocket::Api &mHaApi) {
+IDevice::Ptr HomeAssistDeviceFactory::Create(const std::string &aEntityString) {
   using namespace HomeAssist::Device;
   switch (GetType(aEntityString)) {
   case EntityType::Light:
@@ -14,7 +14,8 @@ IDevice::Ptr HomeAssistDeviceFactory::Create(const std::string &aEntityString, W
   }
 }
 
-HomeAssistDeviceFactory::EntityType HomeAssistDeviceFactory::GetType(const std::string &aEntityString) {
+HomeAssistDeviceFactory::EntityType
+HomeAssistDeviceFactory::GetType(const std::string &aEntityString) {
   if (aEntityString.rfind("light.", 0) == 0) {
     return EntityType::Light;
   } else if (aEntityString.rfind("switch.", 0) == 0) {

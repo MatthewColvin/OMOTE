@@ -28,9 +28,11 @@ HomeAssistUI::HomeAssistUI() : BasicUI() {
     HandleConnectionStatusChange(aStatus);
   };
 
+  mDeviceFactory.InitHomeAssistFactory(*mHomeAssistApi);
+
   auto tmpAddDeviceButton = std::make_unique<UI::Widget::Button>([this]() {
     auto deviceList =
-        std::make_unique<UI::Page::DeviceList>(*mHomeAssistApi, mDeviceFactory.getActiveDevices());
+        std::make_unique<UI::Page::DeviceList>(*mHomeAssistApi, mDeviceFactory);
     UI::Screen::Manager::getInstance().pushPopUp(std::move(deviceList));
   });
   tmpAddDeviceButton->SetWidth(SCREEN_WIDTH);

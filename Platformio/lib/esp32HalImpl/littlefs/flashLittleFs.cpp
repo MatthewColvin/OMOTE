@@ -5,8 +5,9 @@
 #include "esp_system.h"
 
 FlashLittleFs::FlashLittleFs() : mPartition(nullptr), mMounted(false) {
+  // Using Spiffs as partition label becasue arduino framework is behind on IDF version
   mPartition = esp_partition_find_first(
-      ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, PARTITION_LABEL);
+      ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, PARTITION_LABEL);
 }
 
 std::shared_ptr<FlashLittleFs> FlashLittleFs::getInstance() {

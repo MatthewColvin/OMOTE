@@ -9,7 +9,7 @@
 namespace HomeAssist::Device {
 
 Light::Light(const std::string &entityId, WebSocket::Api &api)
-    : mEntityId(entityId), mApi(api) {
+    : Base(entityId, api) {
   SetupStateSubscription();
 }
 
@@ -33,8 +33,6 @@ void Light::TurnOff() { SendLightCommand("turn_off"); }
 void Light::Toggle() { SendLightCommand("toggle"); }
 
 void Light::SetupStateSubscription() {
-  // if (!mApi) return;
-
   auto request = WebSocket::RequestBuilder::CreateTriggerSubscription(
       mEntityId,
       "", // from any state
@@ -60,8 +58,6 @@ void Light::HandleStateChange(const WebSocket::Message &message) {
 }
 
 void Light::SendLightCommand(const std::string &service) {
-  // if (!mApi) return;
-
   std::string domain = "light";
   auto request = WebSocket::RequestBuilder()
                      .SetType(WebSocket::RequestTypes::CALL_SERVICE)

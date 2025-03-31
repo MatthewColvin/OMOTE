@@ -65,8 +65,7 @@ std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
       // Check Config for entityId to build HA Device
       if (!device && deviceObj.HasMember("entityId") && deviceObj["entityId"].IsString()) {
         if (std::string entityIdFromConfig = deviceObj["entityId"].GetString(); !entityIdFromConfig.empty()) {
-          // TODO: Needs HomeAssist API reference
-          // device = mFactory.CreateHomeAssistDevice(entityIdFromConfig, haApi);
+          device = mFactory.CreateHomeAssistDevice(entityIdFromConfig);
         }
       }
 

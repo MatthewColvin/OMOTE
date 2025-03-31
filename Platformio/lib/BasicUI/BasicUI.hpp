@@ -17,6 +17,8 @@ protected:
   void AddPageToHomeScreen(Page::Base::Ptr aPageToAdd);
   bool GoToPage(ID anId);
 
+  void restore() override;
+
   DeviceFactory mDeviceFactory;
   std::unique_ptr<ActiveDeviceConfig> mDeviceConfig;
 

@@ -8,10 +8,6 @@ using namespace UI;
 
 BasicUI::BasicUI() : UIBase() {
   mDeviceConfig = std::make_unique<ActiveDeviceConfig>(HardwareFactory::getAbstract().getLittleFS(), mDeviceFactory);
-  auto devices = mDeviceConfig->loadDevices();
-  for (auto &device : devices) {
-    mDeviceFactory.getActiveDevices().addDevice(std::move(device));
-  }
 
   HardwareFactory::getAbstract().keys()->RegisterKeyPressHandler(
       [this](auto aKeyEvent) {
@@ -33,6 +29,13 @@ BasicUI::BasicUI() : UIBase() {
   Screen::Manager::getInstance().pushScreen(std::move(homeScreen));
 
   HardwareFactory::getAbstract().wifi()->begin();
+}
+
+void BasicUI::restore() {
+  auto devices = mDeviceConfig->loadDevices();
+  for (auto &device : devices) {
+    mDeviceFactory.getActiveDevices().addDevice(std::move(device));
+  }
 }
 
 void BasicUI::AddPageToHomeScreen(std::unique_ptr<Page::Base> aPageToAdd) {

@@ -6,7 +6,6 @@
 #include <string>
 
 #include "lfs.h"
-#include <Arduino.h>
 
 class File {
 public:

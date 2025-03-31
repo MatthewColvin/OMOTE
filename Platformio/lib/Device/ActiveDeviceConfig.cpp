@@ -20,7 +20,6 @@ bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
   auto &allocator = doc.GetAllocator();
 
   for (const auto &device : devices) {
-    HardwareFactory::getAbstract().debugPrint("Saving Device %s", device->GetName());
     MemConciousValue deviceObj(rapidjson::kObjectType);
     deviceObj.AddMember("type", static_cast<int>(device->GetType()), allocator);
     deviceObj.AddMember("id", static_cast<int>(device->GetId()), allocator);
@@ -38,7 +37,12 @@ bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
   if (!file)
     return false;
 
+  HardwareFactory::getAbstract().debugPrint("DeviceSaveJSON:  %s", jsonStr.c_str());
+
   file.write(jsonStr);
+
+  file ? file.truncate(jsonStr.length()) : []() { return -1; }();
+
   return file;
 }
 
@@ -51,6 +55,8 @@ std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
 
   // Todo consider max read size api
   std::string content = file.read(1000);
+  HardwareFactory::getAbstract().debugPrint("Loaded JSON %s", content.c_str());
+
   if (content.empty())
     return devices;
 

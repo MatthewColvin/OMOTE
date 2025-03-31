@@ -25,7 +25,7 @@ public:
 
   // Optional configuration data
   virtual MemConsciousDocument GetExtraConfig() const {
-    return GetDocument("{}");
+    return {};
   }
   virtual void SetExtraConfig(const MemConsciousDocument &config) {}
 

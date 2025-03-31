@@ -1,4 +1,5 @@
 #include "DeviceFactory.hpp"
+#include "HardwareFactory.hpp"
 #include <algorithm>
 #include <cctype>
 
@@ -11,6 +12,8 @@ void DeviceFactory::InitHomeAssistFactory(HomeAssist::WebSocket::Api &aHaApi) {
 }
 
 IDevice::Ptr DeviceFactory::CreateHomeAssistDevice(const std::string &aEntityString) {
+  HardwareFactory::getAbstract().debugPrint("Attempting Creation of %s", aEntityString.c_str());
+
   if (!mHomeAssistFactory) {
     return nullptr;
   }

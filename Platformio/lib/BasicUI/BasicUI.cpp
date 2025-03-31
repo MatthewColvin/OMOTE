@@ -33,6 +33,8 @@ BasicUI::BasicUI() : UIBase() {
 
 void BasicUI::restore() {
   auto devices = mDeviceConfig->loadDevices();
+  HardwareFactory::getAbstract().debugPrint("Found %d devices", devices.size());
+
   for (auto &device : devices) {
     mDeviceFactory.getActiveDevices().addDevice(std::move(device));
   }

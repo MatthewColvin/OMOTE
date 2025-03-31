@@ -103,6 +103,10 @@ public:
     return lfs_file_size(mLfs, mFile.get());
   }
 
+  int truncate(lfs_off_t aTruncationSize) {
+    return lfs_file_truncate(mLfs, mFile.get(), aTruncationSize);
+  }
+
   operator bool() const { return mLfs && mLastStatus == 0 && mIsOpen; }
 
 protected:

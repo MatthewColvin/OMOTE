@@ -7,5 +7,9 @@ IDevice::Ptr DeviceFactory::Create(DeviceId id) {
 }
 
 IDevice::Ptr DeviceFactory::CreateHomeAssistDevice(const std::string &aEntityString, HomeAssist::WebSocket::Api &mHaApi) {
-  return HomeAssist::HomeAssistDeviceFactory::Create(aEntityString, mHaApi);
+  auto device = HomeAssist::HomeAssistDeviceFactory::Create(aEntityString, mHaApi);
+  if (device) {
+    mActiveDevices.addDevice(device);
+  }
+  return device;
 }

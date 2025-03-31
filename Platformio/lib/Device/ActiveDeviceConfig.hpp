@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DeviceFactory.hpp"
 #include "DeviceIds.hpp"
 #include "IDevice.hpp"
 #include "littlefs/flashLittleFs.hpp"
@@ -9,7 +10,7 @@
 
 class ActiveDeviceConfig {
 public:
-  ActiveDeviceConfig(std::shared_ptr<LittleFsInterface> fs);
+  ActiveDeviceConfig(std::shared_ptr<LittleFsInterface> fs, DeviceFactory &factory);
 
   // Save current devices to config
   bool saveDevices(const std::vector<IDevice::Ptr> &devices);
@@ -19,5 +20,6 @@ public:
 
 private:
   static constexpr auto ACTIVE_DEVICES_CONFIG_FILE = "/devices.json";
-  std::shared_ptr<LittleFsInterface> m_fs;
+  std::shared_ptr<LittleFsInterface> mFs;
+  DeviceFactory &mFactory;
 };

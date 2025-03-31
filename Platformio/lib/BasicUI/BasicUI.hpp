@@ -1,7 +1,9 @@
 #pragma once
-#include "ActiveDevices.hpp"
+#include "ActiveDeviceConfig.hpp"
+#include "DeviceFactory.hpp"
 #include "PageBase.hpp"
 #include "UIBase.hpp"
+
 namespace UI {
 namespace Screen {
 class HomeScreen;
@@ -15,11 +17,11 @@ protected:
   void AddPageToHomeScreen(Page::Base::Ptr aPageToAdd);
   bool GoToPage(ID anId);
 
-  ActiveDevices mActiveDevices;
+  DeviceFactory mDeviceFactory;
+  std::unique_ptr<ActiveDeviceConfig> mDeviceConfig;
 
 private:
   Screen::HomeScreen *mHomeScreen;
-
 }; // namespace UIBase
 
 } // namespace UI

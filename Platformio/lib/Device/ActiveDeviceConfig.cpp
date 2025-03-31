@@ -1,17 +1,26 @@
 #include "ActiveDeviceConfig.hpp"
 #include "DeviceFactory.hpp"
+#include "HardwareFactory.hpp"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 
 ActiveDeviceConfig::ActiveDeviceConfig(std::shared_ptr<LittleFsInterface> fs, DeviceFactory &factory)
-    : mFs(fs), mFactory(factory) {}
+    : mFs(fs),
+      mFactory(factory),
+      mSaveOnChangeHandler(mFactory.getActiveDevices().getListUpdateNotification()) {
+  mSaveOnChangeHandler = [this](auto) {
+    auto devices = mFactory.getActiveDevices().getDevices();
+    saveDevices(devices);
+  };
+}
 
-bool ActiveDeviceConfig::saveDevices(const std::vector<IDevice::Ptr> &devices) {
+bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
   MemConsciousDocument doc;
   doc.SetArray();
   auto &allocator = doc.GetAllocator();
 
   for (const auto &device : devices) {
+    HardwareFactory::getAbstract().debugPrint("Saving Device %s", device->GetName());
     MemConciousValue deviceObj(rapidjson::kObjectType);
     deviceObj.AddMember("type", static_cast<int>(device->GetType()), allocator);
     deviceObj.AddMember("id", static_cast<int>(device->GetId()), allocator);

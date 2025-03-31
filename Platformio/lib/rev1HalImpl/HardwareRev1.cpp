@@ -8,6 +8,7 @@ void HardwareRev1::init() {
   HardwareRevX::init();
   mKeys = std::make_shared<Keys>();
   mLittleFs = FlashLittleFs::getInstance();
+  mLittleFs->mount();
 }
 
 void HardwareRev1::initIO() {

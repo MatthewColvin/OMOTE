@@ -3,6 +3,7 @@
 #include "DeviceFactory.hpp"
 #include "DeviceIds.hpp"
 #include "IDevice.hpp"
+#include "Notification.hpp"
 #include "littlefs/flashLittleFs.hpp"
 #include "rapidjson/document.h"
 #include <memory>
@@ -13,7 +14,7 @@ public:
   ActiveDeviceConfig(std::shared_ptr<LittleFsInterface> fs, DeviceFactory &factory);
 
   // Save current devices to config
-  bool saveDevices(const std::vector<IDevice::Ptr> &devices);
+  bool saveDevices(const std::deque<IDevice::Ptr> &devices);
 
   // Load and create devices from config
   std::vector<IDevice::Ptr> loadDevices();
@@ -22,4 +23,6 @@ private:
   static constexpr auto ACTIVE_DEVICES_CONFIG_FILE = "/devices.json";
   std::shared_ptr<LittleFsInterface> mFs;
   DeviceFactory &mFactory;
+
+  Handler<ActiveDevices::ListEvent> mSaveOnChangeHandler;
 };

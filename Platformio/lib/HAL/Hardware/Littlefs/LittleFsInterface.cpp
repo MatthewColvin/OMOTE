@@ -5,7 +5,7 @@ bool LittleFsInterface::mount() {
     init();
   }
   if (mMounted) {
-    return false;
+    return true;
   }
   int err = lfs_mount(&mLfs, &mConfig);
   if (err) {

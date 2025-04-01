@@ -5,11 +5,9 @@
 
 class FlashLittleFs : public LittleFsInterface {
 public:
-  static std::shared_ptr<FlashLittleFs> getInstance();
   ~FlashLittleFs() override;
 
 protected:
-  Config getDataFormatConfig() override;
   int Read(const struct lfs_config *c, lfs_block_t block, lfs_off_t off,
            void *buffer, lfs_size_t size) override;
   int Prog(const struct lfs_config *c, lfs_block_t block, lfs_off_t off,
@@ -17,22 +15,11 @@ protected:
   int Erase(const struct lfs_config *c, lfs_block_t block) override;
   int Sync(const struct lfs_config *c) override;
 
-private:
-  FlashLittleFs();
+  FlashLittleFs(uint16_t aBlockSize, const std::string &aPartitionLabel);
+
+protected:
+  uint16_t mBlockSize;
 
   const esp_partition_t *mPartition;
   bool mMounted;
-
-  // Tightly coupled to the Rev1Partitions for setup.
-  static constexpr const char *PARTITION_LABEL = "storage";
-  static constexpr size_t READ_SIZE = 16;
-  static constexpr size_t PROG_SIZE = 16;
-  static constexpr size_t BLOCK_SIZE = 4096;
-  // (375blocks * 4096bytes / 1024bytes) = 1500k size in Partitions file
-  // Used one less block because bumping right up to the
-  // coredump was causing the coredumps to fail
-  static constexpr size_t BLOCK_COUNT = 374;
-  static constexpr size_t CACHE_SIZE = 512; // Increased for better performance
-  static constexpr size_t LOOKAHEAD_SIZE = 128;
-  static constexpr int32_t BLOCK_CYCLES = 500;
 };

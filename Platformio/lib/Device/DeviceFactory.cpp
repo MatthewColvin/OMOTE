@@ -1,7 +1,12 @@
 #include "DeviceFactory.hpp"
+#include "ActiveDeviceConfig.hpp"
 #include "HardwareFactory.hpp"
 #include <algorithm>
 #include <cctype>
+
+DeviceFactory::DeviceFactory() {
+  mDeviceConfig = std::make_unique<ActiveDeviceConfig>(HardwareFactory::getAbstract().getLittleFS(), *this);
+}
 
 IDevice::Ptr DeviceFactory::Create(DeviceId id) {
   return nullptr;
@@ -18,4 +23,9 @@ IDevice::Ptr DeviceFactory::CreateHomeAssistDevice(const std::string &aEntityStr
     return nullptr;
   }
   return mHomeAssistFactory->Create(aEntityString);
+}
+
+void DeviceFactory::restoreFromConfig() {
+  auto devices = mDeviceConfig->loadDevices();
+  mActiveDevices.restoreDevices(devices);
 }

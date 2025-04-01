@@ -1,5 +1,4 @@
 #pragma once
-#include "ActiveDeviceConfig.hpp"
 #include "DeviceFactory.hpp"
 #include "PageBase.hpp"
 #include "UIBase.hpp"
@@ -20,7 +19,6 @@ protected:
   void restore() override;
 
   DeviceFactory mDeviceFactory;
-  std::unique_ptr<ActiveDeviceConfig> mDeviceConfig;
 
 private:
   Screen::HomeScreen *mHomeScreen;

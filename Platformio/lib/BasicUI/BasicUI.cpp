@@ -7,8 +7,6 @@
 using namespace UI;
 
 BasicUI::BasicUI() : UIBase() {
-  mDeviceConfig = std::make_unique<ActiveDeviceConfig>(HardwareFactory::getAbstract().getLittleFS(), mDeviceFactory);
-
   HardwareFactory::getAbstract().keys()->RegisterKeyPressHandler(
       [this](auto aKeyEvent) {
         // See if any UI elements wanted the key press first
@@ -32,10 +30,7 @@ BasicUI::BasicUI() : UIBase() {
 }
 
 void BasicUI::restore() {
-  auto devices = mDeviceConfig->loadDevices();
-  HardwareFactory::getAbstract().debugPrint("Found %d devices", devices.size());
-
-  mDeviceFactory.getActiveDevices().restoreDevices(devices);
+  mDeviceFactory.restoreFromConfig();
 }
 
 void BasicUI::AddPageToHomeScreen(std::unique_ptr<Page::Base> aPageToAdd) {

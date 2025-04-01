@@ -1,13 +1,15 @@
 #pragma once
 
-#include "DeviceFactory.hpp"
+#include "ActiveDevices.hpp"
 #include "DeviceIds.hpp"
+#include "Hardware/Littlefs/LittleFsInterface.hpp"
 #include "IDevice.hpp"
 #include "Notification.hpp"
-#include "littlefs/flashLittleFs.hpp"
 #include "rapidjson/document.h"
 #include <memory>
 #include <vector>
+
+class DeviceFactory;
 
 class ActiveDeviceConfig {
 public:

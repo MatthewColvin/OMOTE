@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ActiveDeviceConfig.hpp"
 #include "ActiveDevices.hpp"
 #include "DeviceIds.hpp"
 #include "HomeAssistDevices/HomeAssistDeviceFactory.hpp"
@@ -8,9 +9,11 @@
 #include <memory>
 #include <string>
 
+class ActiveDeviceConfig;
+
 class DeviceFactory {
 public:
-  DeviceFactory() = default;
+  DeviceFactory();
 
   void InitHomeAssistFactory(HomeAssist::WebSocket::Api &aHaApi);
 
@@ -19,7 +22,14 @@ public:
 
   ActiveDevices &getActiveDevices() { return mActiveDevices; }
 
+  void restoreFromConfig();
+
 private:
+  // Current Devices Active in system
   ActiveDevices mActiveDevices;
-  std::unique_ptr<HomeAssist::HomeAssistDeviceFactory> mHomeAssistFactory;
+  // Config that managed saving and restoring
+  std::unique_ptr<ActiveDeviceConfig> mDeviceConfig = nullptr;
+
+  // Optionally loaded Extra Device Factories
+  std::unique_ptr<HomeAssist::HomeAssistDeviceFactory> mHomeAssistFactory = nullptr;
 };

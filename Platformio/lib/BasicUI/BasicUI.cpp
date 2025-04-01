@@ -35,9 +35,7 @@ void BasicUI::restore() {
   auto devices = mDeviceConfig->loadDevices();
   HardwareFactory::getAbstract().debugPrint("Found %d devices", devices.size());
 
-  for (auto &device : devices) {
-    mDeviceFactory.getActiveDevices().addDevice(std::move(device));
-  }
+  mDeviceFactory.getActiveDevices().restoreDevices(devices);
 }
 
 void BasicUI::AddPageToHomeScreen(std::unique_ptr<Page::Base> aPageToAdd) {

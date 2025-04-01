@@ -19,6 +19,7 @@ bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
   doc.SetArray();
   auto &allocator = doc.GetAllocator();
 
+  std::vector<MemConsciousDocument> configDocs;
   for (const auto &device : devices) {
     MemConciousValue deviceObj(rapidjson::kObjectType);
     deviceObj.AddMember("type", static_cast<int>(device->GetType()), allocator);
@@ -26,7 +27,8 @@ bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
 
     MemConsciousDocument extraConfig = device->GetExtraConfig();
     if (!extraConfig.IsNull()) {
-      deviceObj.AddMember("config", extraConfig, allocator);
+      configDocs.push_back(std::move(extraConfig));
+      deviceObj.AddMember("config", configDocs.back(), allocator);
     }
 
     doc.PushBack(deviceObj, allocator);
@@ -66,20 +68,26 @@ std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
   if (!doc.IsArray())
     return devices;
 
+  HardwareFactory::getAbstract().debugPrint("Restoring Devices");
+
   for (const auto &deviceObj : doc.GetArray()) {
     DeviceType type = static_cast<DeviceType>(deviceObj["type"].GetInt());
     DeviceId id = static_cast<DeviceId>(deviceObj["id"].GetInt());
+
+    HardwareFactory::getAbstract().debugPrint("Type:%d id:%d", type, id);
 
     std::shared_ptr<IDevice> device;
     if (type == DeviceType::CompileTime) {
       device = mFactory.Create(id);
     }
     if (deviceObj.HasMember("config")) {
+      HardwareFactory::getAbstract().debugPrint("Found Config");
       MemConsciousDocument configDoc;
       configDoc.CopyFrom(deviceObj["config"], configDoc.GetAllocator());
       // Check Config for entityId to build HA Device
-      if (!device && deviceObj.HasMember("entityId") && deviceObj["entityId"].IsString()) {
-        if (std::string entityIdFromConfig = deviceObj["entityId"].GetString(); !entityIdFromConfig.empty()) {
+      if (!device && configDoc.HasMember("entityId") && configDoc["entityId"].IsString()) {
+        HardwareFactory::getAbstract().debugPrint("found");
+        if (std::string entityIdFromConfig = configDoc["entityId"].GetString(); !entityIdFromConfig.empty()) {
           device = mFactory.CreateHomeAssistDevice(entityIdFromConfig);
         }
       }

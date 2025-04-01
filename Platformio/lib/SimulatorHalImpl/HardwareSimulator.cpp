@@ -1,4 +1,5 @@
 #include "HardwareSimulator.hpp"
+#include "littlefs/LittlefsSim.hpp"
 
 #include <sstream>
 
@@ -10,6 +11,7 @@ HardwareSimulator::HardwareSimulator()
       mKeys(std::make_shared<KeyPressSim>()),
       mIr(std::make_shared<IRSim>()),
       mStats(std::make_shared<StatsSimulator>()),
+      mLittleFsSim(LittlefsSim::getInstance()),
       mStartTime(std::chrono::high_resolution_clock::now()) {
   mHardwareStatusTitleUpdate = std::thread([this] {
     int dataToShow = 0;
@@ -34,6 +36,11 @@ HardwareSimulator::HardwareSimulator()
       std::this_thread::sleep_for(std::chrono::seconds(2));
     }
   });
+  mLittleFsSim->mount();
+}
+
+std::shared_ptr<LittleFsInterface> HardwareSimulator::getLittleFS() {
+  return mLittleFsSim;
 }
 
 void HardwareSimulator::loopHandler() { mBattery->getPercentage(); }

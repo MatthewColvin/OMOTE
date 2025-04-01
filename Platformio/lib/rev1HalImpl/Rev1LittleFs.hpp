@@ -12,7 +12,8 @@ protected:
 private:
   Rev1LittleFs();
 
-  // Rev1 specific configuration
+  // Rev1 specific configuration very tightly coupled to the
+  // Rev1Partitions.csv!!
   static constexpr const char *PARTITION_LABEL = "storage";
   static constexpr size_t READ_SIZE = 16;
   static constexpr size_t PROG_SIZE = 16;

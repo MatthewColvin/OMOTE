@@ -27,6 +27,8 @@ public:
   // Override from Base
   std::string GetTitle() override { return "Devices"; }
 
+  void StartDeviceQuery();
+
 protected:
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
 

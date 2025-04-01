@@ -9,8 +9,8 @@
 using namespace UI;
 using namespace UI::Screen;
 
-PopUpScreen::PopUpScreen(Page::Base::Ptr aPage)
-    : Screen::Base(UI::ID::Screens::PopUp) {
+PopUpScreen::PopUpScreen(Page::Base::Ptr aPage, PageLoadedCallableTy aOnLoadComplete)
+    : Screen::Base(UI::ID::Screens::PopUp), mOnLoadComplete(std::move(aOnLoadComplete)) {
   mContentPage = AddElement(std::move(aPage));
 
   mExitButton = AddNewElement<Widget::Button>(
@@ -42,4 +42,13 @@ PopUpScreen::PopUpScreen(Page::Base::Ptr aPage)
 
 bool PopUpScreen::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   return mContentPage->OnKeyEvent(aKeyEvent);
+}
+
+void PopUpScreen::OnLvglEvent(lv_event_t *aEvent) {
+  if (lv_event_get_code(aEvent) == LV_EVENT_SCREEN_LOADED) {
+    mTimesLoaded++;
+    if (mOnLoadComplete) {
+      mOnLoadComplete(mTimesLoaded);
+    }
+  }
 }

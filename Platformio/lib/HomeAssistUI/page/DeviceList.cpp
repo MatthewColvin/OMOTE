@@ -37,7 +37,7 @@ DeviceList::DeviceList(HomeAssist::WebSocket::Api &aApi,
 
   mLoadingArc->SetRange(0, 100);
   mLoadingArc->SetWidth(GetContentWidth() / 2);
-  mLoadingArc->SetHeight(GetContentHeight() / 4);
+  mLoadingArc->SetHeight(GetContentHeight() / 2);
   mLoadingArc->AlignTo(this, LV_ALIGN_TOP_MID);
   mEntityTypeList->AlignTo(mEntityTypeList, LV_ALIGN_OUT_BOTTOM_MID);
 
@@ -51,17 +51,17 @@ DeviceList::DeviceList(HomeAssist::WebSocket::Api &aApi,
               mLoadingArc->SetValue(aPercentComplete);
             });
       });
+}
 
-  {
-    using namespace HomeAssist::WebSocket;
-    auto request =
-        RequestBuilder()
-            .SetType(RequestTypes::CONFIG_ENTITY_REGISTRY_LIST_DISPLAY)
-            .BuildUnique();
+void DeviceList::StartDeviceQuery() {
+  using namespace HomeAssist::WebSocket;
+  auto request =
+      RequestBuilder()
+          .SetType(RequestTypes::CONFIG_ENTITY_REGISTRY_LIST_DISPLAY)
+          .BuildUnique();
 
-    mApi.AddSession(std::make_unique<Session>(std::move(request), nullptr,
-                                              nullptr, mDeviceQueryProcessor));
-  }
+  mApi.AddSession(std::make_unique<Session>(std::move(request), nullptr,
+                                            nullptr, mDeviceQueryProcessor));
 }
 
 bool DeviceList::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {

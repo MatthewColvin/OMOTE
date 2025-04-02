@@ -100,6 +100,10 @@ void HardwareRevX::debugPrint(const char *fmt, ...) {
   Serial.print(result);
 }
 
+LoggingInterface &HardwareRevX::logger() {
+  return mLogger;
+}
+
 std::shared_ptr<wifiHandlerInterface> HardwareRevX::wifi() {
   return mWifiHandler;
 }

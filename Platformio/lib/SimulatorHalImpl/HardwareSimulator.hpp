@@ -7,6 +7,7 @@
 #include "SDLDisplay.hpp"
 #include "StatsSimulator.hpp"
 #include "batterySimulator.hpp"
+#include "simLogger.hpp"
 #include "webSocketSimulator.hpp"
 #include "wifiHandlerSim.hpp"
 
@@ -25,6 +26,7 @@ public:
     fflush(stdout);
   }
 
+  LoggingInterface &logger() override;
   std::shared_ptr<BatteryInterface> battery() override;
   std::shared_ptr<DisplayAbstract> display() override;
   std::shared_ptr<wifiHandlerInterface> wifi() override;
@@ -51,6 +53,7 @@ private:
 
   std::thread mHardwareStatusTitleUpdate;
 
+  SimLogger mLogger;
   std::shared_ptr<BatterySimulator> mBattery;
   std::shared_ptr<SDLDisplay> mDisplay;
   std::shared_ptr<wifiHandlerSim> mWifiHandler;

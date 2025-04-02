@@ -9,6 +9,7 @@
 #include "Hardware/IRInterface.h"
 #include "Hardware/KeyPressAbstract.hpp"
 #include "Hardware/Littlefs/LittleFsInterface.hpp"
+#include "Hardware/LoggingInterface.hpp"
 #include "Hardware/SystemStatsInterface.h"
 #include "Hardware/websockets/webSocketInterface.hpp"
 #include "Hardware/wifiHandlerInterface.h"
@@ -27,6 +28,7 @@ public:
   /// @brief Override to allow printing of a message for debugging
   /// @param message - Debug message
   virtual void debugPrint(const char *fmt, ...) = 0;
+  virtual LoggingInterface &logger() = 0;
 
   virtual std::shared_ptr<BatteryInterface> battery() = 0;
   virtual std::shared_ptr<DisplayAbstract> display() = 0;

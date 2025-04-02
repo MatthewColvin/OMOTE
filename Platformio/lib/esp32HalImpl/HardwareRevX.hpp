@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 
+#include "Esp32Logger.hpp"
 #include "EspStats.hpp"
 #include "HardwareAbstract.hpp"
 #include "IRTransceiver.hpp"
@@ -40,6 +41,7 @@ public:
   // HardwareAbstract
   virtual void init() override;
   virtual void debugPrint(const char *fmt, ...) override;
+  virtual LoggingInterface &logger();
 
   virtual std::shared_ptr<BatteryInterface> battery() override;
   virtual std::shared_ptr<DisplayAbstract> display() override;
@@ -110,6 +112,7 @@ private:
   int mSleepTimeout = SLEEP_TIMEOUT;
   int mMotion = 0;
   WakeReason mWakeupReason;
+  ESP32Logger mLogger;
 
   bool mWakeupByIMUEnabled = true;
   byte mCurrentDevice = 1; // Current Device to control (allows switching

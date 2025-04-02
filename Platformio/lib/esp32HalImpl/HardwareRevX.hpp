@@ -62,7 +62,6 @@ public:
   virtual void setSleepTimeout(uint32_t sleepTimeout) override;
 
   /// @brief To be ran in loop out in main
-  // TODO move to a freertos task
   void loopHandler() override;
 
 protected:
@@ -102,19 +101,19 @@ private:
 
 protected: // Maybe todo: make private?
   // IMU Motion Detection
-  LIS3DH IMU =
+  LIS3DH mIMU =
       LIS3DH(I2C_MODE, 0x19); // Default constructor is I2C, addr 0x19.
-  Preferences preferences;
+  Preferences mPreferences;
 
 private:
-  int standbyTimer = SLEEP_TIMEOUT;
-  int sleepTimeout = SLEEP_TIMEOUT;
-  int motion = 0;
-  WakeReason wakeup_reason;
+  int mStandbyTimer = SLEEP_TIMEOUT;
+  int mSleepTimeout = SLEEP_TIMEOUT;
+  int mMotion = 0;
+  WakeReason mWakeupReason;
 
-  bool wakeupByIMUEnabled = true;
-  byte currentDevice = 1; // Current Device to control (allows switching
-                          // mappings between devices)
+  bool mWakeupByIMUEnabled = true;
+  byte mCurrentDevice = 1; // Current Device to control (allows switching
+                           // mappings between devices)
 
   static std::shared_ptr<HardwareRevX> mInstance;
   Handler<Display::TouchPointType> mTouchHandler;

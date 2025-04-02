@@ -212,7 +212,7 @@ bool HardwareRev5::keyboardScan() {
 }
 
 void HardwareRev5::configIMUInterruptPolarity() {
-  IMU.writeRegister(LIS3DH_CTRL_REG6, 0x02); // For active-low interrupt
+  mIMU.writeRegister(LIS3DH_CTRL_REG6, 0x02); // For active-low interrupt
 }
 
 void HardwareRev5::enableWakeupByPin() {

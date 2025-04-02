@@ -35,9 +35,7 @@ public:
   virtual std::shared_ptr<IRInterface> ir() = 0;
   virtual std::shared_ptr<SystemStatsInterface> stats() = 0;
   virtual std::shared_ptr<webSocketInterface> webSocket() = 0;
-  // TODO make Pure Virtual and implement in all hardware implementations
-  // MatthewColvin/OMOTE#12
-  virtual std::shared_ptr<LittleFsInterface> littleFs() { return nullptr; }
+  virtual std::shared_ptr<LittleFsInterface> littleFs() = 0;
 
   virtual std::chrono::milliseconds execTime() = 0;
 

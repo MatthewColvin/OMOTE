@@ -32,7 +32,7 @@ public:
   std::shared_ptr<IRInterface> ir() override;
   std::shared_ptr<SystemStatsInterface> stats() override;
   std::shared_ptr<webSocketInterface> webSocket() override;
-  std::shared_ptr<LittleFsInterface> getLittleFS() override;
+  std::shared_ptr<LittleFsInterface> littleFs() override;
 
   std::chrono::milliseconds execTime() override;
 

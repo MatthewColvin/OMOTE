@@ -15,7 +15,8 @@
 #include "Notification.hpp"
 class HardwareAbstract {
 public:
-  HardwareAbstract();
+  HardwareAbstract() = default;
+  virtual ~HardwareAbstract() = default;
 
   /// @brief Override in order to do setup of hardware devices post construction
   virtual void init() = 0;
@@ -36,7 +37,7 @@ public:
   virtual std::shared_ptr<webSocketInterface> webSocket() = 0;
   // TODO make Pure Virtual and implement in all hardware implementations
   // MatthewColvin/OMOTE#12
-  virtual std::shared_ptr<LittleFsInterface> getLittleFS() { return nullptr; }
+  virtual std::shared_ptr<LittleFsInterface> littleFs() { return nullptr; }
 
   virtual std::chrono::milliseconds execTime() = 0;
 

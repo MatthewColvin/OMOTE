@@ -39,7 +39,7 @@ HardwareSimulator::HardwareSimulator()
   mLittleFsSim->mount();
 }
 
-std::shared_ptr<LittleFsInterface> HardwareSimulator::getLittleFS() {
+std::shared_ptr<LittleFsInterface> HardwareSimulator::littleFs() {
   return mLittleFsSim;
 }
 

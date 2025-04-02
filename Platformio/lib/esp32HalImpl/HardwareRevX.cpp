@@ -124,7 +124,7 @@ std::shared_ptr<webSocketInterface> HardwareRevX::webSocket() {
   // return nullptr;
 }
 
-std::shared_ptr<LittleFsInterface> HardwareRevX::getLittleFS() {
+std::shared_ptr<LittleFsInterface> HardwareRevX::littleFs() {
   return mLittleFs;
 };
 

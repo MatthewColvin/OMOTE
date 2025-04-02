@@ -12,7 +12,6 @@ protected:
   void initIO() override;
 
 private:
-  // Setup IMU for active high interrupt
   void configIMUInterruptPolarity() override;
   void enableWakeupByPin() override;
   void sleepDisplayPins() override;

@@ -48,7 +48,7 @@ public:
   virtual std::shared_ptr<IRInterface> ir() override;
   virtual std::shared_ptr<SystemStatsInterface> stats() override;
   virtual std::shared_ptr<webSocketInterface> webSocket() override;
-  virtual std::shared_ptr<LittleFsInterface> getLittleFS() override;
+  virtual std::shared_ptr<LittleFsInterface> littleFs() override;
 
   virtual std::chrono::milliseconds execTime() override;
 
@@ -115,6 +115,5 @@ private:
   byte mCurrentDevice = 1; // Current Device to control (allows switching
                            // mappings between devices)
 
-  static std::shared_ptr<HardwareRevX> mInstance;
   Handler<Display::TouchPointType> mTouchHandler;
 };

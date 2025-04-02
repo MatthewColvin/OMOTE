@@ -21,7 +21,7 @@ public:
   /// @brief Override in order to do setup of hardware devices post construction
   virtual void init() = 0;
 
-  /// @brief Override to processing in main thread
+  /// @brief Override to do processing in main thread
   virtual void loopHandler() = 0;
 
   /// @brief Override to allow printing of a message for debugging

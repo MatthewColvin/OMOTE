@@ -54,6 +54,10 @@ static constexpr auto NumLogModules = static_cast<uint8_t>(LogModule::Count);
  */
 class LoggingInterface {
 public:
+  // Global setters to change log level per module
+  static void setLogLevel(LogModule aModule, LogLevel aLevel);
+  static LogLevel getLogLevel(LogModule aModule);
+
   virtual ~LoggingInterface() = default;
   LoggingInterface() = default;
 
@@ -97,19 +101,30 @@ inline LogModule LoggingInterface::getLogModule() const {
   return mModule;
 }
 
-inline void LoggingInterface::setLogLevel(LogLevel aLevel) {
-  auto moduleIndex = static_cast<uint8_t>(mModule);
+inline void LoggingInterface::setLogLevel(LogModule aModule, LogLevel aLevel) {
+  auto moduleIndex = static_cast<uint8_t>(aModule);
   mCurrentLogLevels[moduleIndex] = aLevel;
 }
 
-inline LogLevel LoggingInterface::getLogLevel() const {
-  auto moduleIndex = static_cast<uint8_t>(mModule);
+inline LogLevel LoggingInterface::getLogLevel(LogModule aModule) {
+  auto moduleIndex = static_cast<uint8_t>(aModule);
   return mCurrentLogLevels[moduleIndex];
+}
+
+inline void LoggingInterface::setLogLevel(LogLevel aLevel) {
+  setLogLevel(mModule, aLevel);
+}
+
+inline LogLevel LoggingInterface::getLogLevel() const {
+  return getLogLevel(mModule);
 }
 
 inline bool LoggingInterface::isPrintWanted(LogModule aModule, LogLevel aLevelToCheck) {
   auto moduleIndex = static_cast<uint8_t>(aModule);
   auto currentLevel = mCurrentLogLevels[moduleIndex];
+  if (currentLevel == LogLevel::NONE) {
+    return false;
+  }
   return static_cast<int>(aLevelToCheck) >= static_cast<int>(currentLevel);
 }
 

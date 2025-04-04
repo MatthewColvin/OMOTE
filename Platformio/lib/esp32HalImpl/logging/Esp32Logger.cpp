@@ -1,29 +1,37 @@
 #include "Esp32Logger.hpp"
+#include "Arduino.h"
 
 void ESP32Logger::log(LogLevel aLevel, LogModule aModule, std::string_view aMessage) {
   const char *tag = getModuleTag(aModule);
 
   // Use ESP_LOG_LEVEL_LOCAL to bypass ESP32's log level filtering
   // since we already handled filtering in LoggingInterface::isPrintWanted
+  if (aLevel != LogLevel::NONE) {
+    Serial.print(tag);
+    Serial.print(":");
+  }
+
   switch (aLevel) {
   case LogLevel::DEBUG:
-    ESP_LOG_LEVEL_LOCAL(ESP_LOG_DEBUG, tag, "%.*s", static_cast<int>(aMessage.length()), aMessage.data());
+    Serial.print("DEBUG:");
     break;
   case LogLevel::INFO:
-    ESP_LOG_LEVEL_LOCAL(ESP_LOG_INFO, tag, "%.*s", static_cast<int>(aMessage.length()), aMessage.data());
+    Serial.print("INFO:");
     break;
   case LogLevel::WARNING:
-    ESP_LOG_LEVEL_LOCAL(ESP_LOG_WARN, tag, "%.*s", static_cast<int>(aMessage.length()), aMessage.data());
+    Serial.print("WARNING:");
     break;
   case LogLevel::ERROR:
-    ESP_LOG_LEVEL_LOCAL(ESP_LOG_ERROR, tag, "%.*s", static_cast<int>(aMessage.length()), aMessage.data());
+    Serial.print("ERROR:");
     break;
   case LogLevel::CRITICAL:
-    ESP_LOG_LEVEL_LOCAL(ESP_LOG_ERROR, tag, "CRITICAL: %.*s", static_cast<int>(aMessage.length()), aMessage.data());
+    Serial.print("CRITICAL:");
     break;
   case LogLevel::NONE:
-    break;
+    return;
   }
+
+  Serial.println(aMessage.data());
 }
 
 const char *ESP32Logger::getModuleTag(LogModule aModule) {

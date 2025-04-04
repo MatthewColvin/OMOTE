@@ -44,6 +44,7 @@ void HardwareRev5::setupKeyboard() {
   keypad.writeRegister(TCA8418_REG_GPI_EM_2, KEYPAD_COLS_BITMASK);
 }
 
+#ifdef OMOTE_KEYBRD_3661
 void HardwareRev5::setupLightSensor() {
   if (ltr.begin()) {
     ltr.setGain(LTR3XX_GAIN_8);
@@ -64,6 +65,7 @@ bool HardwareRev5::lightSensorScan(uint16_t &visPlusIrLevel,
   }
   return retVal;
 }
+#endif
 
 void HardwareRev5::updateBacklightMode(uint16_t lightLevel) {
 #ifdef OMOTE_KEYBRD_3661 // do we have a light sensor
@@ -135,7 +137,7 @@ bool HardwareRev5::keyboardScan() {
                       // it does
     }
     keyIndex = col + (row * KEYPAD_COLS);
-    Serial.printf("Row:%d, Col %d, Index:%d\r\n", row, col, keyIndex);
+    //Serial.printf("Row:%d, Col %d, Index:%d\r\n", row, col, keyIndex);
 
     //  clear the EVENT IRQ flag
     keypad.writeRegister(TCA8418_REG_INT_STAT, 1);

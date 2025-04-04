@@ -87,6 +87,11 @@ void UIElement::SetHeight(lv_coord_t aHeight) {
       [this, aHeight] { lv_obj_set_height(mLvglSelf, aHeight); });
 }
 
+void UIElement::SetSize(lv_coord_t aWidth, lv_coord_t aHeight) {
+  LvglResourceManager::GetInstance().AttemptNow(
+      [this, aWidth, aHeight] { lv_obj_set_size(mLvglSelf, aWidth, aHeight); });
+}
+
 lv_coord_t UIElement::GetHeight() {
   auto lock = LvglResourceManager::GetInstance().scopeLock();
   lv_obj_update_layout(mLvglSelf);

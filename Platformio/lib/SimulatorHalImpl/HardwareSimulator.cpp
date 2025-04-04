@@ -34,9 +34,24 @@ HardwareSimulator::HardwareSimulator()
       std::this_thread::sleep_for(std::chrono::seconds(2));
     }
   });
+  /*mMqttUpdate = std::thread([this] {
+    while (true) {
+      mWifiHandler->mqttSync();
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  });*/
 }
 
-void HardwareSimulator::loopHandler() { mBattery->getPercentage(); }
+void HardwareSimulator::loopHandler() {
+  static auto oldTime = std::chrono::high_resolution_clock::now();
+
+  auto now = std::chrono::high_resolution_clock::now();
+  if (std::chrono::duration_cast<std::chrono::milliseconds>(now - oldTime) > std::chrono::milliseconds(25)) {
+    mBattery->getPercentage();
+    mWifiHandler->mqttSync();
+    oldTime = std::chrono::high_resolution_clock::now();
+  }
+}
 
 std::shared_ptr<BatteryInterface> HardwareSimulator::battery() {
   return mBattery;

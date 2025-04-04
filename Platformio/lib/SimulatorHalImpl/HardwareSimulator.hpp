@@ -44,11 +44,14 @@ public:
   uint32_t getSleepTimeout() override;
   void setSleepTimeout(uint32_t sleepTimeout) override;
 
+  void saveSettings() override {};
+
 private:
   // Completely arbitrary limit on the number of web sockets
   static constexpr auto WebSocketLimit = 5;
 
   std::thread mHardwareStatusTitleUpdate;
+  std::thread mMqttUpdate;
 
   std::shared_ptr<BatterySimulator> mBattery;
   std::shared_ptr<SDLDisplay> mDisplay;

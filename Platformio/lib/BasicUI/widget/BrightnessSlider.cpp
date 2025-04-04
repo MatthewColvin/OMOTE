@@ -8,7 +8,7 @@ BrightnessSlider::BrightnessSlider(std::shared_ptr<DisplayAbstract> aDisplay)
     : Base(ID::Widgets::BrightnessSlider), mDisplay(aDisplay),
       mSlider(AddNewElement<Widget::Slider>(
           [this](auto aNewBrightness) {
-            mDisplay->setBrightness(aNewBrightness);
+            mDisplay->setLcdDayBrightness(aNewBrightness);
           },
           0, 255)),
       mLabel(AddNewElement<Widget::Label>("Brightness")) {
@@ -18,7 +18,7 @@ BrightnessSlider::BrightnessSlider(std::shared_ptr<DisplayAbstract> aDisplay)
 }
 
 void BrightnessSlider::OnShow() {
-  mSlider->SetValue(mDisplay->getBrightness());
+  mSlider->SetValue(mDisplay->getLcdDayBrightness());
   Base::OnShow();
 }
 

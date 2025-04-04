@@ -11,6 +11,7 @@
 #include "Slider.hpp"
 #include "SystemSettings.hpp"
 #include "WifiSettings.hpp"
+#include "IrLearner.hpp"
 
 using namespace UI::Page;
 using namespace UI::Color;
@@ -26,6 +27,8 @@ SettingsPage::SettingsPage()
                          [this] { PushMqttSettings(); });
   mSettingsList->AddItem("System", LV_SYMBOL_SETTINGS,
                          [this] { PushSystemSettings(); });
+  mSettingsList->AddItem("IR Receiver", LV_SYMBOL_SETTINGS,
+                         [this] { PushIrReader(); });
 }
 
 void SettingsPage::PushDisplaySettings() {
@@ -47,4 +50,9 @@ void SettingsPage::PushMqttSettings() {
 void SettingsPage::PushWifiSettings() {
   UI::Screen::Manager::getInstance().pushPopUp(
       std::make_unique<WifiSettings>(HardwareFactory::getAbstract().wifi()));
+}
+
+void SettingsPage::PushIrReader() {
+  UI::Screen::Manager::getInstance().pushPopUp(
+      std::make_unique<Page::IrLearner>());
 }

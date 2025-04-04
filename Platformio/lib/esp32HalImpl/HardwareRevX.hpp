@@ -61,6 +61,8 @@ public:
   virtual uint32_t getSleepTimeout() override;
   virtual void setSleepTimeout(uint32_t sleepTimeout) override;
 
+  virtual void saveSettings() override;
+
   /// @brief To be ran in loop out in main
   // TODO move to a freertos task
   void loopHandler() override;

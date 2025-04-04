@@ -97,4 +97,7 @@ bool observerHandles::bindLabelHandle(lv_obj_t *object, uint32_t key,
   }
 }
 
-uint32_t observerHandles::getNextID() { return mNextID++; }
+uint32_t observerHandles::registerNextID(uint16_t bufSize, const char *val) {
+  registerTextHandle(mNextID, bufSize, val);
+  return mNextID++;
+}

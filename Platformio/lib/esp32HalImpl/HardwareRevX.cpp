@@ -67,6 +67,9 @@ void HardwareRevX::init() {
 
   mWifiHandler = wifiHandler::getInstance();
 
+  mWifiHandler->mqttRestoreCredentials();
+  mWifiHandler->setupMqttBroker();
+
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>();
 
@@ -182,16 +185,23 @@ void HardwareRevX::setSleepTimeout(uint32_t sleepTimeout) {
   standbyTimer = sleepTimeout;
 }
 
-void HardwareRevX::enterSleep() {
+void HardwareRevX::saveSettings() {
   // Save settings to internal flash memory
+  preferences.begin("settings", false);
   preferences.putBool("wkpByIMU", wakeupByIMUEnabled);
-  preferences.putUChar("blBrightness", mDisplay->getBrightness());
+  preferences.putUChar("lcdDayBright", mDisplay->getLcdDayBrightness());
+  preferences.putUChar("lcdNightBright", mDisplay->getLcdNightBrightness());
+  preferences.putUChar("kbdDayBright", mDisplay->getKbdDayBrightness());
+  preferences.putUChar("kbdNightBright", mDisplay->getKbdNightBrightness());
   preferences.putUChar("currentDevice", currentDevice);
   preferences.putUInt("sleepTimeout", sleepTimeout);
   if (!preferences.getBool("alreadySetUp"))
     preferences.putBool("alreadySetUp", true);
   preferences.end();
+  // Serial.println("Settings Saved");
+}
 
+void HardwareRevX::enterSleep() {
   // Configure IMU
   uint8_t intDataRead;
   IMU.readRegister(&intDataRead, LIS3DH_INT1_SRC); // clear interrupt
@@ -292,13 +302,17 @@ void HardwareRevX::configIMUInterruptPolarity() {
 
 void HardwareRevX::restorePreferences() {
   // Restore settings from internal flash memory
-  int backlight_brightness = 255;
+  int lcd_day_backlight_brightness = 255;
+  int lcd_night_backlight_brightness = 255;
+  int kbd_day_backlight_brightness = 255;
+  int kbd_night_backlight_brightness = 255;
   preferences.begin("settings", false);
   if (preferences.getBool("alreadySetUp")) {
     wakeupByIMUEnabled = preferences.getBool("wkpByIMU");
-    backlight_brightness = preferences.getUChar("blBrightness");
-    if (backlight_brightness < 30)
-      backlight_brightness = 30;
+    lcd_day_backlight_brightness = preferences.getUChar("lcdDayBright");
+    lcd_night_backlight_brightness = preferences.getUChar("lcdNightBright");
+    kbd_day_backlight_brightness = preferences.getUChar("kbdDayBright");
+    kbd_night_backlight_brightness = preferences.getUChar("kbdNightBright");
     currentDevice = preferences.getUChar("currentDevice");
     sleepTimeout = preferences.getUInt("sleepTimeout");
     // setting the default to prevent a 0ms sleep timeout
@@ -306,7 +320,16 @@ void HardwareRevX::restorePreferences() {
       sleepTimeout = SLEEP_TIMEOUT;
     }
   }
-  mDisplay->setBrightness(backlight_brightness);
+  preferences.end();
+
+  if (lcd_day_backlight_brightness < 10)
+    lcd_day_backlight_brightness = 10;
+  if (lcd_night_backlight_brightness < 10)
+    lcd_night_backlight_brightness = 10;
+  mDisplay->setLcdDayBrightness(lcd_day_backlight_brightness);
+  mDisplay->setLcdNightBrightness(lcd_night_backlight_brightness);
+  mDisplay->setKbdDayBrightness(kbd_day_backlight_brightness);
+  mDisplay->setKbdNightBrightness(kbd_night_backlight_brightness);
 }
 
 void HardwareRevX::setupIMU() {
@@ -329,6 +352,8 @@ void HardwareRevX::setupIMU() {
 void HardwareRevX::startTasks() {}
 
 void HardwareRevX::loopHandler() {
+  mWifiHandler->mqttSync();
+
   mIr->loopHandleRx();
 
   standbyTimer < 2000 ? mDisplay->sleep() : mDisplay->wake();
@@ -354,14 +379,20 @@ void HardwareRevX::loopHandler() {
     uint16_t visPlusIrLevel, irLevel;
     if (lightSensorScan(visPlusIrLevel, irLevel)) {
       // Serial.printf("ll:%d\r\n", irLevel);
+      //use IR as still responds to ambient light level but 
+      //  less sensitive to keypad illumination
       updateBacklightMode(irLevel);
     }
-
+    
     mDisplay->getTouchData(); // trigger read here to keep all I2C accesses
                               // together
 
     static uint16_t secCount = 20; // update immediately on power up
     if (secCount++ >= 20) {
+      Serial.printf("Heap: %.2f%% free of %dkB, Pram: %.2f%% free of %dkB\r\n",
+                    (100.0f * ESP.getFreeHeap()) / ESP.getHeapSize(), ESP.getHeapSize() / 1024,
+                    (100.0f * ESP.getFreePsram()) / ESP.getPsramSize(), ESP.getPsramSize() / 1024);
+
       secCount = 0;
       int32_t iSoc = mBattery->getPercentage();
       if (iSoc > 99)

@@ -125,7 +125,7 @@ std::shared_ptr<SystemStatsInterface> HardwareRevX::stats() {
 }
 
 std::shared_ptr<webSocketInterface> HardwareRevX::webSocket() {
-  return std::make_shared<esp32WebSocket>(mWifiHandler);
+  return std::make_shared<esp32WebSocket>(mWifiHandler, std::make_unique<ESP32Logger>());
   // return nullptr;
 }
 

@@ -1,5 +1,6 @@
 #include "HardwareRevX.hpp"
 
+#include "Esp32Logger.hpp"
 #include "Hardware/KeyPressAbstract.hpp"
 #include "IRTransceiver.hpp"
 #include "display.hpp"
@@ -100,8 +101,8 @@ void HardwareRevX::debugPrint(const char *fmt, ...) {
   Serial.print(result);
 }
 
-LoggingInterface &HardwareRevX::logger() {
-  return mLogger;
+std::unique_ptr<LoggingInterface> HardwareRevX::logger() {
+  return std::make_unique<ESP32Logger>();
 }
 
 std::shared_ptr<wifiHandlerInterface> HardwareRevX::wifi() {

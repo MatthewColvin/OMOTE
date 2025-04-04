@@ -28,8 +28,8 @@ public:
   /// @brief Override to allow printing of a message for debugging
   /// @param message - Debug message
   virtual void debugPrint(const char *fmt, ...) = 0;
-  virtual LoggingInterface &logger() = 0;
 
+  virtual std::unique_ptr<LoggingInterface> logger() = 0;
   virtual std::shared_ptr<BatteryInterface> battery() = 0;
   virtual std::shared_ptr<DisplayAbstract> display() = 0;
   virtual std::shared_ptr<wifiHandlerInterface> wifi() = 0;

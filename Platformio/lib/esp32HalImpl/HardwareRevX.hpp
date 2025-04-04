@@ -41,8 +41,8 @@ public:
   // HardwareAbstract
   virtual void init() override;
   virtual void debugPrint(const char *fmt, ...) override;
-  virtual LoggingInterface &logger();
 
+  virtual std::unique_ptr<LoggingInterface> logger() override;
   virtual std::shared_ptr<BatteryInterface> battery() override;
   virtual std::shared_ptr<DisplayAbstract> display() override;
   virtual std::shared_ptr<wifiHandlerInterface> wifi() override;

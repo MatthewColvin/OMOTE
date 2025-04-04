@@ -45,8 +45,8 @@ std::shared_ptr<LittleFsInterface> HardwareSimulator::littleFs() {
 
 void HardwareSimulator::loopHandler() { mBattery->getPercentage(); }
 
-LoggingInterface &HardwareSimulator::logger() {
-  return mLogger;
+std::unique_ptr<LoggingInterface> logger() {
+  return std::make_unique<SimLogger>();
 }
 
 std::shared_ptr<BatteryInterface> HardwareSimulator::battery() {

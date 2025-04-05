@@ -3,8 +3,10 @@
 #include <memory>
 #include <string>
 
+#include "DeviceIds.hpp"
 #include "Hardware/KeyPressAbstract.hpp"
 #include "PageBase.hpp"
+#include "RapidJsonUtilty.hpp"
 #include "lvgl.h"
 
 class IDevice {
@@ -16,6 +18,16 @@ public:
   virtual std::string GetName() const = 0;
   virtual lv_color_t GetDisplayColor() const = 0;
   virtual bool IsDeleteAble() const = 0;
+
+  // Device identification
+  virtual DeviceType GetType() const = 0;
+  virtual DeviceId GetId() const = 0;
+
+  // Optional configuration data
+  virtual MemConsciousDocument GetExtraConfig() const {
+    return {};
+  }
+  virtual void SetExtraConfig(const MemConsciousDocument &config) {}
 
   // Interaction handlers
   virtual bool HandleKeyEvent(KeyPressAbstract::KeyEvent event) = 0;

@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 
+#include "Esp32Logger.hpp"
 #include "EspStats.hpp"
 #include "HardwareAbstract.hpp"
 #include "IRTransceiver.hpp"
@@ -41,6 +42,7 @@ public:
   virtual void init() override;
   virtual void debugPrint(const char *fmt, ...) override;
 
+  virtual std::unique_ptr<LoggingInterface> logger() override;
   virtual std::shared_ptr<BatteryInterface> battery() override;
   virtual std::shared_ptr<DisplayAbstract> display() override;
   virtual std::shared_ptr<wifiHandlerInterface> wifi() override;
@@ -48,7 +50,7 @@ public:
   virtual std::shared_ptr<IRInterface> ir() override;
   virtual std::shared_ptr<SystemStatsInterface> stats() override;
   virtual std::shared_ptr<webSocketInterface> webSocket() override;
-  virtual std::shared_ptr<LittleFsInterface> getLittleFS() override;
+  virtual std::shared_ptr<LittleFsInterface> littleFs() override;
 
   virtual std::chrono::milliseconds execTime() override;
 
@@ -64,7 +66,6 @@ public:
   virtual void saveSettings() override;
 
   /// @brief To be ran in loop out in main
-  // TODO move to a freertos task
   void loopHandler() override;
 
 protected:
@@ -104,20 +105,20 @@ private:
 
 protected: // Maybe todo: make private?
   // IMU Motion Detection
-  LIS3DH IMU =
+  LIS3DH mIMU =
       LIS3DH(I2C_MODE, 0x19); // Default constructor is I2C, addr 0x19.
-  Preferences preferences;
+  Preferences mPreferences;
 
 private:
-  int standbyTimer = SLEEP_TIMEOUT;
-  int sleepTimeout = SLEEP_TIMEOUT;
-  int motion = 0;
-  WakeReason wakeup_reason;
+  int mStandbyTimer = SLEEP_TIMEOUT;
+  int mSleepTimeout = SLEEP_TIMEOUT;
+  int mMotion = 0;
+  WakeReason mWakeupReason;
+  ESP32Logger mLogger;
 
-  bool wakeupByIMUEnabled = true;
-  byte currentDevice = 1; // Current Device to control (allows switching
-                          // mappings between devices)
+  bool mWakeupByIMUEnabled = true;
+  byte mCurrentDevice = 1; // Current Device to control (allows switching
+                           // mappings between devices)
 
-  static std::shared_ptr<HardwareRevX> mInstance;
   Handler<Display::TouchPointType> mTouchHandler;
 };

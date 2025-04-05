@@ -3,6 +3,7 @@
 #include "Button.hpp"
 #include "DeviceList.hpp"
 #include "HardwareFactory.hpp"
+#include "PopUpScreen.hpp"
 #include "ScreenManager.hpp"
 #include "WebSocket/Message/Attributes/Light.hpp"
 #include "WebSocket/Message/Entity.hpp"
@@ -28,10 +29,18 @@ HomeAssistUI::HomeAssistUI() : BasicUI() {
     HandleConnectionStatusChange(aStatus);
   };
 
+  mDeviceFactory.InitHomeAssistFactory(*mHomeAssistApi);
+
   auto tmpAddDeviceButton = std::make_unique<UI::Widget::Button>([this]() {
     auto deviceList =
-        std::make_unique<UI::Page::DeviceList>(*mHomeAssistApi, mActiveDevices);
-    UI::Screen::Manager::getInstance().pushPopUp(std::move(deviceList));
+        std::make_unique<UI::Page::DeviceList>(*mHomeAssistApi, mDeviceFactory);
+    auto borrowedDevList = deviceList.get();
+    auto deviceListScreen = std::make_unique<UI::Screen::PopUpScreen>(std::move(deviceList), [borrowedDevList](auto aNumLoads) {
+      if (aNumLoads == 1) {
+        borrowedDevList->StartDeviceQuery();
+      }
+    });
+    UI::Screen::Manager::getInstance().pushScreen(std::move(deviceListScreen), LV_SCR_LOAD_ANIM_FADE_IN);
   });
   tmpAddDeviceButton->SetWidth(SCREEN_WIDTH);
   tmpAddDeviceButton->SetHeight(SCREEN_HEIGHT / 8);

@@ -14,7 +14,7 @@ BasicUI::BasicUI() : UIBase() {
         if (Screen::Manager::getInstance().distributeKeyEvent(aKeyEvent)) {
           return true;
           // Pass key event to devices to handle if not
-        } else if (mActiveDevices.handleKeyEvent(aKeyEvent)) {
+        } else if (mDeviceFactory.getActiveDevices().handleKeyEvent(aKeyEvent)) {
           return true;
         } else {
           // Could potentially add a check here and display that a key event was
@@ -23,11 +23,15 @@ BasicUI::BasicUI() : UIBase() {
         }
       });
 
-  auto homeScreen = std::make_unique<Screen::HomeScreen>(mActiveDevices);
+  auto homeScreen = std::make_unique<Screen::HomeScreen>(mDeviceFactory);
   mHomeScreen = homeScreen.get();
   Screen::Manager::getInstance().pushScreen(std::move(homeScreen));
 
   // HardwareFactory::getAbstract().wifi()->begin();
+}
+
+void BasicUI::restore() {
+  mDeviceFactory.restoreFromConfig();
 }
 
 void BasicUI::AddPageToHomeScreen(std::unique_ptr<Page::Base> aPageToAdd) {

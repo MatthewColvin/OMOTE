@@ -2,17 +2,17 @@
 
 namespace UI::Page {
 
-ActiveDeviceList::ActiveDeviceList(ActiveDevices &devices)
+ActiveDeviceList::ActiveDeviceList(DeviceFactory &aFactory)
     : Base(ID::Pages::ActiveDeviceList),
-      mDevices(devices),
+      mFactory(aFactory),
       mDeviceList(nullptr) {
   RefreshDeviceList();
-  mUpdateHandler.SetNotification(devices.getListUpdateNotification());
+  mUpdateHandler.SetNotification(mFactory.getActiveDevices().getListUpdateNotification());
   mUpdateHandler = [this](auto event) { RefreshDeviceList(); };
 }
 
 void ActiveDeviceList::RefreshDeviceList() {
-  auto devices = mDevices.getDevices();
+  auto devices = mFactory.getActiveDevices().getDevices();
   if (mDeviceList) {
     RemoveElement(mDeviceList);
   }

@@ -10,9 +10,9 @@
 
 namespace UI::Widget {
 
-StatusBar::StatusBar(ActiveDevices &aActiveDevices)
+StatusBar::StatusBar(DeviceFactory &aFactory)
     : Base(ID::Widgets::StatusBar),
-      mActiveDevices(aActiveDevices),
+      mFactory(aFactory),
       mTopBarBatteryLabel(AddNewElement<Widget::Label>("")),
       mTopBarWiFiLabel(AddNewElement<Widget::Label>("")),
       mTopBarSOCLabel(AddNewElement<Widget::Label>("--%")),
@@ -60,7 +60,7 @@ void StatusBar::SettingsPress() {
 
 void StatusBar::ActiveListPress() {
   UI::Screen::Manager::getInstance().pushPopUp(
-      std::make_unique<Page::ActiveDeviceList>(mActiveDevices), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
+      std::make_unique<Page::ActiveDeviceList>(mFactory), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
 }
 
 } // namespace UI::Widget

@@ -58,7 +58,6 @@ bool AuthSession::ProcessMessage(const Message &aMessage) {
     return true;
   case Message::Type::auth_ok:
     mConnectionStatus = Api::ConnectionStatus::Connected;
-    HardwareFactory::getAbstract().debugPrint("HOLY_SHIT Connected");
     return true;
   case Message::Type::auth_invalid:
     mConnectionStatus = Api::ConnectionStatus::Failed;

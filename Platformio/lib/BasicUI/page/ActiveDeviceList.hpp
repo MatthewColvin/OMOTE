@@ -1,5 +1,5 @@
 #pragma once
-#include "ActiveDevices.hpp"
+#include "DeviceFactory.hpp"
 #include "Notification.hpp"
 #include "PageBase.hpp"
 #include "widget/List.hpp"
@@ -8,13 +8,13 @@ namespace UI::Page {
 
 class ActiveDeviceList : public Base {
 public:
-  explicit ActiveDeviceList(ActiveDevices &devices);
+  explicit ActiveDeviceList(DeviceFactory &factory);
   std::string GetTitle() override { return "Active Devices"; }
 
 private:
   void RefreshDeviceList();
 
-  ActiveDevices &mDevices;
+  DeviceFactory &mFactory;
   UI::Widget::List *mDeviceList;
   Handler<ActiveDevices::ListEvent> mUpdateHandler;
 };

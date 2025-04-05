@@ -10,6 +10,12 @@ void ActiveDevices::addDevice(IDevice::Ptr device) {
   }
 }
 
+void ActiveDevices::restoreDevices(const std::vector<IDevice::Ptr> &aDevicesToRestore) {
+  for (auto &device : aDevicesToRestore) {
+    mDevices.push_back(device);
+  }
+}
+
 void ActiveDevices::removeDevice(const std::string &deviceName) {
   auto it = std::find_if(
       mDevices.begin(), mDevices.end(),

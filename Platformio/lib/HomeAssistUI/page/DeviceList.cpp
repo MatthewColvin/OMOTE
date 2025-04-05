@@ -24,12 +24,12 @@ static const std::map<const std::string, Type> PrefixToType{
 namespace UI::Page {
 
 DeviceList::DeviceList(HomeAssist::WebSocket::Api &aApi,
-                       ActiveDevices &aActiveDevices)
+                       DeviceFactory &aDeviceFactory)
     : Base(ID::Pages::HomeAssistDeviceList),
       mEntityTypeList(AddNewElement<Widget::List>()),
       mLoadingArc(AddNewElement<Widget::Arc>()),
       mApi(aApi),
-      mActiveDevices(aActiveDevices),
+      mDeviceFactory(aDeviceFactory),
       mDeviceQueryProcessor(std::make_shared<UI::DevicesQueryProcessor>(
           [this](const auto &aEntity) { StoreEntity(aEntity); })) {
   // Initially hide device list
@@ -37,7 +37,7 @@ DeviceList::DeviceList(HomeAssist::WebSocket::Api &aApi,
 
   mLoadingArc->SetRange(0, 100);
   mLoadingArc->SetWidth(GetContentWidth() / 2);
-  mLoadingArc->SetHeight(GetContentHeight() / 4);
+  mLoadingArc->SetHeight(GetContentHeight() / 2);
   mLoadingArc->AlignTo(this, LV_ALIGN_TOP_MID);
   mEntityTypeList->AlignTo(mEntityTypeList, LV_ALIGN_OUT_BOTTOM_MID);
 
@@ -51,17 +51,17 @@ DeviceList::DeviceList(HomeAssist::WebSocket::Api &aApi,
               mLoadingArc->SetValue(aPercentComplete);
             });
       });
+}
 
-  {
-    using namespace HomeAssist::WebSocket;
-    auto request =
-        RequestBuilder()
-            .SetType(RequestTypes::CONFIG_ENTITY_REGISTRY_LIST_DISPLAY)
-            .BuildUnique();
+void DeviceList::StartDeviceQuery() {
+  using namespace HomeAssist::WebSocket;
+  auto request =
+      RequestBuilder()
+          .SetType(RequestTypes::CONFIG_ENTITY_REGISTRY_LIST_DISPLAY)
+          .BuildUnique();
 
-    mApi.AddSession(std::make_unique<Session>(std::move(request), nullptr,
-                                              nullptr, mDeviceQueryProcessor));
-  }
+  mApi.AddSession(std::make_unique<Session>(std::move(request), nullptr,
+                                            nullptr, mDeviceQueryProcessor));
 }
 
 bool DeviceList::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
@@ -69,19 +69,8 @@ bool DeviceList::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
 }
 
 void DeviceList::StoreEntity(const std::string &aEntity) {
-  constexpr auto lightStr = "light";
-  size_t dotPos = aEntity.find('.');
-  std::string prefix =
-      (dotPos != std::string::npos) ? aEntity.substr(0, dotPos) : aEntity;
-
-  auto knownTypeIt = PrefixToType.find(prefix);
-  auto isKnownType = knownTypeIt != PrefixToType.end();
-  if (isKnownType) {
-    const auto entityType = knownTypeIt->second;
-    mEntityMap[entityType].push_back(aEntity);
-  } else {
-    mEntityMap[EntityType::Other].push_back(aEntity);
-  }
+  auto type = HomeAssist::HomeAssistDeviceFactory::GetType(aEntity);
+  mEntityMap[type].push_back(aEntity);
 }
 
 void DeviceList::HandleDevicesQueryComplete(
@@ -111,15 +100,9 @@ void DeviceList::AddEntityTypeListItem(
 
   auto handleEntityTypeSelected = [&aEntities, aEntityType, this]() {
     auto entityListPage = std::make_unique<AddDevice>(
-        mActiveDevices, aEntities,
+        mDeviceFactory.getActiveDevices(), aEntities,
         [aEntityType, this](const auto &aName) -> IDevice::Ptr {
-          using namespace HomeAssist::Device;
-          switch (aEntityType) {
-          case EntityType::Light:
-            return std::make_shared<Light>(aName, mApi);
-          default:
-            return nullptr;
-          }
+          return mDeviceFactory.CreateHomeAssistDevice(aName);
         });
 
     UI::Screen::Manager::getInstance().pushPopUp(std::move(entityListPage));

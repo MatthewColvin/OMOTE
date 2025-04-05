@@ -7,6 +7,7 @@
 #include "SDLDisplay.hpp"
 #include "StatsSimulator.hpp"
 #include "batterySimulator.hpp"
+#include "simLogger.hpp"
 #include "webSocketSimulator.hpp"
 #include "wifiHandlerSim.hpp"
 
@@ -25,6 +26,7 @@ public:
     fflush(stdout);
   }
 
+  std::unique_ptr<LoggingInterface> logger() override;
   std::shared_ptr<BatteryInterface> battery() override;
   std::shared_ptr<DisplayAbstract> display() override;
   std::shared_ptr<wifiHandlerInterface> wifi() override;
@@ -32,6 +34,7 @@ public:
   std::shared_ptr<IRInterface> ir() override;
   std::shared_ptr<SystemStatsInterface> stats() override;
   std::shared_ptr<webSocketInterface> webSocket() override;
+  std::shared_ptr<LittleFsInterface> littleFs() override;
 
   std::chrono::milliseconds execTime() override;
 
@@ -60,6 +63,7 @@ private:
   std::shared_ptr<IRSim> mIr;
   std::shared_ptr<StatsSimulator> mStats;
   std::array<std::weak_ptr<webSocketSimulator>, WebSocketLimit> mWebSockets;
+  std::shared_ptr<LittleFsInterface> mLittleFsSim;
 
   std::chrono::system_clock::time_point mStartTime;
 };

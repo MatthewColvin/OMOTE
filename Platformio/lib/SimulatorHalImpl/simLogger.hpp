@@ -4,6 +4,7 @@
 #include <ctime>
 #include <iomanip>
 #include <iostream>
+#include <magic_enum.hpp>
 #include <sstream>
 
 class SimLogger : public LoggingInterface {
@@ -40,7 +41,8 @@ private:
       break;
     }
 
-    ss << "][" << static_cast<int>(aModule) << "] " << aMessage << std::endl;
+    auto moduleName = magic_enum::enum_name(aModule);
+    ss << "][" << moduleName << "] " << aMessage << std::endl;
     std::cout << ss.str();
   }
 };

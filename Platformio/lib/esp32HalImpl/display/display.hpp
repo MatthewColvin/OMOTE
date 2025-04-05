@@ -21,6 +21,7 @@
 
 #define DEFAULT_BACKLIGHT_BRIGHTNESS 128
 
+namespace lvgx = lgfx::v1;
 class LGFX : public lgfx::LGFX_Device {
 public:
   LGFX(void);

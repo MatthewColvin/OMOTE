@@ -16,6 +16,10 @@
     ],
     "build": {
         "includeDir": ".",
+        "srcFilter": [
+            "+<*>",
+            "-<**/esp32WebSocket.*>"
+        ],
         "flags": [
             "-I battery",
             "-I display",

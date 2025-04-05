@@ -36,7 +36,7 @@ void wifiHandler::WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t aEventInfo) {
   }
   case ARDUINO_EVENT_WIFI_STA_CONNECTED:
     StoreCredentials();
-    WiFi.setAutoConnect(true);
+    WiFi.setAutoReconnect(true);
     UpdateStatus();
     break;
   case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:

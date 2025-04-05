@@ -119,10 +119,11 @@ Display::Display(int backlight_pin, int enable_pin)
 #if defined(OMOTE_KEYBRD_3661)
   digitalWrite(mBacklightPin, LOW);
 #else
-  digitalWrite(mBacklightPin, HIGH);
+  // TODO UPDATE to support IDF5 and change back to HIGH so screen boots off
+  digitalWrite(mBacklightPin, LOW);
 #endif
 
-  setupBacklight(); // This eliminates the flash of the backlight
+  // setupBacklight(); // This eliminates the flash of the backlight
 
 #if not defined(OMOTE_HARDWARE_REV5)
   // Slowly charge the VSW voltage to prevent a brownout
@@ -288,8 +289,10 @@ void Display::startFade() {
   xSemaphoreTake(mFadeTaskMutex, portMAX_DELAY);
   // Only Create Task if it is needed
   if (mDisplayFadeTask == nullptr) {
-    xTaskCreate(&Display::fadeImpl, "Display Fade Task", 1024, nullptr, 5,
-                &mDisplayFadeTask);
+    // TODO UPDATE to support IDF5 and go back to using task to fade
+
+    // xTaskCreate(&Display::fadeImpl, "Display Fade Task", 1024, nullptr, 5,
+    //             &mDisplayFadeTask);
   }
   xSemaphoreGive(mFadeTaskMutex);
 }

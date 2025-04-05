@@ -4,7 +4,7 @@
 #include "Hardware/KeyPressAbstract.hpp"
 #include "IRTransceiver.hpp"
 #include "display.hpp"
-#include "esp32WebSocket.hpp"
+// #include "esp32WebSocket.hpp"
 #include "observerHandles.hpp"
 #include "wifihandler.hpp"
 
@@ -76,7 +76,7 @@ void HardwareRevX::init() {
   mStandbyTimer = getSleepTimeout();
 
   mTouchHandler.SetNotification(mDisplay->TouchNotification());
-  mTouchHandler = [this](auto) {
+  mTouchHandler = [this](auto aTouchPoint) {
     // When we get touches reset sleep timeout
     mStandbyTimer = this->getSleepTimeout();
   };
@@ -125,8 +125,8 @@ std::shared_ptr<SystemStatsInterface> HardwareRevX::stats() {
 }
 
 std::shared_ptr<webSocketInterface> HardwareRevX::webSocket() {
-  return std::make_shared<esp32WebSocket>(mWifiHandler, std::make_unique<ESP32Logger>());
-  // return nullptr;
+  // return std::make_shared<esp32WebSocket>(mWifiHandler, std::make_unique<ESP32Logger>());
+  return nullptr;
 }
 
 std::shared_ptr<LittleFsInterface> HardwareRevX::littleFs() {

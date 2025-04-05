@@ -11,7 +11,7 @@ class Manager;
 class Base : public UIElement {
   friend Manager;
 
- public:
+public:
   typedef std::unique_ptr<Base> Ptr;
 
   Base(ID aId);
@@ -21,14 +21,14 @@ class Base : public UIElement {
   uint32_t GetTransitionTime();
   void SetTransitionTimes(uint32_t aAnimationTime, uint32_t aDelay = 0);
 
- protected:
+protected:
   void Show() override;
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
 
- private:
+private:
   lv_screen_load_anim_t mPushAnimation = LV_SCR_LOAD_ANIM_NONE;
-  uint32_t mTransitionAnimationTime = 1000;  // 1000 ms / 1 sec
+  uint32_t mTransitionAnimationTime = 500; // 500 ms / 1 sec
   uint32_t mTransitionDelayTime = 0;
 };
 
-}  // namespace UI::Screen
+} // namespace UI::Screen

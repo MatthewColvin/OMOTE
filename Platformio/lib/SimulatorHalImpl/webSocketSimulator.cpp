@@ -16,7 +16,7 @@ webSocketSimulator::~webSocketSimulator() {
   }
 }
 
-void webSocketSimulator::connect(const std::string& url) {
+void webSocketSimulator::connect(const std::string &url) {
   websocketpp::lib::error_code ec;
   auto con = wsClient.get_connection(url, ec);
   if (ec) {
@@ -42,7 +42,7 @@ void webSocketSimulator::disconnect() {
   std::cout << "Disconnected" << std::endl;
 }
 
-void webSocketSimulator::sendMessage(const std::string& message) {
+void webSocketSimulator::sendMessage(const std::string &message) {
   if (isConnected()) {
     websocketpp::lib::error_code ec;
     wsClient.send(connectionHandle, message, websocketpp::frame::opcode::text,

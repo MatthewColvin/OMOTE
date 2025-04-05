@@ -1,6 +1,6 @@
 #pragma once
-#include "PageBase.hpp"
 #include "Hardware/wifiHandlerInterface.h"
+#include "PageBase.hpp"
 
 namespace UI::Widget {
 class List;
@@ -10,7 +10,8 @@ class Keyboard;
 
 namespace UI::Page {
 class WifiSettings : public Base {
-using WifiInfo = wifiHandlerInterface::WifiInfo;
+  using WifiInfo = wifiHandlerInterface::WifiInfo;
+
 public:
   WifiSettings(std::shared_ptr<wifiHandlerInterface> aWifi);
 
@@ -24,7 +25,6 @@ protected:
   void OpenPasswordKeyboard(WifiInfo aNetworkToConnectTo);
 
 private:
-
   std::shared_ptr<wifiHandlerInterface> mWifi;
   Handler<wifiHandlerInterface::ScanDoneDataTy> mScanCompleteHandler;
   Handler<wifiHandlerInterface::wifiStatus> mScanStatusHandler;

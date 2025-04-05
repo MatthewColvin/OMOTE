@@ -11,9 +11,9 @@ class Tab;
 class TabView;
 class Base : public UIElement {
   // Classes that Own Pages
-  friend Tab;     // Allow Tab to Forward all Key Events to its page
-  friend TabView; // Allow Tab view to call OnShow and OnHide Since it can show
-                  // and Hide pages by swiping
+  friend Tab;                     // Allow Tab to Forward all Key Events to its page
+  friend TabView;                 // Allow Tab view to call OnShow and OnHide Since it can show
+                                  // and Hide pages by swiping
   friend UI::Screen::PopUpScreen; // Allow Pop up Screens pass events to the
                                   // page it owns
 

@@ -7,16 +7,16 @@
 #include "Hardware/websockets/webSocketInterface.hpp"
 
 class webSocketSimulator : public webSocketInterface {
- public:
+public:
   webSocketSimulator();
   ~webSocketSimulator() override;
 
-  void connect(const std::string& url) override;
+  void connect(const std::string &url) override;
   void disconnect() override;
-  void sendMessage(const std::string& message) override;
+  void sendMessage(const std::string &message) override;
   void setMessageCallback(MessageCallback callback) override;
 
- private:
+private:
   using client = websocketpp::client<websocketpp::config::asio_client>;
   client wsClient;
   websocketpp::connection_hdl connectionHandle;

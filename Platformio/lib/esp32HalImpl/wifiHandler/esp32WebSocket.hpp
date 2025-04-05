@@ -1,27 +1,32 @@
 #pragma once
 
-#include <WiFiUdp.h>  // Required before esp_websocket_client.h include
+#include <WiFiUdp.h> // Required before esp_websocket_client.h include
 // Issue seemed fixed but unsure current status
 // https://github.com/espressif/arduino-esp32/issues/4405
 
 #include <memory>
+#include <sstream>
 
+#include "Hardware/LoggingInterface.hpp"
 #include "Hardware/websockets/webSocketInterface.hpp"
 #include "esp_websocket_client.h"
 #include "wifihandler.hpp"
 
 class esp32WebSocket : public webSocketInterface {
- public:
-  enum class ProcessingStep { Append, Drop, Partial, Reserve };
+public:
+  enum class ProcessingStep { Append,
+                              Drop,
+                              Partial,
+                              Reserve };
 
-  esp32WebSocket(std::shared_ptr<wifiHandler> aWifiHandler);
+  esp32WebSocket(std::shared_ptr<wifiHandler> aWifiHandler, std::unique_ptr<LoggingInterface> aLogger);
 
   void connect(const std::string &url) override;
   void disconnect() override;
   void sendMessage(const std::string &message) override;
   void setMessageCallback(MessageCallback callback) override;
 
- private:
+private:
   void proccessEventData(esp_websocket_event_data_t *aEventData);
   void printDebugInfo(esp_websocket_event_data_t *aEventData,
                       ProcessingStep aNextStep);
@@ -36,6 +41,9 @@ class esp32WebSocket : public webSocketInterface {
 
   std::shared_ptr<wifiHandler> mWifiHandler;
   Handler<wifiHandlerInterface::wifiStatus> mWifiStatusUpdateHandler;
+
+  std::unique_ptr<LoggingInterface> mLogger;
+  mutable std::stringstream mLogStream;
 
   esp_websocket_client_handle_t client;
   esp_websocket_client_config_t mConfig{};

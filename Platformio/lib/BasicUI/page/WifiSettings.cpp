@@ -23,7 +23,7 @@ WifiSettings::WifiSettings(std::shared_ptr<wifiHandlerInterface> aWifi)
     mScanningText->SetText("Networks Found");
     // Create List of wifi infos that when pressed a Keyboard opens
     for (WifiInfo wifiInfo : aWifiInfos) {
-      mWifiNetworks->AddItem(wifiInfo.ssid, LV_SYMBOL_WIFI, [this, wifiInfo] {
+      mWifiNetworks->AddItem(wifiInfo.ssid, wifiInfo.isConnected ? LV_SYMBOL_WIFI : LV_SYMBOL_CLOSE, [this, wifiInfo] {
         OpenPasswordKeyboard(wifiInfo);
       });
     }
@@ -39,12 +39,14 @@ void WifiSettings::OpenPasswordKeyboard(WifiInfo aNetworkToConnectTo) {
   }
   auto keyboard = std::make_unique<Widget::Keyboard>(
       [this, aNetworkToConnectTo](auto aUserEnteredPassword) {
-        // Attempt Connection when user finishes up with keyboard input
-        mWifi->connect(aNetworkToConnectTo.ssid, aUserEnteredPassword);
-        mScanningText->SetText("Attempting Connection to " +
-                               aNetworkToConnectTo.ssid);
+        if (aUserEnteredPassword != "") {
+          // Attempt Connection when user finishes up with keyboard input
+          mWifi->connect(aNetworkToConnectTo.ssid, aUserEnteredPassword);
+          mScanningText->SetText("Attempting Connection to " +
+                                 aNetworkToConnectTo.ssid);
+          StartHandlingStatusUpdates();
+        }
         mPasswordGetter->AnimateOut();
-        StartHandlingStatusUpdates();
       },
       "Password:");
   keyboard->OnKeyboardAnimatedOut([this] {

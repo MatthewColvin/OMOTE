@@ -7,6 +7,14 @@ Keys::Keys() {
   xTaskCreate(KeyProccessor, "KeyProccessor", 4096, this, 1, &mKeyHandlingTask);
 }
 
+Keys::Keys(QueueHandle_t queueHandle) {
+  mKeyPressQueueHandle = queueHandle;
+  // static constexpr auto MaxQueueableKeyPresses = 5;
+  // mKeyPressQueueHandle = xQueueCreate(MaxQueueableKeyPresses, sizeof(KeyEvent));
+  // xTaskCreate(KeyGrabberTask, "KeyGrabber", 1024, &mKeysMessageBuffer, 1, &mKeyGrabbingTask);
+  xTaskCreate(KeyProccessor, "KeyProccessor", 4096, this, 1, &mKeyHandlingTask);
+}
+
 void Keys::KeyGrabberTask(void *aSelf) {
   auto self = reinterpret_cast<Keys *>(aSelf);
   while (true) {
@@ -14,6 +22,7 @@ void Keys::KeyGrabberTask(void *aSelf) {
     vTaskDelay(5 / portTICK_PERIOD_MS); // 5 ms between key grabs
   }
 }
+
 void Keys::KeyProccessor(void *aSelf) {
   auto self = reinterpret_cast<Keys *>(aSelf);
   while (true) {
@@ -25,6 +34,7 @@ void Keys::KeyProccessor(void *aSelf) {
 void Keys::HandleKeyPresses() {
   KeyPressAbstract::KeyEvent eventToHandle;
   while (xQueueReceive(mKeyPressQueueHandle, &eventToHandle, 0) == pdTRUE) {
+    Serial.printf("Press received Id:%d, state:%d\r\n", eventToHandle.mId, eventToHandle.mType);
     if (mKeyEventHandler) {
       mKeyEventHandler(eventToHandle);
     }
@@ -38,6 +48,7 @@ void Keys::QueueKeyEvent(KeyEvent aJustOccuredKeyEvent) {
 };
 
 void Keys::GrabKeys() {
+#if not defined(OMOTE_HARDWARE_REV5)
   if (!customKeypad.getKeys()) {
     return; // no activity return early.
   }
@@ -58,4 +69,5 @@ void Keys::GrabKeys() {
       }
     }
   }
+#endif
 }

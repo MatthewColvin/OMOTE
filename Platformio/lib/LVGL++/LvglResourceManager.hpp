@@ -5,12 +5,12 @@
 
 namespace UI {
 class UIBase;
-}  // namespace UI
+} // namespace UI
 // MatthewColvin/OMOTE#8
 class LvglResourceManager {
   friend UI::UIBase;
 
- public:
+public:
   static LvglResourceManager &GetInstance() {
     static LvglResourceManager mInstance;
     return mInstance;
@@ -33,7 +33,7 @@ class LvglResourceManager {
     mLvglTasks.push(std::move(aLvglModifierFunction));
   }
 
- protected:
+protected:
   LvglResourceManager() {};
 
   void HandleQueuedTasks() {

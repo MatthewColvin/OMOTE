@@ -2,16 +2,16 @@
 #include "Hardware/websockets/webSocketInterface.hpp"
 
 class MockWebSocket : public webSocketInterface {
- public:
+public:
   MockWebSocket() = default;
   explicit MockWebSocket(std::unique_ptr<Json::IProcessMessage> aJsonHandler)
       : webSocketInterface(std::move(aJsonHandler)) {}
 
-  void connect(const std::string& url) override { Connected(); }
+  void connect(const std::string &url) override { Connected(); }
 
   void disconnect() override { Disconnected(); }
 
-  void sendMessage(const std::string& message) override {
+  void sendMessage(const std::string &message) override {
     mLastSentMessage = message;
   }
 
@@ -20,15 +20,15 @@ class MockWebSocket : public webSocketInterface {
   }
 
   // Test helper methods
-  void simulateReceiveMessage(const std::string& message) {
+  void simulateReceiveMessage(const std::string &message) {
     if (mMessageCallback) {
       mMessageCallback(message);
     }
   }
 
-  const std::string& getLastSentMessage() const { return mLastSentMessage; }
+  const std::string &getLastSentMessage() const { return mLastSentMessage; }
 
- private:
+private:
   MessageCallback mMessageCallback;
   std::string mLastSentMessage;
 };

@@ -5,7 +5,7 @@
 
 using namespace UI::Page;
 
-IrLearner::IrLearner() : IrLearner(HardwareFactory::getAbstract().ir()){};
+IrLearner::IrLearner() : IrLearner(HardwareFactory::getAbstract().ir()) {};
 
 IrLearner::IrLearner(std::shared_ptr<IRInterface> aIr)
     : Base(ID::Pages::IrLearner), mIr(aIr),

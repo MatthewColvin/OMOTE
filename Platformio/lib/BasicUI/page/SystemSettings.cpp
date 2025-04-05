@@ -20,6 +20,7 @@ SystemSettings::SystemSettings()
   mScreenTimeOutDropDown->AddItem("10 Seconds", 10000);
   mScreenTimeOutDropDown->AddItem("15 Seconds", 15000);
   mScreenTimeOutDropDown->AddItem("20 Seconds", 20000);
+  mScreenTimeOutDropDown->AddItem("1 Min", 60000);
   mScreenTimeOutDropDown->AlignTo(mTimeoutLabel, LV_ALIGN_OUT_BOTTOM_MID);
   mScreenTimeOutDropDown->SetSelected(
       HardwareFactory::getAbstract().getSleepTimeout());

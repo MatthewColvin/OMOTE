@@ -5,19 +5,19 @@
 namespace UI::Widget {
 class Label;
 class Button;
-}  // namespace UI::Widget
+} // namespace UI::Widget
 
 namespace UI::Page {
 
 class IrLearner : public Base {
- public:
+public:
   IrLearner();
   IrLearner(std::shared_ptr<IRInterface> aIr);
   virtual ~IrLearner();
 
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
 
- private:
+private:
   void EnableRx();
   void DisableRx();
   void ClearRxLog();
@@ -39,4 +39,4 @@ class IrLearner : public Base {
   Widget::Label *mRxLog;
 };
 
-}  // namespace UI::Page
+} // namespace UI::Page

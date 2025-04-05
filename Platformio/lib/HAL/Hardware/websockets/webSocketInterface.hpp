@@ -5,8 +5,8 @@
 #include "IProcessMessage.hpp"
 
 class webSocketInterface {
- public:
-  using MessageCallback = std::function<void(const std::string&)>;
+public:
+  using MessageCallback = std::function<void(const std::string &)>;
 
   webSocketInterface() = default;
   virtual ~webSocketInterface() = default;
@@ -17,22 +17,22 @@ class webSocketInterface {
       std::unique_ptr<Json::IProcessMessage> aJsonHandler = nullptr);
 
   bool isConnected() const;
-  virtual void connect(const std::string& url) = 0;
+  virtual void connect(const std::string &url) = 0;
   virtual void disconnect() = 0;
 
-  virtual void sendMessage(const std::string& message) = 0;
+  virtual void sendMessage(const std::string &message) = 0;
   virtual void setMessageCallback(MessageCallback callback) = 0;
 
   virtual void OnConnect(std::function<void()> aConnectHandler = nullptr);
   virtual void OnDisconnect(std::function<void()> aDisconnectHandler = nullptr);
 
- protected:
+protected:
   std::unique_ptr<Json::IProcessMessage> mJsonHandler = nullptr;
 
   void Connected();
   void Disconnected();
 
- private:
+private:
   std::function<void()> mConnectedCallable;
   std::function<void()> mDisconnectedCallable;
   bool mIsConnected = false;

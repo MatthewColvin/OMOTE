@@ -16,9 +16,9 @@ namespace HomeAssist {
  *        Including getting and setting states.
  */
 class Entity {
- public:
+public:
   using AllocatorType = rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator>;
-  static constexpr auto UpdateDocMemPoolSize = 1024;  // 1KB
+  static constexpr auto UpdateDocMemPoolSize = 1024; // 1KB
 
   Entity(std::shared_ptr<IHomeAssistApi> anApi, std::string aEntityId)
       : mApi(anApi), mEntityId(aEntityId) {}
@@ -31,7 +31,7 @@ class Entity {
     return reader.Parse(s, mRefreshParser);
   }
 
- protected:
+protected:
   rapidjson::Document &GetUpdateDoc() {
     if (!mUpdateDoc) {
       CreateUpdateDoc();
@@ -62,7 +62,7 @@ class Entity {
   std::unique_ptr<rapidjson::Document> mUpdateDoc = nullptr;
   std::unique_ptr<AllocatorType> mAllocator = nullptr;
 
- private:
+private:
   void DeleteUpdateDoc() {
     if (mUpdateDoc) {
       mUpdateDoc.reset();
@@ -93,4 +93,4 @@ class Entity {
   std::string mEntityId;
 };
 
-}  // namespace HomeAssist
+} // namespace HomeAssist

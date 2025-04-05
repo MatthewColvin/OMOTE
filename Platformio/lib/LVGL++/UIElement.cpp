@@ -47,6 +47,14 @@ UIElement::Ptr UIElement::RemoveElement(UIElement *anElementRef) {
   return nullptr;
 }
 
+void UIElement::MatchContentDimentions(UIElement *aUIElementToMatch) {
+  if (!aUIElementToMatch) {
+    return;
+  }
+  SetWidth(aUIElementToMatch->GetContentWidth());
+  SetHeight(aUIElementToMatch->GetContentHeight());
+}
+
 bool UIElement::KeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   if (OnKeyEvent(aKeyEvent)) {
     return true;
@@ -325,4 +333,4 @@ void UIElement::LvglEventHandler(lv_event_t *anEvent) {
       ->OnLvglEvent(anEvent);
 }
 
-}  // namespace UI
+} // namespace UI

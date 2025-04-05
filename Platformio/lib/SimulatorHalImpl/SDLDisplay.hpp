@@ -5,18 +5,22 @@
 #include "SDL2/SDL.h"
 
 class SDLDisplay : public DisplayAbstract {
- public:
+public:
   static std::shared_ptr<SDLDisplay> getInstance();
 
   virtual void setBrightness(uint8_t brightness) override;
   virtual uint8_t getBrightness() override;
   virtual void turnOff() override;
+  virtual void setDayMode(bool isDay) override;
+  virtual void getTouchData() override;
 
   void setTitle(std::string aNewTitle);
 
- protected:
- private:
+protected:
+private:
   SDLDisplay();
   uint8_t mBrightness;
   SDL_Window *mSimWindow;
+
+  bool mIsDayModeActive = false;
 };

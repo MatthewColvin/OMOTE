@@ -8,11 +8,13 @@
 namespace HomeAssist::WebSocket {
 
 class Message::Attributes::Light {
- public:
+public:
   static constexpr auto INVALIDINT = -1;
-  enum class ColorModes { Brightness, ColorTemp, rgb };
+  enum class ColorModes { Brightness,
+                          ColorTemp,
+                          rgb };
 
-  Light(const MemConciousValue& aAttributeListVal);
+  Light(const MemConciousValue &aAttributeListVal);
   ~Light();
 
   int GetBrightness();
@@ -20,11 +22,11 @@ class Message::Attributes::Light {
   std::tuple<int, int, int> GetRgb();
   std::vector<ColorModes> GetSupportedColorModes();
 
- private:
+private:
   int mBrightness;
   int mColorTemp;
   std::tuple<int, int, int> mRgbColor;
   std::vector<ColorModes> mSupportedModes;
 };
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

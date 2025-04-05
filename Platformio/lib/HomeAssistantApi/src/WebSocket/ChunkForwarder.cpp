@@ -7,7 +7,7 @@ using namespace Json;
 
 namespace HomeAssist::WebSocket {
 
-ChunkForwarder::ChunkForwarder(Api& aApi) : mApi(aApi) {}
+ChunkForwarder::ChunkForwarder(Api &aApi) : mApi(aApi) {}
 
 void ChunkForwarder::SetProcessor(std::shared_ptr<IChunkProcessor> aProcessor) {
   mProcessor = aProcessor;
@@ -37,7 +37,7 @@ bool ChunkForwarder::Uint(unsigned u) {
     mFoundId = true;
     mProcessingId = false;
 
-    if (auto& session = mApi.mSessions[mCurrentId]; session) {
+    if (auto &session = mApi.mSessions[mCurrentId]; session) {
       if (auto newProcessor = session->GetChunkProcessor(); newProcessor) {
         mProcessor = newProcessor;
       }
@@ -69,14 +69,14 @@ bool ChunkForwarder::Double(double d) {
   }
   return true;
 }
-bool ChunkForwarder::RawNumber(const Ch* str, rapidjson::SizeType length,
+bool ChunkForwarder::RawNumber(const Ch *str, rapidjson::SizeType length,
                                bool copy) {
   if (auto processor = mProcessor.lock()) {
     return processor->RawNumber(str, length, copy);
   }
   return true;
 }
-bool ChunkForwarder::String(const Ch* str, rapidjson::SizeType length,
+bool ChunkForwarder::String(const Ch *str, rapidjson::SizeType length,
                             bool copy) {
   if (auto processor = mProcessor.lock()) {
     return processor->String(str, length, copy);
@@ -90,7 +90,7 @@ bool ChunkForwarder::StartObject() {
   }
   return true;
 }
-bool ChunkForwarder::Key(const Ch* str, rapidjson::SizeType length, bool copy) {
+bool ChunkForwarder::Key(const Ch *str, rapidjson::SizeType length, bool copy) {
   if (strcmp(str, "id") == 0) {
     mProcessingId = true;
   }
@@ -129,10 +129,10 @@ void ChunkForwarder::UpdateProgress(size_t aProcessedBytes,
 }
 
 void ChunkForwarder::Completed(
-    const IProcessMessage::ProcessResult& aCompletionResult) {
+    const IProcessMessage::ProcessResult &aCompletionResult) {
   if (auto processor = mProcessor.lock()) {
     processor->Completed(aCompletionResult);
   }
 }
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

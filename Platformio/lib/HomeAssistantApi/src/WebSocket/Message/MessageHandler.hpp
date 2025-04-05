@@ -9,8 +9,8 @@
 namespace HomeAssist::WebSocket {
 
 class MessageHandler {
- public:
-  using MessageType = const Message&;
+public:
+  using MessageType = const Message &;
   using MessageProccessor = std::function<bool(MessageType)>;
 
   MessageHandler(MessageProccessor aMessageProccessor);
@@ -20,7 +20,7 @@ class MessageHandler {
 
   void SetMessageProccessor(MessageProccessor aMessageProccessor);
 
- private:
+private:
   MessageProccessor mMessageProccessor;
 };
 
@@ -36,4 +36,4 @@ inline void MessageHandler::SetMessageProccessor(
   mMessageProccessor = aMessageProccessor;
 }
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

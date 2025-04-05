@@ -7,19 +7,19 @@ class Slider;
 class Label;
 
 class BrightnessSlider : public Base {
- public:
+public:
   BrightnessSlider(std::shared_ptr<DisplayAbstract> aDisplay);
 
   void SetHeight(lv_coord_t aHeight) override;
 
- protected:
+protected:
   void OnShow() override;
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
 
- private:
+private:
   std::shared_ptr<DisplayAbstract> mDisplay;
   Slider *mSlider;
   Label *mLabel;
 };
 
-}  // namespace UI::Widget
+} // namespace UI::Widget

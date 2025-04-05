@@ -7,15 +7,16 @@
 #include "SDLDisplay.hpp"
 #include "StatsSimulator.hpp"
 #include "batterySimulator.hpp"
+#include "simLogger.hpp"
 #include "webSocketSimulator.hpp"
 #include "wifiHandlerSim.hpp"
 
 class HardwareSimulator : public HardwareAbstract {
- public:
+public:
   HardwareSimulator();
 
   void init() override {};
-  void loopHandler() override {};
+  void loopHandler() override;
 
   void debugPrint(const char *fmt, ...) override {
     va_list arguments;
@@ -25,6 +26,7 @@ class HardwareSimulator : public HardwareAbstract {
     fflush(stdout);
   }
 
+  std::unique_ptr<LoggingInterface> logger() override;
   std::shared_ptr<BatteryInterface> battery() override;
   std::shared_ptr<DisplayAbstract> display() override;
   std::shared_ptr<wifiHandlerInterface> wifi() override;
@@ -32,6 +34,7 @@ class HardwareSimulator : public HardwareAbstract {
   std::shared_ptr<IRInterface> ir() override;
   std::shared_ptr<SystemStatsInterface> stats() override;
   std::shared_ptr<webSocketInterface> webSocket() override;
+  std::shared_ptr<LittleFsInterface> littleFs() override;
 
   std::chrono::milliseconds execTime() override;
 
@@ -41,10 +44,10 @@ class HardwareSimulator : public HardwareAbstract {
   bool getWakeupByIMUEnabled() override;
   void setWakeupByIMUEnabled(bool wakeupByIMUEnabled) override;
 
-  uint16_t getSleepTimeout() override;
-  void setSleepTimeout(uint16_t sleepTimeout) override;
+  uint32_t getSleepTimeout() override;
+  void setSleepTimeout(uint32_t sleepTimeout) override;
 
- private:
+private:
   // Completely arbitrary limit on the number of web sockets
   static constexpr auto WebSocketLimit = 5;
 
@@ -57,6 +60,7 @@ class HardwareSimulator : public HardwareAbstract {
   std::shared_ptr<IRSim> mIr;
   std::shared_ptr<StatsSimulator> mStats;
   std::array<std::weak_ptr<webSocketSimulator>, WebSocketLimit> mWebSockets;
+  std::shared_ptr<LittleFsInterface> mLittleFsSim;
 
   std::chrono::system_clock::time_point mStartTime;
 };

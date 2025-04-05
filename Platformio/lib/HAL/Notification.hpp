@@ -4,13 +4,16 @@
 #include <map>
 #include <memory>
 
-template <class... notifyData> class Handler;
-template <class... notifyData> class Notification {
+template <class... notifyData>
+class Handler;
+template <class... notifyData>
+class Notification {
   friend class Handler<notifyData...>;
 
 public:
   typedef std::function<void(notifyData...)> HandlerTy;
   typedef int HandlerID;
+  using Ptr = std::shared_ptr<Notification<notifyData...>>;
 
   Notification() { mIdMaker = 0; };
   void notify(notifyData... notifySendData);
@@ -53,7 +56,8 @@ void Notification<handlerData...>::unregister(HandlerID aHandlerId) {
   }
 }
 
-template <class... notifyData> class Handler {
+template <class... notifyData>
+class Handler {
 public:
   typedef std::function<void(notifyData...)> callableTy;
   void operator=(Handler &other) = delete;
@@ -80,8 +84,8 @@ public:
     }
   }
 
-  void
-  SetNotification(std::shared_ptr<Notification<notifyData...>> aNotification) {
+  void SetNotification(
+      std::shared_ptr<Notification<notifyData...>> aNotification) {
     mNotification = aNotification;
   }
 

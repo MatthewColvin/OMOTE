@@ -1,7 +1,9 @@
 #include "Label.hpp"
+
 #include "BackgroundScreen.hpp"
 #include "Colors.hpp"
 #include "LvglResourceManager.hpp"
+#include "observerHandles.hpp"
 
 using namespace UI::Widget;
 
@@ -19,4 +21,10 @@ void Label::SetText(std::string aText) {
 void Label::SetLongMode(lv_label_long_mode_t aLongMode) {
   auto lock = LvglResourceManager::GetInstance().scopeLock();
   lv_label_set_long_mode(LvglSelf(), aLongMode);
+}
+
+void Label::BindTextEvent(uint32_t key, const char *fmt) {
+  lv_subject_t *obsHandle;
+  auto lock = LvglResourceManager::GetInstance().scopeLock();
+  UI::observerHandles::bindLabelHandle(LvglSelf(), key, fmt);
 }

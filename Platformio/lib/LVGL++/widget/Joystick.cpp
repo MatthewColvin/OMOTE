@@ -15,8 +15,8 @@ namespace UI::Widget {
 // vectory entry
 
 Joystick::Joystick(Joystick::UpdateHandler aJoystickHandler, int aRadius,
-                   int aStickRadius, lv_align_t aAlign, lv_style_t* aStyle,
-                   lv_style_t* aStickStyle)
+                   int aStickRadius, lv_align_t aAlign, lv_style_t *aStyle,
+                   lv_style_t *aStickStyle)
     : Base(lv_obj_create(UI::Screen::BackgroundScreen::getLvInstance()),
            ID::Widgets::Joystick),
       mId(mJoystickHandlers.size()) {
@@ -39,6 +39,6 @@ void Joystick::AllJoysticksUpdateHandler(uint8_t joystick_id, int16_t x,
   }
 }
 
-}  // namespace UI::Widget
+} // namespace UI::Widget
 
 // #endif

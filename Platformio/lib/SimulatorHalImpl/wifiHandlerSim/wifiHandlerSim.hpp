@@ -7,7 +7,7 @@
 #include "Notification.hpp"
 
 class wifiHandlerSim : public wifiHandlerInterface {
- public:
+public:
   wifiHandlerSim();
   ~wifiHandlerSim() override = default;
 
@@ -20,7 +20,7 @@ class wifiHandlerSim : public wifiHandlerInterface {
                        int aPort = 1883) override {};
   void mqttSend(std::string aTopic, std::string aMessage) override {};
 
- private:
+private:
   std::thread mFakeScanThread = std::thread([] {});
   std::thread mFakeStatusThread = std::thread([] {});
   wifiStatus mCurrentStatus = wifiStatus(true, "172.0.0.1", "FakeNet");

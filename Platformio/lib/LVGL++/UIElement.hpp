@@ -13,7 +13,7 @@
 namespace UI {
 
 class UIElement {
- public:
+public:
   using Ptr = std::unique_ptr<UIElement>;
 
   UIElement(lv_obj_t *aLvglSelf, const ID aId = ID());
@@ -79,6 +79,12 @@ class UIElement {
 
   UIElement::Ptr RemoveElement(UIElement *aUIElementRef);
 
+  /**
+   * Helper to resize widget to match the content width and height of
+   * @param aUIElementToMatch - The container
+   */
+  void MatchContentDimentions(UIElement *aUIElementToMatch);
+
   size_t GetNumContainedElements() { return mContainedElements.size(); }
 
   virtual ID GetID() { return mId; };
@@ -108,7 +114,7 @@ class UIElement {
   /// @return lvgl object a
   lv_obj_t *LvglSelf() const { return mLvglSelf; }
 
- protected:
+protected:
   /// @brief Show Element
   virtual void Show();
   /// @brief Hide Element
@@ -137,7 +143,7 @@ class UIElement {
   ///         fasle - Key event was unused
   virtual bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) = 0;
 
- private:
+private:
   /// @brief Get Pointer to Parent Element
   /// @return - nullptr Parent was not wrapped or did not exist
   UIElement *GetParent();
@@ -194,4 +200,4 @@ UIElemTy *UIElement::AddNewElement(ElemArgs &&...elemArgs) {
       std::make_unique<UIElemTy>(std::forward<ElemArgs>(elemArgs)...)));
 }
 
-}  // namespace UI
+} // namespace UI

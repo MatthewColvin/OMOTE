@@ -95,5 +95,11 @@
     "cmake.sourceDirectory": "${workspaceFolder}/.pio/libdeps/esp32/Adafruit BusIO",
     "editor.formatOnSave": true,
     "idf.portWin": "COM8",
-    "C_Cpp.clang_format_fallbackStyle": "Google"
+    "C_Cpp.clang_format_fallbackStyle": "{BasedOnStyle:Google, ColumnLimit: 0}",
+    "formatFiles.excludedFolders": [
+        ".pio",
+        ".vscode",
+        ".git",
+        "lib/Keypad"
+    ]
 }

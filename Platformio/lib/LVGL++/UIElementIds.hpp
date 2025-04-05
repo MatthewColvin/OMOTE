@@ -3,7 +3,7 @@
 namespace UI {
 
 class ID {
- public:
+public:
   static constexpr auto INVALID = 0;
 
   enum class Screens {
@@ -23,6 +23,11 @@ class ID {
     BrightnessSlider,
     Joystick,
     Arc,
+    StatusBar,
+    MainTopBar,
+    LED,
+    Image,
+    Roller,
     INVALID_WIDGET_ID
   };
 
@@ -31,11 +36,14 @@ class ID {
     DisplaySettings,
     WifiSettings,
     SystemSettings,
+    MqttSettings,
     IrLearner,
     Demo,
     Tv,
     CarController,
     HomeAssistDeviceList,
+    ActiveDeviceList,
+    AddDevicePage,
     INVALID_PAGE_ID
   };
 
@@ -46,8 +54,8 @@ class ID {
 
   bool operator==(const ID aOther) const { return aOther.mId == mId; }
 
- private:
+private:
   const int mId;
 };
 
-}  // namespace UI
+} // namespace UI

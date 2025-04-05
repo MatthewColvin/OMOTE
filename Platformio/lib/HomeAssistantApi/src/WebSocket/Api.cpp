@@ -1,5 +1,7 @@
 #include "WebSocket/Api.hpp"
 
+#include <sstream>
+
 #include "HardwareFactory.hpp"
 #include "RapidJsonUtilty.hpp"
 #include "WebSocket/Message/Message.hpp"
@@ -8,6 +10,7 @@
 #include "WebSocket/Session/AuthSession.hpp"
 #include "WebSocket/Session/ISession.hpp"
 #include "rapidjson/document.h"
+#include <mutex>
 
 namespace HomeAssist::WebSocket {
 
@@ -76,9 +79,9 @@ void Api::ProcessSessions() {
   if (mConnectionStatus != ConnectionStatus::Connected) {
     return;
   }
-  for (auto& session : mSessions) {
+  for (auto &session : mSessions) {
     if (!session.second->IsRunning()) {
-      if (auto* request = session.second->BorrowStartRequest(); request) {
+      if (auto request = session.second->GetStartRequest(); request) {
         mHomeAssistSocket->sendMessage(request->GetRequestMessage());
         session.second->MarkStarted();
       }
@@ -93,13 +96,13 @@ void Api::ProcessMessages() {
   while (mIncomingMessageQueue.size() > 0) {
     auto message = std::move(mIncomingMessageQueue.front());
     mIncomingMessageQueue.pop();
-    auto& session = mSessions[message->GetId()];
+    auto &session = mSessions[message->GetId()];
     if (!session) {
       return;
     }
     session->ProcessMessage(*message);
     if (session->IsComplete()) {
-      if (auto* request = session->BorrowEndRequest(); request) {
+      if (auto *request = session->BorrowEndRequest(); request) {
         mHomeAssistSocket->sendMessage(request->GetRequestMessage());
       }
       session->MarkComplete();
@@ -108,6 +111,7 @@ void Api::ProcessMessages() {
 }
 
 void Api::CleanUpSessions() {
+  std::lock_guard lock(mSessionMutex);
   for (auto sessionIter = mSessions.begin(); sessionIter != mSessions.end();) {
     if ((*sessionIter).second == nullptr) {
       sessionIter = mSessions.erase(sessionIter);
@@ -117,7 +121,7 @@ void Api::CleanUpSessions() {
   }
 }
 
-bool Api::PreProcessMessage(Message& aMessage) {
+bool Api::PreProcessMessage(Message &aMessage) {
   if (mAuthSession && mAuthSession->ProcessMessage(aMessage)) {
     if (mAuthSession->IsComplete()) {
       UpdateConnectionStatus(mAuthSession->GetConnectionStatus());
@@ -136,6 +140,7 @@ void Api::AddSession(std::unique_ptr<ISession> aNewSession) {
   }
   auto newRequestId = mNextRequestId++;
   aNewSession->BorrowStartRequest()->SetId(newRequestId);
+  std::lock_guard lock(mSessionMutex);
   mSessions[newRequestId] = std::move(aNewSession);
 }
 
@@ -148,7 +153,13 @@ void Api::AttemptConnection(bool aHonorTimeInterval) {
       (aHonorTimeInterval && !fiveSecondsSinceRetry())) {
     return;
   }
-  mHomeAssistSocket->connect("ws://192.168.86.49:8123/api/websocket");
+
+  std::stringstream addressSs;
+
+  addressSs << "ws://" << HOMEASSISTANT_IP_ADDRESS << ":" << HOMEASSISTANT_PORT
+            << "/api/websocket";
+
+  mHomeAssistSocket->connect(addressSs.str());
   mLastConnectRetry = execTime;
   // Session already sent auth so need to reset and retry
   if (!mAuthSession || mAuthSession->IsAuthSent()) {
@@ -156,4 +167,4 @@ void Api::AttemptConnection(bool aHonorTimeInterval) {
   }
 }
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

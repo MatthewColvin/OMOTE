@@ -69,18 +69,18 @@ namespace RequestTypes {
 // clang-format on
 
 class TriggerBuilder {
- public:
-  TriggerBuilder(MemConciousDocument::AllocatorType& aAllocator)
+public:
+  TriggerBuilder(MemConsciousDocument::AllocatorType &aAllocator)
       : mTrigger(rapidjson::kObjectType), mAllocator(aAllocator) {}
 
-  TriggerBuilder& SetPlatform(const std::string& aPlatform) {
+  TriggerBuilder &SetPlatform(const std::string &aPlatform) {
     mTrigger.AddMember(
         "platform", MemConciousValue().SetString(aPlatform.c_str(), mAllocator),
         mAllocator);
     return *this;
   }
 
-  TriggerBuilder& SetEntityId(const std::string& aEntityId) {
+  TriggerBuilder &SetEntityId(const std::string &aEntityId) {
     mTrigger.AddMember(
         "entity_id",
         MemConciousValue().SetString(aEntityId.c_str(), mAllocator),
@@ -88,91 +88,108 @@ class TriggerBuilder {
     return *this;
   }
 
-  TriggerBuilder& SetFromState(const std::string& aFrom) {
-    mTrigger.AddMember("from",
-                       MemConciousValue().SetString(aFrom.c_str(), mAllocator),
-                       mAllocator);
+  TriggerBuilder &SetFromState(const std::string &aFrom) {
+    if (!aFrom.empty()) {
+      mTrigger.AddMember(
+          "from", MemConciousValue().SetString(aFrom.c_str(), mAllocator),
+          mAllocator);
+    }
     return *this;
   }
 
-  TriggerBuilder& SetToState(const std::string& aTo) {
-    mTrigger.AddMember("to",
-                       MemConciousValue().SetString(aTo.c_str(), mAllocator),
-                       mAllocator);
+  TriggerBuilder &SetToState(const std::string &aTo) {
+    if (!aTo.empty()) {
+      mTrigger.AddMember("to",
+                         MemConciousValue().SetString(aTo.c_str(), mAllocator),
+                         mAllocator);
+    }
     return *this;
   }
 
   MemConciousValue Build() { return std::move(mTrigger); }
 
- private:
+private:
   MemConciousValue mTrigger;
-  MemConciousDocument::AllocatorType& mAllocator;
+  MemConsciousDocument::AllocatorType &mAllocator;
 };
 
 class RequestBuilder {
- public:
+public:
   RequestBuilder();
   ~RequestBuilder() = default;
 
-  RequestBuilder& SetType(const std::string& aType);
-  RequestBuilder& SetId(int aId);
-  RequestBuilder& AddField(const std::string& aKey, const std::string& aValue);
-  RequestBuilder& AddField(const std::string& aKey, int aValue);
-  RequestBuilder& AddField(const std::string& aKey, bool aValue);
-  RequestBuilder& AddTrigger(
-      std::function<void(TriggerBuilder&)> aTriggerBuilder);
+  RequestBuilder &SetType(const std::string &aType);
+  RequestBuilder &SetId(int aId);
+  RequestBuilder &AddField(const std::string &aKey, const std::string &aValue);
+  RequestBuilder &AddField(const std::string &aKey, int aValue);
+  RequestBuilder &AddField(const std::string &aKey, bool aValue);
+  RequestBuilder &AddTargetEntity(const std::string &aEntityId);
+  RequestBuilder &AddTrigger(
+      std::function<void(TriggerBuilder &)> aTriggerBuilder);
 
   std::unique_ptr<Request> BuildUnique();
-  Request Build();  // keep original for backward compatibility
+  Request Build(); // keep original for backward compatibility
 
   static std::unique_ptr<Request> CreateTriggerSubscription(
-      int aId, const std::string& aEntityId, const std::string& aFrom,
-      const std::string& aTo);
+      const std::string &aEntityId, const std::string &aFrom,
+      const std::string &aTo);
 
- private:
-  MemConciousDocument mDocument;
-  MemConciousDocument::AllocatorType& mAllocator;
+private:
+  MemConsciousDocument mDocument;
+  MemConsciousDocument::AllocatorType &mAllocator;
 };
 
 inline RequestBuilder::RequestBuilder()
     : mDocument(rapidjson::kObjectType), mAllocator(mDocument.GetAllocator()) {}
 
-inline RequestBuilder& RequestBuilder::SetType(const std::string& aType) {
+inline RequestBuilder &RequestBuilder::SetType(const std::string &aType) {
   mDocument.AddMember("type",
                       MemConciousValue().SetString(aType.c_str(), mAllocator),
                       mAllocator);
   return *this;
 }
 
-inline RequestBuilder& RequestBuilder::SetId(int aId) {
+inline RequestBuilder &RequestBuilder::SetId(int aId) {
   mDocument.AddMember("id", aId, mAllocator);
   return *this;
 }
 
-inline RequestBuilder& RequestBuilder::AddField(const std::string& aKey,
-                                                const std::string& aValue) {
+inline RequestBuilder &RequestBuilder::AddField(const std::string &aKey,
+                                                const std::string &aValue) {
   mDocument.AddMember(MemConciousValue().SetString(aKey.c_str(), mAllocator),
                       MemConciousValue().SetString(aValue.c_str(), mAllocator),
                       mAllocator);
   return *this;
 }
 
-inline RequestBuilder& RequestBuilder::AddField(const std::string& aKey,
+inline RequestBuilder &RequestBuilder::AddField(const std::string &aKey,
                                                 int aValue) {
   mDocument.AddMember(MemConciousValue().SetString(aKey.c_str(), mAllocator),
                       aValue, mAllocator);
   return *this;
 }
 
-inline RequestBuilder& RequestBuilder::AddField(const std::string& aKey,
+inline RequestBuilder &RequestBuilder::AddField(const std::string &aKey,
                                                 bool aValue) {
   mDocument.AddMember(MemConciousValue().SetString(aKey.c_str(), mAllocator),
                       aValue, mAllocator);
   return *this;
 }
 
-inline RequestBuilder& RequestBuilder::AddTrigger(
-    std::function<void(TriggerBuilder&)> aTriggerBuilder) {
+inline RequestBuilder &RequestBuilder::AddTargetEntity(
+    const std::string &aEntityId) {
+  MemConciousValue targetEntity;
+  targetEntity.SetString(aEntityId.c_str(), mAllocator);
+
+  MemConciousValue targetObject;
+  targetObject.SetObject();
+  targetObject.AddMember("entity_id", targetEntity, mAllocator);
+  mDocument.AddMember("target", targetObject, mAllocator);
+  return *this;
+}
+
+inline RequestBuilder &RequestBuilder::AddTrigger(
+    std::function<void(TriggerBuilder &)> aTriggerBuilder) {
   TriggerBuilder builder(mAllocator);
   aTriggerBuilder(builder);
   mDocument.AddMember("trigger", builder.Build(), mAllocator);
@@ -186,12 +203,12 @@ inline std::unique_ptr<Request> RequestBuilder::BuildUnique() {
 inline Request RequestBuilder::Build() { return Request(std::move(mDocument)); }
 
 inline std::unique_ptr<Request> RequestBuilder::CreateTriggerSubscription(
-    int aId, const std::string& aEntityId, const std::string& aFrom,
-    const std::string& aTo) {
+    const std::string &aEntityId, const std::string &aFrom,
+    const std::string &aTo) {
   return RequestBuilder()
       .SetType(RequestTypes::SUBSCRIBE_TRIGGER)
-      .SetId(aId)
-      .AddTrigger([&](TriggerBuilder& builder) {
+      .SetId(0) // Id set by API
+      .AddTrigger([&](TriggerBuilder &builder) {
         builder.SetPlatform("state")
             .SetEntityId(aEntityId)
             .SetFromState(aFrom)
@@ -200,4 +217,4 @@ inline std::unique_ptr<Request> RequestBuilder::CreateTriggerSubscription(
       .BuildUnique();
 }
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

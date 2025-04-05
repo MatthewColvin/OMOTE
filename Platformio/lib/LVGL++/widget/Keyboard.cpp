@@ -26,6 +26,9 @@ Keyboard::Keyboard(std::function<void(std::string)> aOnUserCompletedTextEntry,
           std::string(lv_textarea_get_text(mTextArea->LvglSelf()));
       mOnUserCompleteTextEntry(userEnteredText);
     }
+    if (lv_event_get_code(aEvent) == LV_EVENT_CANCEL) {
+      mOnUserCompleteTextEntry("");
+    }
   });
 }
 

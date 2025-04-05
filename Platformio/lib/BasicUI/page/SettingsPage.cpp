@@ -5,6 +5,7 @@
 #include "DisplaySettings.hpp"
 #include "HardwareFactory.hpp"
 #include "List.hpp"
+#include "MqttSettings.hpp"
 #include "PopUpScreen.hpp"
 #include "ScreenManager.hpp"
 #include "Slider.hpp"
@@ -21,6 +22,8 @@ SettingsPage::SettingsPage()
                          [this] { PushDisplaySettings(); });
   mSettingsList->AddItem("Wifi", LV_SYMBOL_WIFI,
                          [this] { PushWifiSettings(); });
+  mSettingsList->AddItem("MQTT", LV_SYMBOL_HOME,
+                         [this] { PushMqttSettings(); });
   mSettingsList->AddItem("System", LV_SYMBOL_SETTINGS,
                          [this] { PushSystemSettings(); });
 }
@@ -34,6 +37,11 @@ void SettingsPage::PushDisplaySettings() {
 void SettingsPage::PushSystemSettings() {
   UI::Screen::Manager::getInstance().pushPopUp(
       std::make_unique<SystemSettings>());
+}
+
+void SettingsPage::PushMqttSettings() {
+  UI::Screen::Manager::getInstance().pushPopUp(
+      std::make_unique<MqttSettings>(HardwareFactory::getAbstract().wifi()));
 }
 
 void SettingsPage::PushWifiSettings() {

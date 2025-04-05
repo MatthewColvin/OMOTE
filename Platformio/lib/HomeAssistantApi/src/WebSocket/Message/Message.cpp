@@ -16,21 +16,21 @@ static std::map<std::string, Message::Type> typeMap = {
     {"event", Message::Type::event},
     {"result", Message::Type::result}};
 
-Message::Message(const MemConciousDocument& aMessageJson) {
+Message::Message(const MemConsciousDocument &aMessageJson) {
   SaveBasicInfo(aMessageJson);
   switch (mType) {
-    case Type::event:
-      SaveStateInfo(aMessageJson);
-      break;
-    case Type::result:
-      SaveResultInfo(aMessageJson);
-      break;
+  case Type::event:
+    SaveStateInfo(aMessageJson);
+    break;
+  case Type::result:
+    SaveResultInfo(aMessageJson);
+    break;
   }
 }
 
 Message::~Message() {};
 
-void Message::SaveBasicInfo(const MemConciousDocument& aMessageJson) {
+void Message::SaveBasicInfo(const MemConsciousDocument &aMessageJson) {
   if (aMessageJson.HasMember("id") && aMessageJson["id"].IsInt()) {
     mId = aMessageJson["id"].GetInt();
   }
@@ -43,7 +43,7 @@ void Message::SaveBasicInfo(const MemConciousDocument& aMessageJson) {
   }
 }
 
-void Message::SaveStateInfo(const MemConciousDocument& aMessageJson) {
+void Message::SaveStateInfo(const MemConsciousDocument &aMessageJson) {
   if (auto oldStateVal = GetNestedField(
           aMessageJson, {"event", "variables", "trigger", "from_state"});
       oldStateVal) {
@@ -56,10 +56,10 @@ void Message::SaveStateInfo(const MemConciousDocument& aMessageJson) {
   }
 }
 
-void Message::SaveResultInfo(const MemConciousDocument& aMessageJson) {
+void Message::SaveResultInfo(const MemConsciousDocument &aMessageJson) {
   if (aMessageJson.HasMember("result") && aMessageJson["result"].IsArray()) {
-    const auto& resultArray = aMessageJson["result"].GetArray();
-    for (const auto& item : resultArray) {
+    const auto &resultArray = aMessageJson["result"].GetArray();
+    for (const auto &item : resultArray) {
       if (item.IsObject() && item.HasMember("entity_id")) {
         mEntityList.push_back(std::make_unique<Entity>(item));
       }
@@ -67,11 +67,11 @@ void Message::SaveResultInfo(const MemConciousDocument& aMessageJson) {
   }
 }
 
-Message::Entity* Message::BorrowToState() const { return mToState.get(); }
-Message::Entity* Message::BorrowFromState() const { return mFromState.get(); }
-const std::vector<std::unique_ptr<Message::Entity>>& Message::BorrowEntityList()
+Message::Entity *Message::BorrowToState() const { return mToState.get(); }
+Message::Entity *Message::BorrowFromState() const { return mFromState.get(); }
+const std::vector<std::unique_ptr<Message::Entity>> &Message::BorrowEntityList()
     const {
   return mEntityList;
 };
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

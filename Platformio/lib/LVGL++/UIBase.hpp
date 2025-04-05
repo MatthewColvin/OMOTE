@@ -13,6 +13,8 @@ public:
 
   virtual void loopHandler();
 
+  virtual void restore() = 0;
+
 protected:
 };
 

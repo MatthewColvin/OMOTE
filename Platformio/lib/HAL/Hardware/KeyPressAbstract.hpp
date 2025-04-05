@@ -1,7 +1,7 @@
 #pragma once
-#include "Notification.hpp"
-
 #include <memory>
+
+#include "Notification.hpp"
 class KeyPressAbstract {
 public:
   // Keys from Top Down left to right.
@@ -35,15 +35,35 @@ public:
     Aux2,
     Aux3,
     Aux4,
-    INVALID
+    INVALID,
+    // 3661 Extended keyboard codes
+    Guide,
+    Home,
+    Cycle,
+    Exit,
+    Pause,
+    TV,
+    Stream,
+    STB,
+    Audio,
+    BluRay,
+    DVD
   };
 
   class KeyEvent {
   public:
-    enum class Type { Press, Release, INVALID };
+    enum class Type { Press,
+                      Release,
+                      Repeat,
+                      Short,
+                      Long,
+                      INVALID };
 
     KeyEvent() = default;
     KeyEvent(const KeyId aId, const Type aType) : mId(aId), mType(aType) {}
+
+    inline bool isPress() { return mType == Type::Press; }
+    inline bool isKey(KeyId aKeyId) { return mId == aKeyId; }
 
     KeyId mId = KeyId::INVALID;
     Type mType = Type::INVALID;

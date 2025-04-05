@@ -5,7 +5,7 @@
 
 template <typename T>
 class SimulatorSPSCQueue : public SPSCQueueInterface<T> {
- public:
+public:
   SimulatorSPSCQueue(uint32_t size);
   ~SimulatorSPSCQueue();
   bool push(T obj);
@@ -14,8 +14,8 @@ class SimulatorSPSCQueue : public SPSCQueueInterface<T> {
   bool isFull();
   bool isEmpty();
 
- private:
-  T* data;
+private:
+  T *data;
   uint32_t size;
   uint32_t rd_index;
   uint32_t wr_index;

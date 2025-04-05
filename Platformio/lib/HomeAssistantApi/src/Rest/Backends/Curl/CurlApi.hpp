@@ -9,7 +9,7 @@
 namespace HomeAssist {
 
 class CurlApi : public IHomeAssistApi {
- public:
+public:
   using AutoCleanupCurl = std::unique_ptr<CURL, std::function<void(CURL *)>>;
 
   CurlApi(std::string aIp = HOMEASSISTANT_IP_ADDRESS,
@@ -22,7 +22,7 @@ class CurlApi : public IHomeAssistApi {
 
   std::string SendRequest(const std::string &anApiPath = "") override;
 
- private:
+private:
   static constexpr auto jsonHeader = "Content-Type: application/json";
 
   std::string Send(AutoCleanupCurl aCurl);
@@ -118,12 +118,12 @@ std::string CurlApi::getURL(std::string aPath) {
 size_t CurlApi::HandleResultCallback(void *contents, size_t size, size_t nmemb,
                                      void *userp) {
   size_t total_size = size * nmemb;
-  printf("%s", (char *)contents);  // Print the received data
+  printf("%s", (char *)contents); // Print the received data
 
   static_cast<CurlApi *>(userp)->mResponse =
       std::string((char *)contents, total_size);
 
-  return total_size;  // Return the number of bytes handled
+  return total_size; // Return the number of bytes handled
 }
 
-}  // namespace HomeAssist
+} // namespace HomeAssist

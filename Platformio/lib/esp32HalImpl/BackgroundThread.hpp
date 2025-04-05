@@ -8,7 +8,7 @@
 #include "freertos/task.h"
 
 class Task {
- public:
+public:
   using TaskCallableType = std::function<void()>;
   using TaskCompleteCallableType = std::function<void()>;
 
@@ -20,7 +20,7 @@ class Task {
   void run();
   void complete();
 
- private:
+private:
   TaskCallableType mTaskCallable;
   TaskCompleteCallableType mCompleteCallable;
   std::string mTaskName;
@@ -35,7 +35,7 @@ class Task {
  * the given task has completed
  */
 class BackgroundThread : public std::enable_shared_from_this<BackgroundThread> {
- public:
+public:
   static std::shared_ptr<BackgroundThread> Create(Task aNewTask);
 
   virtual ~BackgroundThread();
@@ -46,13 +46,13 @@ class BackgroundThread : public std::enable_shared_from_this<BackgroundThread> {
   void Stop();
   void Detach();
 
- private:
+private:
   BackgroundThread(Task aTaskToBackground);
 
   void RunTaskOnNewThread();
   static void ThreadImpl(void *aThread);
 
- private:
+private:
   TaskHandle_t mFreeRTOSHandle = nullptr;
   Task mTask;
   std::shared_ptr<BackgroundThread> mKeepAliveSelf = nullptr;

@@ -10,11 +10,11 @@ bool DevicesQueryProcessor::Uint(unsigned u) { return true; }
 bool DevicesQueryProcessor::Int64(int64_t i) { return true; }
 bool DevicesQueryProcessor::Uint64(uint64_t u) { return true; }
 bool DevicesQueryProcessor::Double(double d) { return true; }
-bool DevicesQueryProcessor::RawNumber(const Ch* str, rapidjson::SizeType length,
+bool DevicesQueryProcessor::RawNumber(const Ch *str, rapidjson::SizeType length,
                                       bool copy) {
   return true;
 }
-bool DevicesQueryProcessor::String(const Ch* str, rapidjson::SizeType length,
+bool DevicesQueryProcessor::String(const Ch *str, rapidjson::SizeType length,
                                    bool copy) {
   if (isProcessingEi && entityIdCallback) {
     auto entity = std::string(str, length);
@@ -25,7 +25,7 @@ bool DevicesQueryProcessor::String(const Ch* str, rapidjson::SizeType length,
   return true;
 }
 bool DevicesQueryProcessor::StartObject() { return true; }
-bool DevicesQueryProcessor::Key(const Ch* str, rapidjson::SizeType length,
+bool DevicesQueryProcessor::Key(const Ch *str, rapidjson::SizeType length,
                                 bool copy) {
   isProcessingEi = (strncmp(str, "ei", length) == 0);
   return true;
@@ -51,7 +51,7 @@ void DevicesQueryProcessor::UpdateProgress(size_t aProcessedBytes,
   }
 }
 
-void DevicesQueryProcessor::Completed(const resultType& aCompletionResult) {
+void DevicesQueryProcessor::Completed(const resultType &aCompletionResult) {
   if (mRequestProcessCompleteCallback) {
     mRequestProcessCompleteCallback(aCompletionResult);
   }
@@ -63,8 +63,8 @@ void DevicesQueryProcessor::setPercentCompleteCallback(
 }
 
 void DevicesQueryProcessor::setRequestProcessCompleteCallback(
-    std::function<void(const resultType&)> aCallback) {
+    std::function<void(const resultType &)> aCallback) {
   mRequestProcessCompleteCallback = aCallback;
 }
 
-}  // namespace UI
+} // namespace UI

@@ -5,13 +5,13 @@
 #include "Hardware/SystemStatsInterface.h"
 
 class StatsSimulator : public SystemStatsInterface {
- public:
+public:
   StatsSimulator();
   ~StatsSimulator() override = default;
 
   uint32_t GetFreeHeap() override;
 
- private:
+private:
   std::thread mHeapNotifyThread;
 };
 

@@ -1,4 +1,5 @@
 #include "HardwareSimulator.hpp"
+#include "littlefs/LittlefsSim.hpp"
 
 #include <sstream>
 
@@ -10,22 +11,24 @@ HardwareSimulator::HardwareSimulator()
       mKeys(std::make_shared<KeyPressSim>()),
       mIr(std::make_shared<IRSim>()),
       mStats(std::make_shared<StatsSimulator>()),
+      mLittleFsSim(LittlefsSim::getInstance()),
       mStartTime(std::chrono::high_resolution_clock::now()) {
   mHardwareStatusTitleUpdate = std::thread([this] {
     int dataToShow = 0;
     while (true) {
       std::stringstream title;
       switch (dataToShow) {
-        case 0:
-          title << "Batt:" << mBattery->getPercentage() << "%" << std::endl;
-          break;
-        case 1:
-          title << "BKLght: " << static_cast<int>(mDisplay->getBrightness())
-                << std::endl;
-          dataToShow = -1;
-          break;
-        default:
-          dataToShow = -1;
+      case 0:
+        // title << "Batt:" << mBattery->getPercentage() << "%" << std::endl;
+        // dataToShow = -1;
+        break;
+      case 1:
+        // title << "BKLght: " << static_cast<int>(mDisplay->getBrightness())
+        //       << std::endl;
+        dataToShow = -1;
+        break;
+      default:
+        dataToShow = -1;
       }
       dataToShow++;
 
@@ -33,6 +36,17 @@ HardwareSimulator::HardwareSimulator()
       std::this_thread::sleep_for(std::chrono::seconds(2));
     }
   });
+  mLittleFsSim->mount();
+}
+
+std::shared_ptr<LittleFsInterface> HardwareSimulator::littleFs() {
+  return mLittleFsSim;
+}
+
+void HardwareSimulator::loopHandler() { mBattery->getPercentage(); }
+
+std::unique_ptr<LoggingInterface> HardwareSimulator::logger() {
+  return std::make_unique<SimLogger>();
 }
 
 std::shared_ptr<BatteryInterface> HardwareSimulator::battery() {
@@ -53,7 +67,7 @@ std::shared_ptr<SystemStatsInterface> HardwareSimulator::stats() {
 }
 
 std::shared_ptr<webSocketInterface> HardwareSimulator::webSocket() {
-  for (auto& socket : mWebSockets) {
+  for (auto &socket : mWebSockets) {
     if (socket.expired()) {
       auto newsocket = std::make_shared<webSocketSimulator>();
       socket = newsocket;
@@ -78,6 +92,6 @@ bool HardwareSimulator::getWakeupByIMUEnabled() { return true; }
 
 void HardwareSimulator::setWakeupByIMUEnabled(bool wakeupByIMUEnabled) {}
 
-uint16_t HardwareSimulator::getSleepTimeout() { return 20000; }
+uint32_t HardwareSimulator::getSleepTimeout() { return 20000; }
 
-void HardwareSimulator::setSleepTimeout(uint16_t sleepTimeout) {}
+void HardwareSimulator::setSleepTimeout(uint32_t sleepTimeout) {}

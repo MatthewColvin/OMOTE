@@ -1,39 +1,35 @@
 #include "HardwareRevX.hpp"
 
+#include "Esp32Logger.hpp"
+#include "Hardware/KeyPressAbstract.hpp"
 #include "IRTransceiver.hpp"
 #include "display.hpp"
 #include "esp32WebSocket.hpp"
+#include "observerHandles.hpp"
 #include "wifihandler.hpp"
 
 void HardwareRevX::initIO() {
   // Button Pin Definition
-  pinMode(SW_1, OUTPUT);
-  pinMode(SW_2, OUTPUT);
-  pinMode(SW_3, OUTPUT);
-  pinMode(SW_4, OUTPUT);
-  pinMode(SW_5, OUTPUT);
-  pinMode(SW_A, INPUT);
-  pinMode(SW_B, INPUT);
-  pinMode(SW_C, INPUT);
-  pinMode(SW_D, INPUT);
-  pinMode(SW_E, INPUT);
 
   // Power Pin Definition
   pinMode(CRG_STAT, INPUT_PULLUP);
-  pinMode(ADC_BAT, INPUT);
 
   // IR Pin Definition
   pinMode(IR_RX, INPUT);
   pinMode(IR_LED, OUTPUT);
   pinMode(IR_VCC, OUTPUT);
-  digitalWrite(IR_LED, HIGH);  // HIGH off - LOW on
-  digitalWrite(IR_VCC, LOW);   // HIGH on - LOW off
+#if defined(OMOTE_KEYBRD_3661)
+  digitalWrite(IR_LED, LOW); // HIGH on - LOW off
+#else
+  digitalWrite(IR_LED, HIGH); // HIGH off - LOW on
+#endif
+  IR_VCC_OFF;
 
   // LCD Pin Definition
   pinMode(LCD_EN, OUTPUT);
-  digitalWrite(LCD_EN, HIGH);
+  LCD_EN_OFF;
   pinMode(LCD_BL, OUTPUT);
-  digitalWrite(LCD_BL, HIGH);
+  LCD_BL_OFF;
 
   // Other Pin Definition
   pinMode(ACC_INT, INPUT);
@@ -41,11 +37,6 @@ void HardwareRevX::initIO() {
   digitalWrite(USER_LED, LOW);
 
   // Release GPIO hold in case we are coming out of standby
-  gpio_hold_dis((gpio_num_t)SW_1);
-  gpio_hold_dis((gpio_num_t)SW_2);
-  gpio_hold_dis((gpio_num_t)SW_3);
-  gpio_hold_dis((gpio_num_t)SW_4);
-  gpio_hold_dis((gpio_num_t)SW_5);
   gpio_hold_dis((gpio_num_t)LCD_EN);
   gpio_hold_dis((gpio_num_t)LCD_BL);
   gpio_deep_sleep_hold_dis();
@@ -56,7 +47,7 @@ HardwareRevX::HardwareRevX() : HardwareAbstract() {}
 HardwareRevX::WakeReason getWakeReason() {
   // Find out wakeup cause
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1) {
-    if (log(esp_sleep_get_ext1_wakeup_status()) / log(2) == 13)
+    if (esp_sleep_get_ext1_wakeup_status() == (1ULL << ACC_INT))
       return HardwareRevX::WakeReason::IMU;
     else
       return HardwareRevX::WakeReason::KEYPAD;
@@ -68,28 +59,35 @@ HardwareRevX::WakeReason getWakeReason() {
 void HardwareRevX::init() {
   // Make sure ESP32 is running at full speed
   setCpuFrequencyMhz(240);
-  wakeup_reason = getWakeReason();
+  mWakeupReason = getWakeReason();
   initIO();
-  // MatthewColvin/OMOTE#9
+
   Serial.begin(115200);
 
   mDisplay = Display::getInstance();
-  mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
+
   mWifiHandler = wifiHandler::getInstance();
-  mKeys = std::make_shared<Keys>();
-  // TODO Could IR be a weak ref only used when needed then deallocate?
+
   mIr = std::make_shared<IRTransceiver>();
 
+  mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
+
   restorePreferences();
+  mStandbyTimer = getSleepTimeout();
 
   mTouchHandler.SetNotification(mDisplay->TouchNotification());
-  mTouchHandler = [this]([[maybe_unused]] auto touchPoint) {
-    standbyTimer = this->getSleepTimeout();
+  mTouchHandler = [this](auto) {
+    // When we get touches reset sleep timeout
+    mStandbyTimer = this->getSleepTimeout();
   };
 
   setupIMU();
 
-  debugPrint("Finished Hardware Setup in %d", millis());
+  UI::observerHandles::registerTextHandle(BATT_STATUS, OBSERVER_BUF_SIZE, "");
+  UI::observerHandles::registerTextHandle(WIFI_STATUS, OBSERVER_BUF_SIZE, "");
+  UI::observerHandles::registerIntHandle(SOC_STATUS, 0);
+
+  debugPrint("Finished RevX Hardware Setup in %dms", millis());
 }
 
 void HardwareRevX::debugPrint(const char *fmt, ...) {
@@ -101,6 +99,10 @@ void HardwareRevX::debugPrint(const char *fmt, ...) {
   va_end(arguments);
 
   Serial.print(result);
+}
+
+std::unique_ptr<LoggingInterface> HardwareRevX::logger() {
+  return std::make_unique<ESP32Logger>();
 }
 
 std::shared_ptr<wifiHandlerInterface> HardwareRevX::wifi() {
@@ -123,98 +125,98 @@ std::shared_ptr<SystemStatsInterface> HardwareRevX::stats() {
 }
 
 std::shared_ptr<webSocketInterface> HardwareRevX::webSocket() {
-  return std::make_shared<esp32WebSocket>(mWifiHandler);
+  return std::make_shared<esp32WebSocket>(mWifiHandler, std::make_unique<ESP32Logger>());
   // return nullptr;
 }
+
+std::shared_ptr<LittleFsInterface> HardwareRevX::littleFs() {
+  return mLittleFs;
+};
 
 std::chrono::milliseconds HardwareRevX::execTime() {
   return std::chrono::milliseconds(millis());
 }
 
-void HardwareRevX::activityDetection() {
-  static int accXold;
-  static int accYold;
-  static int accZold;
-  int accX = IMU.readFloatAccelX() * 1000;
-  int accY = IMU.readFloatAccelY() * 1000;
-  int accZ = IMU.readFloatAccelZ() * 1000;
+bool HardwareRevX::activityDetection() {
+  bool activityDetected = false;
+  static int accXold = mIMU.readFloatAccelX() * 1000;
+  static int accYold = mIMU.readFloatAccelY() * 1000;
+  static int accZold = mIMU.readFloatAccelZ() * 1000;
+  static int accXbuf[4], accYbuf[4], accZbuf[4];
+  static int motion = 0;
+  static uint8_t bufferIndex = 0;
 
-  // determine motion value as da/dt
-  motion = (abs(accXold - accX) + abs(accYold - accY) + abs(accZold - accZ));
-  // Calculate time to standby
-  standbyTimer -= 100;
-  if (standbyTimer < 0) standbyTimer = 0;
-  // If the motion exceeds the threshold, the standbyTimer is reset
-  if (motion > MOTION_THRESHOLD) standbyTimer = sleepTimeout;
+  accXbuf[bufferIndex] = mIMU.readFloatAccelX() * 1000;
+  accYbuf[bufferIndex] = mIMU.readFloatAccelY() * 1000;
+  accZbuf[bufferIndex] = mIMU.readFloatAccelZ() * 1000;
 
-  // Store the current acceleration and time
-  accXold = accX;
-  accYold = accY;
-  accZold = accZ;
+  bufferIndex++;
+  if (bufferIndex >= 4) {
+    bufferIndex = 0;
+    int accX = (accXbuf[0] + accXbuf[1] + accXbuf[2] + accXbuf[3]) / 4;
+    int accY = (accYbuf[0] + accYbuf[1] + accYbuf[2] + accYbuf[3]) / 4;
+    int accZ = (accZbuf[0] + accZbuf[1] + accZbuf[2] + accZbuf[3]) / 4;
+    // determine motion value as da/dt
+    motion = (abs(accXold - accX) + abs(accYold - accY) + abs(accZold - accZ));
+    // Store the current acceleration and time
+    accXold = accX;
+    accYold = accY;
+    accZold = accZ;
+    if (motion > MOTION_THRESHOLD)
+      activityDetected = true;
+  }
+  return activityDetected;
 }
 
-char HardwareRevX::getCurrentDevice() { return currentDevice; }
+char HardwareRevX::getCurrentDevice() { return mCurrentDevice; }
 
 void HardwareRevX::setCurrentDevice(char currentDevice) {
-  this->currentDevice = currentDevice;
+  this->mCurrentDevice = currentDevice;
 }
 
-bool HardwareRevX::getWakeupByIMUEnabled() { return wakeupByIMUEnabled; }
+bool HardwareRevX::getWakeupByIMUEnabled() { return mWakeupByIMUEnabled; }
 
 void HardwareRevX::setWakeupByIMUEnabled(bool wakeupByIMUEnabled) {
-  this->wakeupByIMUEnabled = wakeupByIMUEnabled;
+  this->mWakeupByIMUEnabled = wakeupByIMUEnabled;
 }
 
-uint16_t HardwareRevX::getSleepTimeout() { return sleepTimeout; }
+uint32_t HardwareRevX::getSleepTimeout() { return mSleepTimeout; }
 
-void HardwareRevX::setSleepTimeout(uint16_t sleepTimeout) {
-  this->sleepTimeout = sleepTimeout;
-  standbyTimer = sleepTimeout;
+void HardwareRevX::setSleepTimeout(uint32_t sleepTimeout) {
+  this->mSleepTimeout = sleepTimeout;
+  mStandbyTimer = sleepTimeout;
 }
 
 void HardwareRevX::enterSleep() {
   // Save settings to internal flash memory
-  preferences.putBool("wkpByIMU", wakeupByIMUEnabled);
-  preferences.putUChar("blBrightness", mDisplay->getBrightness());
-  preferences.putUChar("currentDevice", currentDevice);
-  preferences.putUInt("sleepTimeout", sleepTimeout);
-  if (!preferences.getBool("alreadySetUp"))
-    preferences.putBool("alreadySetUp", true);
-  preferences.end();
+  mPreferences.putBool("wkpByIMU", mWakeupByIMUEnabled);
+  mPreferences.putUChar("blBrightness", mDisplay->getBrightness());
+  mPreferences.putUChar("currentDevice", mCurrentDevice);
+  mPreferences.putUInt("sleepTimeout", mSleepTimeout);
+  if (!mPreferences.getBool("alreadySetUp"))
+    mPreferences.putBool("alreadySetUp", true);
+  mPreferences.end();
 
   // Configure IMU
   uint8_t intDataRead;
-  IMU.readRegister(&intDataRead, LIS3DH_INT1_SRC);  // clear interrupt
+  mIMU.readRegister(&intDataRead, LIS3DH_INT1_SRC); // clear interrupt
   configIMUInterrupts();
-  IMU.readRegister(&intDataRead,
-                   LIS3DH_INT1_SRC);  // really clear interrupt
+  mIMU.readRegister(&intDataRead,
+                    LIS3DH_INT1_SRC); // really clear interrupt
 
   // Prepare IO states
-  digitalWrite(LCD_DC, LOW);  // LCD control signals off
+  digitalWrite(LCD_DC, LOW); // LCD control signals off
   digitalWrite(LCD_CS, LOW);
-  digitalWrite(LCD_MOSI, LOW);
-  digitalWrite(LCD_SCK, LOW);
-  digitalWrite(LCD_EN, HIGH);  // LCD logic off
-  digitalWrite(LCD_BL, HIGH);  // LCD backlight off
-  pinMode(CRG_STAT, INPUT);    // Disable Pull-Up
-  digitalWrite(IR_VCC, LOW);   // IR Receiver off
 
-  // Configure button matrix for ext1 interrupt
-  pinMode(SW_1, OUTPUT);
-  pinMode(SW_2, OUTPUT);
-  pinMode(SW_3, OUTPUT);
-  pinMode(SW_4, OUTPUT);
-  pinMode(SW_5, OUTPUT);
-  digitalWrite(SW_1, HIGH);
-  digitalWrite(SW_2, HIGH);
-  digitalWrite(SW_3, HIGH);
-  digitalWrite(SW_4, HIGH);
-  digitalWrite(SW_5, HIGH);
-  gpio_hold_en((gpio_num_t)SW_1);
-  gpio_hold_en((gpio_num_t)SW_2);
-  gpio_hold_en((gpio_num_t)SW_3);
-  gpio_hold_en((gpio_num_t)SW_4);
-  gpio_hold_en((gpio_num_t)SW_5);
+  sleepDisplayPins();
+
+  digitalWrite(LCD_EN, HIGH); // LCD logic off
+  digitalWrite(LCD_BL, HIGH); // LCD backlight off
+  pinMode(CRG_STAT, INPUT);   // Disable Pull-Up
+  digitalWrite(IR_VCC, LOW);  // IR Receiver off
+
+  configPinsForSleepInterrupts();
+
   // Force display pins to high impedance
   // Without this the display might not wake up from sleep
   pinMode(LCD_BL, INPUT);
@@ -223,11 +225,15 @@ void HardwareRevX::enterSleep() {
   gpio_hold_en((gpio_num_t)LCD_EN);
   gpio_deep_sleep_hold_en();
 
-  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
+  enableWakeupByPin();
 
   delay(100);
   // Sleep
   esp_deep_sleep_start();
+}
+
+void HardwareRevX::enableWakeupByPin() {
+  esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
 }
 
 void HardwareRevX::configIMUInterrupts() {
@@ -238,62 +244,71 @@ void HardwareRevX::configIMUInterrupts() {
   // dataToWrite |= 0x40;//6D, 0 = interrupt source, 1 = 6 direction source
   // Set these to enable individual axes of generation source (or direction)
   //  -- high and low are used generically
-  dataToWrite |= 0x20;  // Z high
+  dataToWrite |= 0x20; // Z high
   // dataToWrite |= 0x10;//Z low
-  dataToWrite |= 0x08;  // Y high
+  dataToWrite |= 0x08; // Y high
   // dataToWrite |= 0x04;//Y low
-  dataToWrite |= 0x02;  // X high
+  dataToWrite |= 0x02; // X high
   // dataToWrite |= 0x01;//X low
-  if (wakeupByIMUEnabled)
-    IMU.writeRegister(LIS3DH_INT1_CFG, 0b00101010);
+  if (mWakeupByIMUEnabled)
+    mIMU.writeRegister(LIS3DH_INT1_CFG, 0b00101010);
   else
-    IMU.writeRegister(LIS3DH_INT1_CFG, 0b00000000);
+    mIMU.writeRegister(LIS3DH_INT1_CFG, 0b00000000);
 
   // LIS3DH_INT1_THS
   dataToWrite = 0;
   // Provide 7 bit value, 0x7F always equals max range by accelRange setting
   dataToWrite |= 0x45;
-  IMU.writeRegister(LIS3DH_INT1_THS, dataToWrite);
+  mIMU.writeRegister(LIS3DH_INT1_THS, dataToWrite);
 
   // LIS3DH_INT1_DURATION
   dataToWrite = 0;
   // minimum duration of the interrupt
   // LSB equals 1/(sample rate)
-  dataToWrite |= 0x00;  // 1 * 1/50 s = 20ms
-  IMU.writeRegister(LIS3DH_INT1_DURATION, dataToWrite);
+  dataToWrite |= 0x00; // 1 * 1/50 s = 20ms
+  mIMU.writeRegister(LIS3DH_INT1_DURATION, dataToWrite);
 
   // LIS3DH_CTRL_REG5
   // Int1 latch interrupt and 4D on  int1 (preserve fifo en)
-  IMU.readRegister(&dataToWrite, LIS3DH_CTRL_REG5);
-  dataToWrite &= 0xF3;  // Clear bits of interest
-  dataToWrite |= 0x08;  // Latch interrupt (Cleared by reading int1_src)
+  mIMU.readRegister(&dataToWrite, LIS3DH_CTRL_REG5);
+  dataToWrite &= 0xF3; // Clear bits of interest
+  dataToWrite |= 0x08; // Latch interrupt (Cleared by reading int1_src)
   // dataToWrite |= 0x04; //Pipe 4D detection from 6D recognition to int1?
-  IMU.writeRegister(LIS3DH_CTRL_REG5, dataToWrite);
+  mIMU.writeRegister(LIS3DH_CTRL_REG5, dataToWrite);
+
+  // LIS3DH_CTRL_REG6
+  configIMUInterruptPolarity();
 
   // LIS3DH_CTRL_REG3
   // Choose source for pin 1
   dataToWrite = 0;
   // dataToWrite |= 0x80; //Click detect on pin 1
-  dataToWrite |= 0x40;  // AOI1 event (Generator 1 interrupt on pin 1)
-  dataToWrite |= 0x20;  // AOI2 event ()
+  dataToWrite |= 0x40; // AOI1 event (Generator 1 interrupt on pin 1)
+  dataToWrite |= 0x20; // AOI2 event ()
   // dataToWrite |= 0x10; //Data ready
   // dataToWrite |= 0x04; //FIFO watermark
   // dataToWrite |= 0x02; //FIFO overrun
-  IMU.writeRegister(LIS3DH_CTRL_REG3, dataToWrite);
+  mIMU.writeRegister(LIS3DH_CTRL_REG3, dataToWrite);
+}
+
+void HardwareRevX::configIMUInterruptPolarity() {
+  mIMU.writeRegister(LIS3DH_CTRL_REG6, 0x00); // For active-high interrupt
 }
 
 void HardwareRevX::restorePreferences() {
   // Restore settings from internal flash memory
   int backlight_brightness = 255;
-  preferences.begin("settings", false);
-  if (preferences.getBool("alreadySetUp")) {
-    wakeupByIMUEnabled = preferences.getBool("wkpByIMU");
-    backlight_brightness = preferences.getUChar("blBrightness");
-    currentDevice = preferences.getUChar("currentDevice");
-    sleepTimeout = preferences.getUInt("sleepTimeout");
+  mPreferences.begin("settings", false);
+  if (mPreferences.getBool("alreadySetUp")) {
+    mWakeupByIMUEnabled = mPreferences.getBool("wkpByIMU");
+    backlight_brightness = mPreferences.getUChar("blBrightness");
+    if (backlight_brightness < 30)
+      backlight_brightness = 30;
+    mCurrentDevice = mPreferences.getUChar("currentDevice");
+    mSleepTimeout = mPreferences.getUInt("sleepTimeout");
     // setting the default to prevent a 0ms sleep timeout
-    if (sleepTimeout == 0) {
-      sleepTimeout = SLEEP_TIMEOUT;
+    if (mSleepTimeout == 0) {
+      mSleepTimeout = SLEEP_TIMEOUT;
     }
   }
   mDisplay->setBrightness(backlight_brightness);
@@ -301,17 +316,19 @@ void HardwareRevX::restorePreferences() {
 
 void HardwareRevX::setupIMU() {
   // Setup hal
-  IMU.settings.accelSampleRate =
-      50;  // Hz.  Can be: 0,1,10,25,50,100,200,400,1600,5000 Hz
-  IMU.settings.accelRange = 2;  // Max G force readable.  Can be: 2, 4, 8, 16
-  IMU.settings.adcEnabled = 0;
-  IMU.settings.tempEnabled = 0;
-  IMU.settings.xAccelEnabled = 1;
-  IMU.settings.yAccelEnabled = 1;
-  IMU.settings.zAccelEnabled = 1;
-  IMU.begin();
+  // Hz.  Can be: 0,1,10,25,50,100,200,400,1600,5000 Hz
+  // Note: 10ms per sample allows guaranteed clean sample between I2C reads
+  mIMU.settings.accelSampleRate = 100;
+  // Max G force readable.  Can be: 2, 4, 8, 16
+  mIMU.settings.accelRange = 2;
+  mIMU.settings.adcEnabled = 0;
+  mIMU.settings.tempEnabled = 0;
+  mIMU.settings.xAccelEnabled = 1;
+  mIMU.settings.yAccelEnabled = 1;
+  mIMU.settings.zAccelEnabled = 1;
+  mIMU.begin();
   uint8_t intDataRead;
-  IMU.readRegister(&intDataRead, LIS3DH_INT1_SRC);  // clear interrupt
+  mIMU.readRegister(&intDataRead, LIS3DH_INT1_SRC); // clear interrupt
 }
 
 void HardwareRevX::startTasks() {}
@@ -319,17 +336,67 @@ void HardwareRevX::startTasks() {}
 void HardwareRevX::loopHandler() {
   mIr->loopHandleRx();
 
-  standbyTimer < 2000 ? mDisplay->sleep() : mDisplay->wake();
+  mStandbyTimer < 2000 ? mDisplay->sleep() : mDisplay->wake();
 
-  // TODO move to debug task
   // Blink debug LED at 1 Hz
   digitalWrite(USER_LED, millis() % 1000 > 500);
 
   // Refresh IMU data at 10Hz
   static unsigned long IMUTaskTimer = millis();
-  if (millis() - IMUTaskTimer >= 100) {
-    activityDetection();
-    if (standbyTimer == 0) {
+  if (millis() - IMUTaskTimer >= 25) {
+    // Calculate time to standby
+    mStandbyTimer -= 25;
+    if (mStandbyTimer < 0)
+      mStandbyTimer = 0;
+
+    if (activityDetection())
+      mStandbyTimer = mSleepTimeout;
+
+    if (keyboardScan())
+      mStandbyTimer = mSleepTimeout;
+
+    uint16_t visPlusIrLevel, irLevel;
+    if (lightSensorScan(visPlusIrLevel, irLevel)) {
+      // Serial.printf("ll:%d\r\n", irLevel);
+      updateBacklightMode(irLevel);
+    }
+
+    mDisplay->getTouchData(); // trigger read here to keep all I2C accesses
+                              // together
+
+    static uint16_t secCount = 20; // update immediately on power up
+    if (secCount++ >= 20) {
+      secCount = 0;
+      int32_t iSoc = mBattery->getPercentage();
+      if (iSoc > 99)
+        iSoc = 99;
+      UI::observerHandles::setInt(SOC_STATUS, iSoc);
+
+      if (mBattery->isConnected())
+        UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_USB);
+      else {
+        if (iSoc < 13)
+          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_EMPTY);
+        else if (iSoc < 38)
+          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_1);
+        else if (iSoc < 63)
+          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_2);
+        else if (iSoc < 88)
+          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_3);
+        else
+          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_FULL);
+      }
+
+      wifiHandlerInterface::wifiStatus wifiStatus = mWifiHandler->GetStatus();
+      if (wifiStatus.isConnected)
+        UI::observerHandles::setText(WIFI_STATUS, LV_SYMBOL_WIFI);
+      else
+        UI::observerHandles::setText(WIFI_STATUS, "");
+      // Serial.printf("IR:%d, V+IR:%d, SOC:%.0f, Volts:%.2f\r\n",irLevel,
+      // visPlusIrLevel, soc, voltage);
+    }
+
+    if (mStandbyTimer == 0) {
       Serial.println("Entering Sleep Mode. Goodbye.");
       enterSleep();
     }

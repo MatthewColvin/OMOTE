@@ -13,25 +13,27 @@ class MessageHandler;
 class Request;
 
 class Session : public ISession {
- public:
-  Session(std::unique_ptr<Request> aRequest,
+public:
+  Session(std::unique_ptr<Request> aStartRequest,
+          std::unique_ptr<Request> aEndRequest = nullptr,
           std::shared_ptr<MessageHandler> aMessageHandler = nullptr,
           std::shared_ptr<Json::IChunkProcessor> aChunkProcessor = nullptr);
 
-  Request* BorrowStartRequest() override;
-  Request* BorrowEndRequest() override;
+  std::unique_ptr<Request> GetStartRequest() override;
+  Request *BorrowStartRequest() override;
+  Request *BorrowEndRequest() override;
 
-  bool ProcessMessage(const Message& aMessage) override;
+  bool ProcessMessage(const Message &aMessage) override;
   bool IsComplete() const override;
   bool IsPreferringChunkProcessing() override;
 
   std::shared_ptr<Json::IChunkProcessor> GetChunkProcessor();
 
- private:
+private:
   std::unique_ptr<Request> mStartRequest = nullptr;
   std::unique_ptr<Request> mEndRequest = nullptr;
   std::weak_ptr<MessageHandler> mMessageHandler;
   std::weak_ptr<Json::IChunkProcessor> mChunkProcessor;
 };
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

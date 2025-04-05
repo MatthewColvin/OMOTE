@@ -10,7 +10,9 @@
             "maintainer": true
         }
     ],
-    "dependencies": [],
+    "dependencies": {
+        "littlefs": "https://github.com/MatthewColvin/littlefs.git#2.10.2WithLibJson"
+    },
     "frameworks": "*",
     "platforms": "*"
 }

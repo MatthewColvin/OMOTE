@@ -5,17 +5,18 @@
 namespace HomeAssist::WebSocket {
 
 class Message::Attributes {
- public:
+public:
   class Light;
-  enum class EntityType { Unknown, Light };
+  enum class EntityType { Unknown,
+                          Light };
 
-  Attributes(EntityType aEntityType, const MemConciousValue& aAttributeVal);
+  Attributes(EntityType aEntityType, const MemConciousValue &aAttributeVal);
   ~Attributes();
 
-  Light* BorrowLight();
+  Light *BorrowLight();
 
- private:
+private:
   std::unique_ptr<Light> mLightAttributes;
 };
 
-}  // namespace HomeAssist::WebSocket
+} // namespace HomeAssist::WebSocket

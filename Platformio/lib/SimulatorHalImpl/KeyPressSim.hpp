@@ -8,7 +8,7 @@
 #include "SDL2/SDL.h"
 
 class KeyPressSim : public KeyPressAbstract {
- public:
+public:
   static constexpr auto MaxQueueableKeyEvents = 3;
 
   KeyPressSim();
@@ -19,7 +19,7 @@ class KeyPressSim : public KeyPressAbstract {
   void HandleKeyPresses() override;
   void QueueKeyEvent(KeyEvent aJustOccuredKeyEvent) override;
 
- private:
+private:
   std::thread mKeyGrabberThread;
   std::thread mKeyHandlerThread;
   std::queue<KeyEvent> mKeyEventQueue;

@@ -1,0 +1,21 @@
+{
+    "name": "Rev1HalImpl",
+    "version": "1.0.0",
+    "description": "An Implementation of the HAL library to be used for OMOTE Rev 1 Hardware",
+    "keywords": "",
+    "authors": [
+        {
+            "name": "Matthew Colvin",
+            "email": "mcolvin32.7@gmail.com",
+            "maintainer": true
+        }
+    ],
+    "dependencies": [
+        "Esp32HalImpl"
+    ],
+    "build": {
+        "includeDir": "."
+    },
+    "frameworks": "arduino",
+    "platforms": "espressif32"
+}

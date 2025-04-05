@@ -1,7 +1,10 @@
 #include "HomeAssistUI.hpp"
 
+#include "Button.hpp"
 #include "DeviceList.hpp"
 #include "HardwareFactory.hpp"
+#include "PopUpScreen.hpp"
+#include "ScreenManager.hpp"
 #include "WebSocket/Message/Attributes/Light.hpp"
 #include "WebSocket/Message/Entity.hpp"
 #include "WebSocket/Message/Message.hpp"
@@ -13,7 +16,7 @@ using namespace UI;
 using namespace HomeAssist::WebSocket;
 
 HomeAssistUI::HomeAssistUI() : BasicUI() {
-  auto& hardware = HardwareFactory::getAbstract();
+  auto &hardware = HardwareFactory::getAbstract();
   auto socket = hardware.webSocket();
   if (!socket) {
     hardware.debugPrint("Unable To Get WebSocket Total Failure Condition!");
@@ -26,7 +29,26 @@ HomeAssistUI::HomeAssistUI() : BasicUI() {
     HandleConnectionStatusChange(aStatus);
   };
 
-  AddPageToHomeScreen(std::make_unique<UI::Page::DeviceList>(*mHomeAssistApi));
+  mDeviceFactory.InitHomeAssistFactory(*mHomeAssistApi);
+
+  auto tmpAddDeviceButton = std::make_unique<UI::Widget::Button>([this]() {
+    auto deviceList =
+        std::make_unique<UI::Page::DeviceList>(*mHomeAssistApi, mDeviceFactory);
+    auto borrowedDevList = deviceList.get();
+    auto deviceListScreen = std::make_unique<UI::Screen::PopUpScreen>(std::move(deviceList), [borrowedDevList](auto aNumLoads) {
+      if (aNumLoads == 1) {
+        borrowedDevList->StartDeviceQuery();
+      }
+    });
+    UI::Screen::Manager::getInstance().pushScreen(std::move(deviceListScreen), LV_SCR_LOAD_ANIM_FADE_IN);
+  });
+  tmpAddDeviceButton->SetWidth(SCREEN_WIDTH);
+  tmpAddDeviceButton->SetHeight(SCREEN_HEIGHT / 8);
+  tmpAddDeviceButton->AddNewElement<UI::Widget::Label>("Add HomeAssist Device");
+  auto page = std::make_unique<UI::Page::Base>(ID::Pages::INVALID_PAGE_ID);
+  page->AddElement(std::move(tmpAddDeviceButton));
+
+  AddPageToHomeScreen(std::move(page));
 };
 
 void HomeAssistUI::HandleConnectionStatusChange(

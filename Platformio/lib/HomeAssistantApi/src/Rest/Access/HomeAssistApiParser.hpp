@@ -25,7 +25,7 @@ public:
 
   HomeAssistApiParser() {}
   HomeAssistApiParser(HandlerMapType aMapOfHandlers)
-      : mKeyHandlers(aMapOfHandlers){};
+      : mKeyHandlers(aMapOfHandlers) {};
   ~HomeAssistApiParser();
 
   HandlerMapType &GetHandlersRef() { return mKeyHandlers; }

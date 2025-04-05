@@ -2,7 +2,7 @@
 
 using namespace HomeAssist::WebSocket;
 
-Message::Attributes::Light::Light(const MemConciousValue& aAttributeListVal)
+Message::Attributes::Light::Light(const MemConciousValue &aAttributeListVal)
     : mBrightness(INVALIDINT),
       mColorTemp(INVALIDINT),
       mRgbColor({INVALIDINT, INVALIDINT, INVALIDINT}) {
@@ -19,16 +19,16 @@ Message::Attributes::Light::Light(const MemConciousValue& aAttributeListVal)
   if (aAttributeListVal.HasMember("rgb_color") &&
       aAttributeListVal["rgb_color"].IsArray() &&
       aAttributeListVal["rgb_color"].Size() == 3) {
-    const auto& rgbArray = aAttributeListVal["rgb_color"].GetArray();
+    const auto &rgbArray = aAttributeListVal["rgb_color"].GetArray();
     mRgbColor = std::make_tuple(rgbArray[0].GetInt(), rgbArray[1].GetInt(),
                                 rgbArray[2].GetInt());
   }
 
   if (aAttributeListVal.HasMember("supported_color_modes") &&
       aAttributeListVal["supported_color_modes"].IsArray()) {
-    const auto& modesArray =
+    const auto &modesArray =
         aAttributeListVal["supported_color_modes"].GetArray();
-    for (const auto& mode : modesArray) {
+    for (const auto &mode : modesArray) {
       if (mode.IsString()) {
         std::string modeStr = mode.GetString();
         if (modeStr == "brightness") {

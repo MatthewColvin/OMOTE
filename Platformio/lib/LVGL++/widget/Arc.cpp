@@ -32,6 +32,6 @@ int16_t Arc::GetMinValue() const { return lv_arc_get_min_value(LvglSelf()); }
 
 int16_t Arc::GetMaxValue() const { return lv_arc_get_max_value(LvglSelf()); }
 
-void Arc::OnLvglEvent(lv_event_t* anEvent) {
+void Arc::OnLvglEvent(lv_event_t *anEvent) {
   // Handle any arc-specific events if needed
 }

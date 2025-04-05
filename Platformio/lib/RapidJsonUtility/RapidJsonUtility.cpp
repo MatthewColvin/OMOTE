@@ -61,7 +61,7 @@ rapidjson::GenericDocument<rapidjson::UTF8<>, MemConciousAllocator> GetDocument(
   return doc;
 }
 
-std::string ToString(const MemConciousDocument &aDoc) {
+std::string ToString(const MemConsciousDocument &aDoc) {
   rapidjson::StringBuffer buff;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buff);
   aDoc.Accept(writer);

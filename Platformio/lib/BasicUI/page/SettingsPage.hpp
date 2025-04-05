@@ -14,13 +14,16 @@ public:
     return false;
   };
 
+  std::string GetTitle() override { return "Settings"; };
+
   void PushDisplaySettings();
   void PushSystemSettings();
   void PushWifiSettings();
+  void PushMqttSettings();
 
 protected:
-  void OnShow() override{};
-  void OnHide() override{};
+  void OnShow() override {};
+  void OnHide() override {};
 
   Widget::Button *mButton;
   Widget::List *mSettingsList;

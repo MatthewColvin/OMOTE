@@ -5,6 +5,7 @@
 #include "DisplaySettings.hpp"
 #include "HardwareFactory.hpp"
 #include "List.hpp"
+#include "LoggingSettings.hpp"
 #include "MqttSettings.hpp"
 #include "PopUpScreen.hpp"
 #include "ScreenManager.hpp"
@@ -26,6 +27,8 @@ SettingsPage::SettingsPage()
                          [this] { PushMqttSettings(); });
   mSettingsList->AddItem("System", LV_SYMBOL_SETTINGS,
                          [this] { PushSystemSettings(); });
+  mSettingsList->AddItem("Logging", LV_SYMBOL_LIST,
+                         [this] { PushLoggingSettings(); });
 }
 
 void SettingsPage::PushDisplaySettings() {
@@ -47,4 +50,9 @@ void SettingsPage::PushMqttSettings() {
 void SettingsPage::PushWifiSettings() {
   UI::Screen::Manager::getInstance().pushPopUp(
       std::make_unique<WifiSettings>(HardwareFactory::getAbstract().wifi()));
+}
+
+void SettingsPage::PushLoggingSettings() {
+  UI::Screen::Manager::getInstance().pushPopUp(
+      std::make_unique<LoggingSettings>());
 }

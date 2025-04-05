@@ -2,6 +2,7 @@
 
 #include <array>
 #include <experimental/array>
+#include <magic_enum.hpp>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -22,12 +23,8 @@ enum class LogModule : uint8_t {
   Battery,
   Keys,
   LittleFs,
-  Mqtt,
-  // Add more Log Modules here
-  Count
+  Mqtt
 };
-
-static constexpr auto NumLogModules = static_cast<uint8_t>(LogModule::Count);
 
 /**
  * This class is meant to be used as a way to log.
@@ -90,6 +87,8 @@ private:
   // Check level and module to see if we want to print the log
   static bool isPrintWanted(LogModule aModule, LogLevel aLevelToCheck);
   // Default to first value in LogLevel enum
+
+  static constexpr auto NumLogModules = magic_enum::enum_count<LogModule>();
   static inline std::array<LogLevel, NumLogModules> mCurrentLogLevels{};
 };
 

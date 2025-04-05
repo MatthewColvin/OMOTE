@@ -20,6 +20,7 @@ public:
   void PushSystemSettings();
   void PushWifiSettings();
   void PushMqttSettings();
+  void PushLoggingSettings();
 
 protected:
   void OnShow() override {};

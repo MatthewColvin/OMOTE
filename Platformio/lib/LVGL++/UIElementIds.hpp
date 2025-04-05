@@ -37,6 +37,7 @@ public:
     WifiSettings,
     SystemSettings,
     MqttSettings,
+    LoggingSettings,
     IrLearner,
     Demo,
     Tv,

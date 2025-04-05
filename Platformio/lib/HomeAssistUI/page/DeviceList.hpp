@@ -1,6 +1,7 @@
 #pragma once
 #include "ActiveDevices.hpp"
 #include "Arc.hpp"
+#include "DeviceFactory.hpp"
 #include "PageBase.hpp"
 #include "SessionProcessors/DevicesQueryProcessor.hpp"
 #include "WebSocket/Api.hpp"
@@ -18,21 +19,15 @@ namespace UI::Page {
 
 class DeviceList : public Base {
 public:
-  enum class EntityType : uint8_t {
-    Light,
-    Button,
-    Sensor,
-    BinarySensor,
-    Automation,
-    Switch,
-    Other
-  };
+  using EntityType = HomeAssist::HomeAssistDeviceFactory::EntityType;
 
-  DeviceList(HomeAssist::WebSocket::Api &aApi, ActiveDevices &aActiveDevices);
+  DeviceList(HomeAssist::WebSocket::Api &aApi, DeviceFactory &aFactory);
   virtual ~DeviceList() = default;
 
   // Override from Base
   std::string GetTitle() override { return "Devices"; }
+
+  void StartDeviceQuery();
 
 protected:
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
@@ -47,7 +42,7 @@ private:
   Widget::List *mEntityTypeList;
   Widget::Arc *mLoadingArc;
   HomeAssist::WebSocket::Api &mApi;
-  ActiveDevices &mActiveDevices;
+  DeviceFactory &mDeviceFactory;
 
   std::shared_ptr<UI::DevicesQueryProcessor> mDeviceQueryProcessor;
   std::map<EntityType, std::vector<std::string>> mEntityMap;

@@ -5,7 +5,9 @@
 // https://github.com/espressif/arduino-esp32/issues/4405
 
 #include <memory>
+#include <sstream>
 
+#include "Hardware/LoggingInterface.hpp"
 #include "Hardware/websockets/webSocketInterface.hpp"
 #include "esp_websocket_client.h"
 #include "wifihandler.hpp"
@@ -17,7 +19,7 @@ public:
                               Partial,
                               Reserve };
 
-  esp32WebSocket(std::shared_ptr<wifiHandler> aWifiHandler);
+  esp32WebSocket(std::shared_ptr<wifiHandler> aWifiHandler, std::unique_ptr<LoggingInterface> aLogger);
 
   void connect(const std::string &url) override;
   void disconnect() override;
@@ -39,6 +41,9 @@ private:
 
   std::shared_ptr<wifiHandler> mWifiHandler;
   Handler<wifiHandlerInterface::wifiStatus> mWifiStatusUpdateHandler;
+
+  std::unique_ptr<LoggingInterface> mLogger;
+  mutable std::stringstream mLogStream;
 
   esp_websocket_client_handle_t client;
   esp_websocket_client_config_t mConfig{};

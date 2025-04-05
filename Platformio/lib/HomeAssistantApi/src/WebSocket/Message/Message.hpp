@@ -25,7 +25,7 @@ public:
     result
   };
 
-  Message(const MemConciousDocument &messageJson);
+  Message(const MemConsciousDocument &messageJson);
   virtual ~Message();
 
   inline Type GetType() const;
@@ -37,9 +37,9 @@ public:
   const std::vector<std::unique_ptr<Entity>> &BorrowEntityList() const;
 
 private:
-  void SaveBasicInfo(const MemConciousDocument &aMessageJson);
-  void SaveStateInfo(const MemConciousDocument &aMessageJson);
-  void SaveResultInfo(const MemConciousDocument &aMessageJson);
+  void SaveBasicInfo(const MemConsciousDocument &aMessageJson);
+  void SaveStateInfo(const MemConsciousDocument &aMessageJson);
+  void SaveResultInfo(const MemConsciousDocument &aMessageJson);
 
   int mId = 0;
   Success mSuccess = Success::unknown;

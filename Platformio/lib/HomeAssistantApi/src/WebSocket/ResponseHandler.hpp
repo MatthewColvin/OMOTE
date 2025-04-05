@@ -11,13 +11,13 @@ public:
   ResponseHandler(HomeAssist::WebSocket::Api &aApi);
   virtual ~ResponseHandler();
 
-  bool ProcessResponseDoc(const MemConciousDocument &aDoc);
+  bool ProcessResponseDoc(const MemConsciousDocument &aDoc);
 
   /**
    * @return true - chunk processor in a session handled the doc
    *         fasle - session didn't want the doc processed that way
    */
-  bool HandleRedirectToChunkProcessor(const MemConciousDocument &aDoc);
+  bool HandleRedirectToChunkProcessor(const MemConsciousDocument &aDoc);
 
 private:
   HomeAssist::WebSocket::Api &mApi;

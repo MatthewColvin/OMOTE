@@ -16,6 +16,8 @@ public:
 
   ActiveDevices() = default;
 
+  void restoreDevices(const std::vector<IDevice::Ptr> &aDevicesToRestore);
+
   void addDevice(IDevice::Ptr device);
   void removeDevice(const std::string &deviceName);
   bool handleKeyEvent(KeyPressAbstract::KeyEvent event);

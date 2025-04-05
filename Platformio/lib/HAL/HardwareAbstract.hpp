@@ -9,24 +9,27 @@
 #include "Hardware/IRInterface.h"
 #include "Hardware/KeyPressAbstract.hpp"
 #include "Hardware/Littlefs/LittleFsInterface.hpp"
+#include "Hardware/LoggingInterface.hpp"
 #include "Hardware/SystemStatsInterface.h"
 #include "Hardware/websockets/webSocketInterface.hpp"
 #include "Hardware/wifiHandlerInterface.h"
 #include "Notification.hpp"
 class HardwareAbstract {
 public:
-  HardwareAbstract();
+  HardwareAbstract() = default;
+  virtual ~HardwareAbstract() = default;
 
   /// @brief Override in order to do setup of hardware devices post construction
   virtual void init() = 0;
 
-  /// @brief Override to processing in main thread
+  /// @brief Override to do processing in main thread
   virtual void loopHandler() = 0;
 
   /// @brief Override to allow printing of a message for debugging
   /// @param message - Debug message
   virtual void debugPrint(const char *fmt, ...) = 0;
 
+  virtual std::unique_ptr<LoggingInterface> logger() = 0;
   virtual std::shared_ptr<BatteryInterface> battery() = 0;
   virtual std::shared_ptr<DisplayAbstract> display() = 0;
   virtual std::shared_ptr<wifiHandlerInterface> wifi() = 0;
@@ -34,9 +37,7 @@ public:
   virtual std::shared_ptr<IRInterface> ir() = 0;
   virtual std::shared_ptr<SystemStatsInterface> stats() = 0;
   virtual std::shared_ptr<webSocketInterface> webSocket() = 0;
-  // TODO make Pure Virtual and implement in all hardware implementations
-  // MatthewColvin/OMOTE#12
-  virtual std::shared_ptr<LittleFsInterface> getLittleFS() { return nullptr; }
+  virtual std::shared_ptr<LittleFsInterface> littleFs() = 0;
 
   virtual std::chrono::milliseconds execTime() = 0;
 

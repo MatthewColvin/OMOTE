@@ -21,6 +21,8 @@
             "-I display",
             "-I ir",
             "-I keys",
+            "-I littlefs",
+            "-I logging",
             "-I stats",
             "-I wifiHandler"
         ]

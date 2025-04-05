@@ -6,13 +6,13 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 
-static const char *TAG = "esp32WebSocket";
-
-esp32WebSocket::esp32WebSocket(std::shared_ptr<wifiHandler> aWifiHandler)
+esp32WebSocket::esp32WebSocket(std::shared_ptr<wifiHandler> aWifiHandler, std::unique_ptr<LoggingInterface> aLogger = nullptr)
     : mWifiHandler(aWifiHandler),
+      mLogger(std::move(aLogger)),
       client(nullptr),
       mIncomingMessage(),
       mWifiStatusUpdateHandler(mWifiHandler->WifiStatusNotification()) {
+  mLogger->setLogModule(LogModule::WebSocket);
   mWifiStatusUpdateHandler =
       [this](wifiHandlerInterface::wifiStatus aWifiStatus) {
         if (aWifiStatus.isConnected) {
@@ -31,24 +31,24 @@ void esp32WebSocket::connect(const std::string &url) {
 
     client = esp_websocket_client_init(&mConfig);
     if (!client) {
-      ESP_LOGI(TAG, "Failed to init Client");
+      mLogger->error("Failed to init Client");
       return;
     }
 
     auto err = esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY,
                                              websocket_event_handler, this);
     if (err != ESP_OK) {
-      ESP_LOGI(TAG, "Failed to register event handler");
+      mLogger->error("Failed to register event handler");
       return;
     }
     err = esp_websocket_client_start(client);
     if (err != ESP_OK) {
-      ESP_LOGI(TAG, "Failed to start Client");
+      mLogger->error("Failed to start Client");
       return;
     }
 
   } else {
-    ESP_LOGI(TAG, "Cannot Connect Websocket Without wifi connected");
+    mLogger->error("Cannot Connect Websocket Without wifi connected");
   }
 }
 
@@ -62,7 +62,11 @@ void esp32WebSocket::disconnect() {
 
 void esp32WebSocket::sendMessage(const std::string &message) {
   if (isConnected() && client) {
-    ESP_LOGI(TAG, "Sending: %s", message.c_str());
+    if (mLogger && mLogger->debug("Sending message")) {
+      mLogStream << "Sending message: " << message;
+      mLogger->debug(mLogStream);
+    }
+
     esp_websocket_client_send_text(client, message.c_str(), message.length(),
                                    portMAX_DELAY);
   }
@@ -75,8 +79,10 @@ void esp32WebSocket::setMessageCallback(MessageCallback callback) {
 void esp32WebSocket::proccessEventData(esp_websocket_event_data_t *aEventData) {
   // Todo is this a standard timeout message?
   if (aEventData->op_code == 0x08 && aEventData->data_len == 2) {
-    ESP_LOGI(TAG, "Received closed message with code=%d",
-             256 * aEventData->data_ptr[0] + aEventData->data_ptr[1]);
+    if (mLogger && mLogger->debug("Received close message")) {
+      mLogStream << "code=" << 256 * aEventData->data_ptr[0] + aEventData->data_ptr[1];
+      mLogger->debug(mLogStream);
+    }
     return;
   }
   bool IsStartOfMessage = aEventData->payload_offset == 0;
@@ -89,7 +95,7 @@ void esp32WebSocket::proccessEventData(esp_websocket_event_data_t *aEventData) {
   }
   auto dataLength = static_cast<uint>(aEventData->data_len);
   auto nextStep = getNextStep(aEventData);
-  // printDebugInfo(aEventData, nextStep);
+  printDebugInfo(aEventData, nextStep);
   using Step = ProcessingStep;
   switch (nextStep) {
   case Step::Reserve:
@@ -180,10 +186,12 @@ esp32WebSocket::ProcessingStep esp32WebSocket::getStartStep(
     if (mJsonHandler && mJsonHandler->HasChunkProcessor()) {
       step = ProcessingStep::Partial;
     } else {
-      ESP_LOGI(TAG,
-               "Cannot proccess not enough heap and no partial handler:%d  Msg "
-               "Size:%d",
-               freeHeap, aEventData->payload_len);
+      if (mLogger->error("Cannot Process message no partial handler")) {
+        mLogStream << " size:"
+                   << aEventData->payload_len
+                   << " FreeHeap:" << freeHeap;
+        mLogger->error(mLogStream);
+      }
     }
   }
   return step;
@@ -194,13 +202,13 @@ void esp32WebSocket::printDebugInfo(esp_websocket_event_data_t *aEventData,
   if (!aEventData) {
     return;
   }
-  ESP_LOGI(TAG,
-           "Received aEventData: opcode=%d, payload_len=%d, data_len=%d, "
-           "data_offset=%d ,NextStep =%d",
-           aEventData->op_code, aEventData->payload_len, aEventData->data_len,
-           aEventData->payload_offset, aNextStep);
-  if (aEventData->data_ptr) {
-    // ESP_LOGI(TAG, "Message: %s", aEventData->data_ptr);
+  if (mLogger && mLogger->debug("Received aEventData")) {
+    mLogStream << "Received aEventData: opcode=" << aEventData->op_code
+               << ", payload_len=" << aEventData->payload_len
+               << ", data_len=" << aEventData->data_len
+               << ", data_offset=" << aEventData->payload_offset
+               << ", NextStep =" << static_cast<int>(aNextStep);
+    mLogger->debug(mLogStream);
   }
 }
 
@@ -212,15 +220,15 @@ void esp32WebSocket::websocket_event_handler(void *handler_args,
 
   switch (event_id) {
   case WEBSOCKET_EVENT_CONNECTED:
-    ESP_LOGI(TAG, "WebSocket connected");
+    self->mLogger->info("WebSocket connected");
     self->Connected();
     break;
   case WEBSOCKET_EVENT_DISCONNECTED:
-    ESP_LOGI(TAG, "WebSocket disconnected");
+    self->mLogger->info("WebSocket disconnected");
     self->Disconnected();
     break;
   case WEBSOCKET_EVENT_ERROR:
-    ESP_LOGI(TAG, "WebSocket error");
+    self->mLogger->error("WebSocket error");
     break;
   case WEBSOCKET_EVENT_DATA:
     self->proccessEventData(

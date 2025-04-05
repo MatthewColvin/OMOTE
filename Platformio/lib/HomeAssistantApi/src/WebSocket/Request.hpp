@@ -9,7 +9,7 @@ namespace HomeAssist::WebSocket {
 
 class Request {
 public:
-  Request(MemConciousDocument &&aRequestMessage); // Changed constructor
+  Request(MemConsciousDocument &&aRequestMessage); // Changed constructor
   ~Request() = default;
 
   std::string GetRequestMessage();
@@ -17,10 +17,10 @@ public:
   void SetId(int aId);
 
 private:
-  MemConciousDocument mRequestMessage;
+  MemConsciousDocument mRequestMessage;
 };
 
-inline Request::Request(MemConciousDocument &&aRequestMessage)
+inline Request::Request(MemConsciousDocument &&aRequestMessage)
     : mRequestMessage(std::move(aRequestMessage)) {}
 
 inline std::string Request::GetRequestMessage() {

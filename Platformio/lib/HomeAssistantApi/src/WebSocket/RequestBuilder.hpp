@@ -70,7 +70,7 @@ namespace RequestTypes {
 
 class TriggerBuilder {
 public:
-  TriggerBuilder(MemConciousDocument::AllocatorType &aAllocator)
+  TriggerBuilder(MemConsciousDocument::AllocatorType &aAllocator)
       : mTrigger(rapidjson::kObjectType), mAllocator(aAllocator) {}
 
   TriggerBuilder &SetPlatform(const std::string &aPlatform) {
@@ -110,7 +110,7 @@ public:
 
 private:
   MemConciousValue mTrigger;
-  MemConciousDocument::AllocatorType &mAllocator;
+  MemConsciousDocument::AllocatorType &mAllocator;
 };
 
 class RequestBuilder {
@@ -135,8 +135,8 @@ public:
       const std::string &aTo);
 
 private:
-  MemConciousDocument mDocument;
-  MemConciousDocument::AllocatorType &mAllocator;
+  MemConsciousDocument mDocument;
+  MemConsciousDocument::AllocatorType &mAllocator;
 };
 
 inline RequestBuilder::RequestBuilder()

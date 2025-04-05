@@ -3,6 +3,9 @@
 #include "ActiveDeviceList.hpp"
 #include "Colors.hpp"
 #include "ScreenManager.hpp"
+// TODO MatthewColvin/OMOTE#30
+// Need to merge some of this stuff into status bar
+
 namespace UI::Widget {
 
 MainTopBar::MainTopBar(ActiveDevices &aActiveDevices)
@@ -56,9 +59,6 @@ void MainTopBar::DisplayDeviceInfo(std::shared_ptr<IDevice> aDeviceToDisplay) {
 }
 
 void MainTopBar::OpenActiveDevicesPage() {
-  UI::Screen::Manager::getInstance().pushPopUp(
-      std::make_unique<UI::Page::ActiveDeviceList>(mActiveDevices),
-      LV_SCR_LOAD_ANIM_OVER_BOTTOM);
 }
 
 void MainTopBar::OnLvglEvent(lv_event_t *aEvent) {

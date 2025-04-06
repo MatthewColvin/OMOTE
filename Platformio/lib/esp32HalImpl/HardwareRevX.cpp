@@ -323,7 +323,7 @@ void HardwareRevX::restorePreferences() {
       mSleepTimeout = SLEEP_TIMEOUT;
     }
   }
-  preferences.end();
+  mPreferences.end();
 
   if (lcd_day_backlight_brightness < 10)
     lcd_day_backlight_brightness = 10;

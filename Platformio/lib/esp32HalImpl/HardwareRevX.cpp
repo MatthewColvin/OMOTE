@@ -4,7 +4,7 @@
 #include "Hardware/KeyPressAbstract.hpp"
 #include "IRTransceiver.hpp"
 #include "display.hpp"
-// #include "esp32WebSocket.hpp"
+#include "esp32WebSocket.hpp"
 #include "observerHandles.hpp"
 #include "wifihandler.hpp"
 
@@ -125,7 +125,7 @@ std::shared_ptr<SystemStatsInterface> HardwareRevX::stats() {
 }
 
 std::shared_ptr<webSocketInterface> HardwareRevX::webSocket() {
-  // return std::make_shared<esp32WebSocket>(mWifiHandler, std::make_unique<ESP32Logger>());
+  return std::make_shared<esp32WebSocket>(mWifiHandler, std::make_unique<ESP32Logger>());
   return nullptr;
 }
 

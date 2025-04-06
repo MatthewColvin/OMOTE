@@ -8,7 +8,7 @@ protected:
   void SetUp() override {
     hw = &HardwareFactory::getAbstract();
     ASSERT_TRUE(hw != nullptr);
-    fs = hw->getLittleFS();
+    fs = hw->littleFs();
     if (fs) {
       fs->mount();
     }

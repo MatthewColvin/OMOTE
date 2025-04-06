@@ -1,8 +1,12 @@
 import SCons
 import SCons.Environment
-import subprocess
-
 from SCons.Script import DefaultEnvironment
+
+import subprocess
+from platformio import util
+
+import os
+import shutil
 env = DefaultEnvironment()
 
 buildEnv : SCons.Environment.Base = env
@@ -74,7 +78,38 @@ def remove_espLittleFsLib():
         print(f"Removed {lib} from LIBS to avoid conflicts.")
         print('')
 
+
+# This should be removed with #41 
+def replace_mbedTlsLibs():
+    """
+    Replace mbedTLS libraries with the correct ones for the build environment.
+    This is a workaround to help get definition for mbedTLS that are necessary for idf websockets.
+    """
+    platform = buildEnv.PioPlatform()
+    framework_dir = platform.get_package_dir("framework-arduinoespressif32")
+    framework_idf_arduino_libs_dir = framework_dir + "/tools/esp32-arduino-libs/esp32/lib/"
+    
+    project_dir = buildEnv.get("PROJECT_DIR", "")
+    project_mbed_tls_dir = project_dir + "/mbedTlsLibs"
+
+    print("Transferring libs from", project_mbed_tls_dir , "to", framework_idf_arduino_libs_dir)
+    # Check if source directory exists
+    if not os.path.exists(project_mbed_tls_dir):
+        print(f"Source directory {project_mbed_tls_dir} does not exist please report issue to github")
+        return      
+    # Check if destination directory exists
+    if not os.path.exists(framework_idf_arduino_libs_dir):
+        print(f"Framework directory {framework_idf_arduino_libs_dir} does not exist please report issue to github")
+        return    
+    # Copy all .a files
+    for file in os.listdir(project_mbed_tls_dir):
+        if file.endswith('.a'):
+            src_file = os.path.join(project_mbed_tls_dir, file)
+            dst_file = os.path.join(framework_idf_arduino_libs_dir, file)
+            shutil.copy2(src_file, dst_file)
+
 PrintInfo()
 EnsureSubmoduleCheckout()
 verifyDependencies()
 remove_espLittleFsLib()
+replace_mbedTlsLibs()

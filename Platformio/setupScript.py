@@ -117,7 +117,7 @@ def replace_mbedTlsLibs():
         for file in os.listdir(project_target_mbed_tls_dir):
             if file.endswith('.a'):
                 src_file = os.path.join(project_target_mbed_tls_dir, file)
-                dst_file = os.path.join(project_target_mbed_tls_dir, file)
+                dst_file = os.path.join(framework_idf_arduino_libs_target_dir, file)
                 shutil.copy2(src_file, dst_file)
 
 PrintInfo()

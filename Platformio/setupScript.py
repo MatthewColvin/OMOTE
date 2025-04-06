@@ -89,24 +89,37 @@ def replace_mbedTlsLibs():
     framework_dir = platform.get_package_dir("framework-arduinoespressif32")
     framework_idf_arduino_libs_dir = framework_dir + "/tools/esp32-arduino-libs/esp32/lib/"
     
+    applicableBuildEnvs = ["esp32_Rev1", "esp32_Rev5", "esp32Debug"]
+
+    # No need to replace mbedTLS libs if the build environment does not require it
+    if (buildEnv["PIOENV"] not in applicableBuildEnvs):
+        return
+     
+    targetFolders = ["esp32","esp32s3"]
+
     project_dir = buildEnv.get("PROJECT_DIR", "")
     project_mbed_tls_dir = project_dir + "/mbedTlsLibs"
 
     print("Transferring libs from", project_mbed_tls_dir , "to", framework_idf_arduino_libs_dir)
-    # Check if source directory exists
-    if not os.path.exists(project_mbed_tls_dir):
-        print(f"Source directory {project_mbed_tls_dir} does not exist please report issue to github")
-        return      
-    # Check if destination directory exists
-    if not os.path.exists(framework_idf_arduino_libs_dir):
-        print(f"Framework directory {framework_idf_arduino_libs_dir} does not exist please report issue to github")
-        return    
-    # Copy all .a files
-    for file in os.listdir(project_mbed_tls_dir):
-        if file.endswith('.a'):
-            src_file = os.path.join(project_mbed_tls_dir, file)
-            dst_file = os.path.join(framework_idf_arduino_libs_dir, file)
-            shutil.copy2(src_file, dst_file)
+    
+    # For both esp32 and esp32s3 move the working libs into the framework for linking
+    for targetFolder in targetFolders:
+        project_target_mbed_tls_dir = os.path.join(project_mbed_tls_dir, targetFolder)
+        framework_idf_arduino_libs_target_dir = os.path.join(framework_idf_arduino_libs_dir, targetFolder)
+        # Check if source directory exists
+        if not os.path.exists(project_target_mbed_tls_dir):
+            print(f"Source directory {project_target_mbed_tls_dir} does not exist please report issue to github")
+            return      
+        # Check if destination directory exists
+        if not os.path.exists(framework_idf_arduino_libs_target_dir):
+            print(f"Framework directory {framework_idf_arduino_libs_target_dir} does not exist please report issue to github")
+            return    
+        # Copy all .a files
+        for file in os.listdir(project_target_mbed_tls_dir):
+            if file.endswith('.a'):
+                src_file = os.path.join(project_target_mbed_tls_dir, file)
+                dst_file = os.path.join(project_target_mbed_tls_dir, file)
+                shutil.copy2(src_file, dst_file)
 
 PrintInfo()
 EnsureSubmoduleCheckout()

@@ -85,16 +85,15 @@ def replace_mbedTlsLibs():
     Replace mbedTLS libraries with the correct ones for the build environment.
     This is a workaround to help get definition for mbedTLS that are necessary for idf websockets.
     """
-    platform = buildEnv.PioPlatform()
-    framework_dir = platform.get_package_dir("framework-arduinoespressif32")
-    framework_idf_arduino_libs_dir = framework_dir + "/tools/esp32-arduino-libs/esp32/lib/"
-    
     applicableBuildEnvs = ["esp32_Rev1", "esp32_Rev5", "esp32Debug"]
-
     # No need to replace mbedTLS libs if the build environment does not require it
     if (buildEnv["PIOENV"] not in applicableBuildEnvs):
         return
-     
+
+    platform = buildEnv.PioPlatform()
+    framework_dir = platform.get_package_dir("framework-arduinoespressif32")
+    framework_idf_arduino_libs_dir = framework_dir + "/tools/esp32-arduino-libs"
+    
     targetFolders = ["esp32","esp32s3"]
 
     project_dir = buildEnv.get("PROJECT_DIR", "")
@@ -105,7 +104,7 @@ def replace_mbedTlsLibs():
     # For both esp32 and esp32s3 move the working libs into the framework for linking
     for targetFolder in targetFolders:
         project_target_mbed_tls_dir = os.path.join(project_mbed_tls_dir, targetFolder)
-        framework_idf_arduino_libs_target_dir = os.path.join(framework_idf_arduino_libs_dir, targetFolder)
+        framework_idf_arduino_libs_target_dir = os.path.join(framework_idf_arduino_libs_dir, targetFolder, "lib")
         # Check if source directory exists
         if not os.path.exists(project_target_mbed_tls_dir):
             print(f"Source directory {project_target_mbed_tls_dir} does not exist please report issue to github")

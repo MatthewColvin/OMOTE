@@ -1,7 +1,7 @@
 {
-    "name": "OmoteBasicUI",
+    "name": "RapidJsonUtility",
     "version": "1.0.0",
-    "description": "A Basic UI for OMOTE",
+    "description": "A Helper lib for OMOTE rapidjson",
     "keywords": "",
     "authors": [
         {

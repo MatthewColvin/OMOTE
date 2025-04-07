@@ -85,7 +85,7 @@ def replace_mbedTlsLibs():
     Replace mbedTLS libraries with the correct ones for the build environment.
     This is a workaround to help get definition for mbedTLS that are necessary for idf websockets.
     """
-    applicableBuildEnvs = ["esp32_Rev1", "esp32_Rev5", "esp32Debug"]
+    applicableBuildEnvs = ["esp32_Rev1", "esp32Debug"]
     # No need to replace mbedTLS libs if the build environment does not require it
     if (buildEnv["PIOENV"] not in applicableBuildEnvs):
         return
@@ -94,7 +94,7 @@ def replace_mbedTlsLibs():
     framework_dir = platform.get_package_dir("framework-arduinoespressif32")
     framework_idf_arduino_libs_dir = framework_dir + "/tools/esp32-arduino-libs"
     
-    targetFolders = ["esp32","esp32s3"]
+    targetFolders = ["esp32"]
 
     project_dir = buildEnv.get("PROJECT_DIR", "")
     project_mbed_tls_dir = project_dir + "/mbedTlsLibs"
@@ -124,4 +124,4 @@ PrintInfo()
 EnsureSubmoduleCheckout()
 verifyDependencies()
 remove_espLittleFsLib()
-replace_mbedTlsLibs()
+#replace_mbedTlsLibs()

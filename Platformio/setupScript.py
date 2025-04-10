@@ -120,6 +120,22 @@ def replace_mbedTlsLibs():
                 dst_file = os.path.join(framework_idf_arduino_libs_target_dir, file)
                 shutil.copy2(src_file, dst_file)
 
+def removeLittleFSArduinoLib():
+    """
+    Remove the Littlefs arduino lib out of the framework so it properly builds
+    """
+    applicableBuildEnvs = ["esp32_Rev1", "esp32Debug"]
+    # No need to remove littlefs if the build environment does not require it
+    if (buildEnv["PIOENV"] not in applicableBuildEnvs):
+        return
+
+    platform = buildEnv.PioPlatform()
+    framework_dir = platform.get_package_dir("framework-arduinoespressif32")
+
+    littleFsArduinoLibDir = os.path.join(framework_dir,"libraries","LittleFS")
+    os.remove(littleFsArduinoLibDir)
+    
+
 PrintInfo()
 EnsureSubmoduleCheckout()
 verifyDependencies()

@@ -35,6 +35,8 @@ public:
   virtual void enableMqtt(bool enabled) override { mMqttEnabled = enabled; };
   virtual bool isMqttEnabled(void) override { return mMqttEnabled; };
 
+  bool mMqttConnected = false;
+
 private:
   void init_mqtt();
   void stop_mqtt();

@@ -68,6 +68,9 @@ void HardwareRevX::init() {
 
   mWifiHandler = wifiHandler::getInstance();
 
+  mWifiHandler->mqttRestoreCredentials();
+  mWifiHandler->setupMqttBroker();
+
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>();
 

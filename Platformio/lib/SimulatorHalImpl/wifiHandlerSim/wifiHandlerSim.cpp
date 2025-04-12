@@ -14,6 +14,8 @@
 #include <../examples/templates/posix_sockets.h>
 #include <mqtt.h>
 
+#include "HardwareFactory.hpp"
+
 using WifiInfo = wifiHandlerInterface::WifiInfo;
 
 using namespace rapidjson;
@@ -63,7 +65,8 @@ struct fieldIdStruct {
 std::multimap<std::string, fieldIdStruct> Subscriptions;
 
 void wifiHandlerSim::mqttBindTextEvent(uint32_t bindId, std::string topic, std::string field) {
-  mqtt_subscribe(&mMqttClient, topic.c_str(), 2);
+  if (mMqttConnected)
+    mqtt_subscribe(&mMqttClient, topic.c_str(), 2);
   Subscriptions.insert({topic, {field, bindId}});
 }
 
@@ -144,11 +147,14 @@ void reconnect_mqtt_cb(struct mqtt_client *client, void **reconnect_state_vptr) 
   /* Send connection request to the broker. */
   mqtt_connect(client, reconnect_state->clientName, NULL, NULL, 0, reconnect_state->user, reconnect_state->password, connect_flags, 30);
 
-  if (client->error == MQTT_OK)
+  if (client->error == MQTT_OK) {
+    reconnect_state->thisPtr->mMqttConnected = true;
     reconnect_state->thisPtr->mqttSaveCredentials();
+  }
 }
 
 void wifiHandlerSim::stop_mqtt() {
+  mMqttConnected = false;
   mqtt_disconnect(&mMqttClient);
   mqtt_sync(&mMqttClient);
 }
@@ -184,7 +190,8 @@ void wifiHandlerSim::mqttSend(std::string aTopic, std::string aMessage) {
 }
 
 void wifiHandlerSim::mqttSync() {
-  mqtt_sync(&mMqttClient);
+  if (mMqttConnected)
+    mqtt_sync(&mMqttClient);
 }
 
 void wifiHandlerSim::mqttSaveCredentials() {
@@ -201,21 +208,31 @@ void wifiHandlerSim::mqttSaveCredentials() {
     d.AddMember("password", mMqttPassword, d.GetAllocator());
     d.AddMember("client", mMqttClientName, d.GetAllocator());
 
-    FILE *fp = fopen("data/mqtt.json", "w");
+    /*FILE *fp = fopen("data/mqtt.json", "w");
     char writeBuffer[1024];
     FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
 
     Writer<FileWriteStream> writer(os);
     d.Accept(writer);
 
-    fclose(fp);
+    fclose(fp);*/
+
+    File file = HardwareFactory::getAbstract().littleFs()->open("/mqtt.json", LFS_O_WRONLY | LFS_O_CREAT);
+
+    if (!file)
+      return;
+
+    std::string jsonStr = ToString(d);
+    file.write(jsonStr);
+    file ? file.truncate(jsonStr.length()) : []() { return -1; }();
+
     mMqttSaveOnConnect = false;
   }
 }
 
 void wifiHandlerSim::restoreCredentials() {
   // restore from disk
-  FILE *fp = fopen("data/mqtt.json", "r");
+  /*FILE *fp = fopen("data/mqtt.json", "r");
 
   if (fp == NULL)
     return;
@@ -226,7 +243,17 @@ void wifiHandlerSim::restoreCredentials() {
 
   rapidjson::Document d;
   d.ParseStream(is);
-  fclose(fp);
+  fclose(fp);*/
+
+  File fp = HardwareFactory::getAbstract().littleFs()->open("/mqtt.json", LFS_O_RDONLY);
+
+  if (!fp)
+    return;
+
+  std::string content = fp.read(1000);
+
+  MemConsciousDocument d;
+  d.Parse(content.c_str());
 
   if (d.HasMember("enabled"))
     mMqttEnabled = d["enabled"].GetBool();

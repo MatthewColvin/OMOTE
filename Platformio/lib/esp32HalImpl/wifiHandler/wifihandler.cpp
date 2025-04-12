@@ -6,6 +6,7 @@
 #include <rapidjson/document.h>
 
 #include "HardwareAbstract.hpp"
+#include "HardwareFactory.hpp"
 #include "WiFi.h"
 #include "observerHandles.hpp"
 #include "omoteconfig.h"
@@ -224,7 +225,6 @@ void wifiHandler::mqttSync() {
 void wifiHandler::mqttSaveCredentials() {
 
   // persist to disk
-  /*  Leave this here in case we move to json storage
   rapidjson::Document d;
   d.SetObject();
 
@@ -235,14 +235,16 @@ void wifiHandler::mqttSaveCredentials() {
   d.AddMember("password", mMqttPassword, d.GetAllocator());
   d.AddMember("client", mMqttClientName, d.GetAllocator());
 
-  FILE *fp = fopen("data/mqtt.json", "w");
-  char writeBuffer[1024];
-  FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
+  File file = HardwareFactory::getAbstract().littleFs()->open("/mqtt.json", LFS_O_WRONLY | LFS_O_CREAT);
 
-  Writer<FileWriteStream> writer(os);
-  d.Accept(writer);
+  if (!file)
+    return;
 
-  fclose(fp); */
+  std::string jsonStr = ToString(d);
+  file.write(jsonStr);
+  file ? file.truncate(jsonStr.length()) : []() { return -1; }();
+
+  /*
   Preferences preferences;
   preferences.begin("MqttSettings", false);
   preferences.putString("broker", mMqttBroker.c_str());
@@ -250,7 +252,7 @@ void wifiHandler::mqttSaveCredentials() {
   preferences.putString("user", mMqttUser.c_str());
   preferences.putString("password", mMqttPassword.c_str());
   preferences.putString("client", mMqttClientName.c_str());
-  preferences.end();
+  preferences.end();*/
 
   // Serial.println("MQTT credentials saved");
 
@@ -269,39 +271,45 @@ void wifiHandler::enableMqtt(bool enabled) {
 
 void wifiHandler::mqttRestoreCredentials() {
   // restore from disk
-  /*  Leave this here in case we move to json storage
-  FILE *fp = fopen("data/mqtt.json", "r");
+  // Serial.println("MQTT Restore");
 
-  if (fp == NULL)
+  File fp = HardwareFactory::getAbstract().littleFs()->open("/mqtt.json", LFS_O_RDONLY);
+
+  if (!fp)
     return;
 
-  char readBuffer[1024];
-  rapidjson::FileReadStream is(fp, readBuffer,
-                               sizeof(readBuffer));
+  std::string content = fp.read(1000);
+  Serial.println(content.c_str());
 
-  rapidjson::Document d;
-  d.ParseStream(is);
-  fclose(fp);
+  MemConsciousDocument d;
+  d.Parse(content.c_str());
+  // fclose(fp);
 
-  if(d.HasMember("enabled")) mMqttEnabled = d["enabled"].GetBool();
-  if(d.HasMember("broker")) mMqttBroker = d["broker"].GetString();
-  if(d.HasMember("port")) mMqttPort = d["port"].GetString();
-  if(d.HasMember("user")) mMqttUser = d["user"].GetString();
-  if(d.HasMember("password")) mMqttPassword = d["password"].GetString();
-  if(d.HasMember("client")) mMqttClientName = d["client"].GetString();
+  // if (d.HasMember("enabled"))
+  //   mMqttEnabled = d["enabled"].GetBool();
+  if (d.HasMember("broker"))
+    mMqttBroker = d["broker"].GetString();
+  if (d.HasMember("port"))
+    mMqttPort = d["port"].GetString();
+  if (d.HasMember("user"))
+    mMqttUser = d["user"].GetString();
+  if (d.HasMember("password"))
+    mMqttPassword = d["password"].GetString();
+  if (d.HasMember("client"))
+    mMqttClientName = d["client"].GetString();
 
-  printf("%s,%s,%s,%s,%s", mMqttBroker.c_str(), mMqttPort.c_str(),
-         mMqttUser.c_str(), mMqttPassword.c_str(), mMqttClientName.c_str());
-  */
+  // printf("%s,%s,%s,%s,%s", mMqttBroker.c_str(), mMqttPort.c_str(),
+  //        mMqttUser.c_str(), mMqttPassword.c_str(), mMqttClientName.c_str());
 
+  // enabled kept in preferences as updated seperately
   Preferences preferences;
   preferences.begin("MqttSettings", false);
   mMqttEnabled = preferences.getBool("enabled", false);
-  mMqttBroker = preferences.getString("broker", "broker").c_str();
-  mMqttPort = preferences.getString("port", "1883").c_str();
-  mMqttUser = preferences.getString("user", "user").c_str();
-  mMqttPassword = preferences.getString("password", "password").c_str();
-  mMqttClientName = preferences.getString("client", "OMOTE").c_str();
+  // mMqttBroker = preferences.getString("broker", "broker").c_str();
+  // mMqttPort = preferences.getString("port", "1883").c_str();
+  // mMqttUser = preferences.getString("user", "user").c_str();
+  // mMqttPassword = preferences.getString("password", "password").c_str();
+  // mMqttClientName = preferences.getString("client", "OMOTE").c_str();
   preferences.end();
   // Serial.println("MQTT credentials restored");
 }

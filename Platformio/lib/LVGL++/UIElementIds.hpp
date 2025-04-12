@@ -41,6 +41,7 @@ public:
     MqttSettings,
     IrLearner,
     Heating,
+    JsonPage,
     Demo,
     Tv,
     CarController,

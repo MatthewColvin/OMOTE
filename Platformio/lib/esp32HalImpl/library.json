@@ -12,8 +12,7 @@
     ],
     "dependencies": {
         "HAL": "HAL",
-        "LovyanGFX": "lovyan03/LovyanGFX@^1.2.0",
-        "esp-protocols": "https://github.com/MatthewColvin/esp-protocols.git#modem1.4.0WithPioLibJson"
+        "LovyanGFX": "lovyan03/LovyanGFX@^1.2.0"
     },
     "build": {
         "includeDir": ".",

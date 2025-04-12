@@ -2394,6 +2394,12 @@ CONFIG_ESP_MODEM_C_API_STR_MAX=128
 # end of esp-modem
 
 #
+# ESP WebSocket client
+#
+# CONFIG_ESP_WS_CLIENT_ENABLE_DYNAMIC_BUFFER is not set
+# end of ESP WebSocket client
+
+#
 # mDNS
 #
 CONFIG_MDNS_MAX_INTERFACES=3

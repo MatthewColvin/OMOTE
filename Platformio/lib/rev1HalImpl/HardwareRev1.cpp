@@ -5,9 +5,9 @@
 #include "omoteconfig.h"
 
 void HardwareRev1::init() {
+  mLittleFs = Rev1LittleFs::getInstance();
   HardwareRevX::init();
   mKeys = std::make_shared<Keys>();
-  mLittleFs = Rev1LittleFs::getInstance();
   mLittleFs->mount();
 }
 

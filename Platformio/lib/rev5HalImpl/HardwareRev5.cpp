@@ -1,8 +1,15 @@
 #include "HardwareRev5.hpp"
+#include "Rev5LittleFs.hpp"
 
 #include <Adafruit_TCA8418.h>
 
 void HardwareRev5::init() {
+  mLittleFs = Rev5LittleFs::getInstance();
+  if(mLittleFs->mount())
+    Serial.println("Mounted OK");
+  else
+    Serial.println("Mounted Failed");
+    
   HardwareRevX::init();
 
   static constexpr auto MaxQueueableKeyPresses = 5;
@@ -11,6 +18,7 @@ void HardwareRev5::init() {
 
   mKeys = std::make_shared<Keys>(mKeysQueueHandle);
   setupKeyboard();
+
 #ifdef OMOTE_KEYBRD_3661
   setupLightSensor();
 #endif

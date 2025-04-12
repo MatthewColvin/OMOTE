@@ -1,5 +1,6 @@
 #include "observerHandles.hpp"
 
+#include <cstring>
 #include <memory>
 
 using namespace UI;

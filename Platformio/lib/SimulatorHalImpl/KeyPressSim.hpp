@@ -1,3 +1,4 @@
+#include "Notification.hpp"
 #include <condition_variable>
 #include <map>
 #include <mutex>
@@ -19,12 +20,17 @@ public:
   void HandleKeyPresses() override;
   void QueueKeyEvent(KeyEvent aJustOccuredKeyEvent) override;
 
+  inline Notification<SDL_Event *>::Ptr getSDLEventNotification() {
+    return mSDLEventNotification;
+  }
+
 private:
   std::thread mKeyGrabberThread;
   std::thread mKeyHandlerThread;
   std::queue<KeyEvent> mKeyEventQueue;
   std::mutex mQueueGaurd;
   std::condition_variable mProcessKeyQueueCondition;
+  Notification<SDL_Event *>::Ptr mSDLEventNotification;
 
   using Key = KeyPressAbstract::KeyId;
   static inline const std::map<SDL_Keycode, KeyPressAbstract::KeyId> KeyMap{

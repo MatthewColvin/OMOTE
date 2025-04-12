@@ -7,6 +7,7 @@
 #include "SDLDisplay.hpp"
 #include "StatsSimulator.hpp"
 #include "batterySimulator.hpp"
+#include "littlefs/LittlefsSim.hpp"
 #include "simLogger.hpp"
 #include "webSocketSimulator.hpp"
 #include "wifiHandlerSim.hpp"
@@ -49,6 +50,9 @@ public:
 
   void saveSettings() override {};
 
+protected:
+  void handleExtraSDLEvents(SDL_Event *aEvent);
+
 private:
   // Completely arbitrary limit on the number of web sockets
   static constexpr auto WebSocketLimit = 5;
@@ -63,7 +67,9 @@ private:
   std::shared_ptr<IRSim> mIr;
   std::shared_ptr<StatsSimulator> mStats;
   std::array<std::weak_ptr<webSocketSimulator>, WebSocketLimit> mWebSockets;
-  std::shared_ptr<LittleFsInterface> mLittleFsSim;
+  std::shared_ptr<LittlefsSim> mLittleFsSim;
 
   std::chrono::system_clock::time_point mStartTime;
+
+  Handler<SDL_Event *> mSDLEventHandler;
 };

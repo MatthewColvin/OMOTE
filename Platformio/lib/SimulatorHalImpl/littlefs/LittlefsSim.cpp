@@ -1,12 +1,13 @@
 #include "LittlefsSim.hpp"
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 
-std::shared_ptr<LittleFsInterface> LittlefsSim::getInstance() {
+std::shared_ptr<LittlefsSim> LittlefsSim::getInstance() {
   if (!mInstance) {
     mInstance = std::shared_ptr<LittlefsSim>(new LittlefsSim("flash.bin"));
   }
-  return mInstance;
+  return std::static_pointer_cast<LittlefsSim>(mInstance);
 }
 
 LittlefsSim::LittlefsSim(const std::string &flashFile)
@@ -83,5 +84,103 @@ bool LittlefsSim::saveFlashFile() {
   }
   file.write(reinterpret_cast<const char *>(mFlashMemory.data()), mFlashMemory.size());
   mDirty = false;
+  return true;
+}
+
+bool LittlefsSim::dumpDirectory(lfs_t *lfs, const char *path, const std::string &outputPath) {
+  lfs_dir_t dir;
+  lfs_info info;
+
+  if (lfs_dir_open(lfs, &dir, path) < 0) {
+    return false;
+  }
+
+  while (lfs_dir_read(lfs, &dir, &info) > 0) {
+    if (strcmp(info.name, ".") == 0 || strcmp(info.name, "..") == 0) {
+      continue;
+    }
+
+    std::string fullLfsPath = std::string(path) + "/" + info.name;
+    std::string fullOutputPath = outputPath + "/" + info.name;
+
+    if (info.type == LFS_TYPE_DIR) {
+      std::filesystem::create_directories(fullOutputPath);
+      dumpDirectory(lfs, fullLfsPath.c_str(), fullOutputPath);
+    } else {
+      lfs_file_t file;
+      if (lfs_file_open(lfs, &file, fullLfsPath.c_str(), LFS_O_RDONLY) < 0) {
+        continue;
+      }
+
+      std::ofstream outFile(fullOutputPath, std::ios::binary);
+      if (!outFile.is_open()) {
+        lfs_file_close(lfs, &file);
+        continue;
+      }
+
+      uint8_t buffer[1024];
+      lfs_ssize_t read;
+      while ((read = lfs_file_read(lfs, &file, buffer, sizeof(buffer))) > 0) {
+        outFile.write(reinterpret_cast<char *>(buffer), read);
+      }
+
+      lfs_file_close(lfs, &file);
+    }
+  }
+
+  lfs_dir_close(lfs, &dir);
+  return true;
+}
+
+bool LittlefsSim::dumpContentsToFolder(const std::string &outputPath) {
+  if (mMounted) {
+    std::filesystem::create_directories(outputPath);
+    bool result = dumpDirectory(get(), "/", outputPath);
+    return result;
+  }
+  return false;
+}
+
+bool LittlefsSim::initFolderContents(const std::string &inputPath) {
+  if (mMounted) {
+    bool result = initDirectory(get(), "/", inputPath);
+    return result;
+  }
+  return false;
+}
+
+#include <regex>
+
+bool LittlefsSim::initDirectory(lfs_t *lfs, const char *path, const std::string &inputPath) {
+  lfs_dir_t dir;
+  lfs_info info;
+
+  lfs_format(lfs, &mConfig);
+  lfs_mount(lfs, &mConfig);
+
+  namespace fs = std::filesystem;
+  for (const auto &entry : fs::recursive_directory_iterator(inputPath)) {
+    std::filesystem::path lfsPath(std::regex_replace(entry.path().string(), std::regex("/data"), ""));
+    if (entry.is_directory()) {
+      lfs_mkdir(lfs, lfsPath.c_str());
+    } else if (entry.is_regular_file()) {
+      std::ifstream inFile(entry.path(), std::ios::binary);
+      if (inFile.is_open()) {
+        uint8_t buffer[1024];
+        lfs_file_t file;
+        lfs_file_open(lfs, &file, lfsPath.c_str(), LFS_O_WRONLY | LFS_O_CREAT);
+
+        while (inFile.read(reinterpret_cast<char *>(buffer), sizeof(buffer))) {
+          lfs_file_write(lfs, &file, buffer, sizeof(buffer));
+        }
+        int remBytes = inFile.gcount();
+        if (remBytes > 0)
+          lfs_file_write(lfs, &file, buffer, remBytes);
+
+        inFile.close();
+        lfs_file_close(lfs, &file);
+      }
+    }
+  }
   return true;
 }

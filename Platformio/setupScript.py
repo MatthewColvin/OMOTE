@@ -124,7 +124,7 @@ def removeLittleFSArduinoLib():
     """
     Remove the Littlefs arduino lib out of the framework so it properly builds
     """
-    applicableBuildEnvs = ["esp32_Rev1", "esp32Debug"]
+    applicableBuildEnvs = ["esp32_Rev1", "esp32_Rev5", "esp32Debug"]
     # No need to remove littlefs if the build environment does not require it
     if (buildEnv["PIOENV"] not in applicableBuildEnvs):
         return
@@ -133,11 +133,14 @@ def removeLittleFSArduinoLib():
     framework_dir = platform.get_package_dir("framework-arduinoespressif32")
 
     littleFsArduinoLibDir = os.path.join(framework_dir,"libraries","LittleFS")
-    os.remove(littleFsArduinoLibDir)
+    print("Removing Arduino littleFS From Framework To Avoid Conflict")
+    if(os.path.isdir(littleFsArduinoLibDir)):
+        shutil.rmtree(littleFsArduinoLibDir)
     
 
 PrintInfo()
 EnsureSubmoduleCheckout()
 verifyDependencies()
 remove_espLittleFsLib()
+removeLittleFSArduinoLib()
 #replace_mbedTlsLibs()

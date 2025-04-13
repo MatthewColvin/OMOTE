@@ -133,9 +133,12 @@ def removeLittleFSArduinoLib():
     framework_dir = platform.get_package_dir("framework-arduinoespressif32")
 
     littleFsArduinoLibDir = os.path.join(framework_dir,"libraries","LittleFS")
-    print("Removing Arduino littleFS From Framework To Avoid Conflict")
+    print("Removing Arduino littleFS From Framework To Avoid Conflict...")
     if(os.path.isdir(littleFsArduinoLibDir)):
         shutil.rmtree(littleFsArduinoLibDir)
+        print("Removed", littleFsArduinoLibDir)
+    else:
+        print(littleFsArduinoLibDir,"Already Removed")
     
 
 PrintInfo()

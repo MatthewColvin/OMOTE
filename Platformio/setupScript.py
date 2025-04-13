@@ -144,6 +144,6 @@ def removeLittleFSArduinoLib():
 PrintInfo()
 EnsureSubmoduleCheckout()
 verifyDependencies()
-remove_espLittleFsLib()
-removeLittleFSArduinoLib()
+#remove_espLittleFsLib()
+#removeLittleFSArduinoLib()
 #replace_mbedTlsLibs()

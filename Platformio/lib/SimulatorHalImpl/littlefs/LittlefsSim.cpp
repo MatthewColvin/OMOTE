@@ -3,6 +3,12 @@
 #include <filesystem>
 #include <fstream>
 
+/**
+ * When using std::filesystem::Path in this file we cafonvert paths to
+ * string then c_str() to ensure portablity with windows as
+ * std::filesystem::Path uses a different value_type in windows
+ */
+
 std::shared_ptr<LittlefsSim> LittlefsSim::getInstance() {
   if (!mInstance) {
     mInstance = std::shared_ptr<LittlefsSim>(new LittlefsSim("flash.bin"));
@@ -162,13 +168,14 @@ bool LittlefsSim::initDirectory(lfs_t *lfs, const char *path, const std::string 
   for (const auto &entry : fs::recursive_directory_iterator(inputPath)) {
     std::filesystem::path lfsPath(std::regex_replace(entry.path().string(), std::regex("/data"), ""));
     if (entry.is_directory()) {
-      lfs_mkdir(lfs, lfsPath.c_str());
+
+      lfs_mkdir(lfs, lfsPath.string().c_str());
     } else if (entry.is_regular_file()) {
       std::ifstream inFile(entry.path(), std::ios::binary);
       if (inFile.is_open()) {
         uint8_t buffer[1024];
         lfs_file_t file;
-        lfs_file_open(lfs, &file, lfsPath.c_str(), LFS_O_WRONLY | LFS_O_CREAT);
+        lfs_file_open(lfs, &file, lfsPath.string().c_str(), LFS_O_WRONLY | LFS_O_CREAT);
 
         while (inFile.read(reinterpret_cast<char *>(buffer), sizeof(buffer))) {
           lfs_file_write(lfs, &file, buffer, sizeof(buffer));

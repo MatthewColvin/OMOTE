@@ -6,9 +6,9 @@
 
 void HardwareRev1::init() {
   mLittleFs = Rev1LittleFs::getInstance();
+  mLittleFs->mount();
   HardwareRevX::init();
   mKeys = std::make_shared<Keys>();
-  mLittleFs->mount();
 }
 
 void HardwareRev1::initIO() {

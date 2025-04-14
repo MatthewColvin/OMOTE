@@ -403,7 +403,9 @@ void Display::startKbdFade() {
 }
 #else
 void Display::fadeKbdImpl(void *) {}
-bool Display::fadeKbd() {}
+bool Display::fadeKbd() {
+  return false;
+}
 void Display::startKbdFade() {}
 #endif
 

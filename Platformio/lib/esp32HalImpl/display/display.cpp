@@ -197,8 +197,12 @@ void Display::setupBacklight() {
 
 #ifdef OMOTE_HARDWARE_REV5
   // keyboard
-  ledcSetup(KBD_BACKLIGHT_LEDC_CHANNEL, 5000, 8);
-  ledcAttachPin(KBD_BL, KBD_BACKLIGHT_LEDC_CHANNEL);
+
+  // ledcSetup(KBD_BACKLIGHT_LEDC_CHANNEL, 5000, 8);
+  // ledcAttachPin(KBD_BL, KBD_BACKLIGHT_LEDC_CHANNEL);
+
+  // Upgrade to Arduino CoreV3 merges Ledcsetup and attach
+  ledcAttach(KBD_BL, 5000, 8);
   ledcWrite(KBD_BACKLIGHT_LEDC_CHANNEL, 0);
 #endif
 }

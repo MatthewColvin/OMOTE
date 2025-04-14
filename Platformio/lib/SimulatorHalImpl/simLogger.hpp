@@ -21,19 +21,19 @@ private:
     ss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << " [";
 
     switch (aLevel) {
-    case LogLevel::DEBUG:
+    case LogLevel::Debug:
       ss << "DEBUG";
       break;
-    case LogLevel::INFO:
+    case LogLevel::Info:
       ss << "INFO";
       break;
-    case LogLevel::WARNING:
+    case LogLevel::Warning:
       ss << "WARN";
       break;
-    case LogLevel::ERROR:
+    case LogLevel::Error:
       ss << "ERROR";
       break;
-    case LogLevel::CRITICAL:
+    case LogLevel::Critical:
       ss << "CRIT";
       break;
     default:

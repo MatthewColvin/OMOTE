@@ -2,6 +2,8 @@
 
 #include "Colors.hpp"
 #include "Demo.hpp"
+#include "HardwareFactory.hpp"
+#include "HeatingPage.hpp"
 #include "IrLearner.hpp"
 #include "PopUpScreen.hpp"
 #include "ScreenManager.hpp"
@@ -24,8 +26,9 @@ HomeScreen::HomeScreen(DeviceFactory &aFactory)
   mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
 
   // Adds pages to the Tab view
-  mTabView->AddTab(std::make_unique<Page::IrLearner>());
+  //mTabView->AddTab(std::make_unique<Page::IrLearner>());
   mTabView->AddTab(std::make_unique<Page::Demo>());
+  mTabView->AddTab(std::make_unique<Page::Heating>(HardwareFactory::getAbstract().wifi()));
 }
 
 void HomeScreen::AddPage(Page::Base::Ptr aPage) {

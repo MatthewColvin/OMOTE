@@ -5,7 +5,7 @@
 
 namespace UI {
 namespace Screen {
-class HomeScreen;
+class JsonHomeScreen;
 }
 
 class BasicUI : public UIBase {
@@ -21,7 +21,7 @@ protected:
   DeviceFactory mDeviceFactory;
 
 private:
-  Screen::HomeScreen *mHomeScreen;
+  Screen::JsonHomeScreen *mHomeScreen;
 }; // namespace UIBase
 
 } // namespace UI

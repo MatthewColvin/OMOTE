@@ -34,7 +34,7 @@ void Keys::KeyProccessor(void *aSelf) {
 void Keys::HandleKeyPresses() {
   KeyPressAbstract::KeyEvent eventToHandle;
   while (xQueueReceive(mKeyPressQueueHandle, &eventToHandle, 0) == pdTRUE) {
-    Serial.printf("Press received Id:%d, state:%d\r\n", eventToHandle.mId, eventToHandle.mType);
+    //Serial.printf("Press received Id:%d, state:%d\r\n", eventToHandle.mId, eventToHandle.mType);
     if (mKeyEventHandler) {
       mKeyEventHandler(eventToHandle);
     }

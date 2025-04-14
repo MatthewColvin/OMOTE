@@ -32,6 +32,8 @@ public:
   virtual void SetWidth(lv_coord_t aWidth);
   virtual void SetHeight(lv_coord_t aHeight);
 
+  virtual void SetSize(lv_coord_t aWidth, lv_coord_t aHeight);
+
   lv_coord_t GetWidth();
   lv_coord_t GetHeight();
 

@@ -6,28 +6,28 @@ void ESP32Logger::log(LogLevel aLevel, LogModule aModule, std::string_view aMess
 
   // Use ESP_LOG_LEVEL_LOCAL to bypass ESP32's log level filtering
   // since we already handled filtering in LoggingInterface::isPrintWanted
-  if (aLevel != LogLevel::NONE) {
+  if (aLevel != LogLevel::None) {
     Serial.print(tag);
     Serial.print(":");
   }
 
   switch (aLevel) {
-  case LogLevel::DEBUG:
+  case LogLevel::Debug:
     Serial.print("DEBUG:");
     break;
-  case LogLevel::INFO:
+  case LogLevel::Info:
     Serial.print("INFO:");
     break;
-  case LogLevel::WARNING:
+  case LogLevel::Warning:
     Serial.print("WARNING:");
     break;
-  case LogLevel::ERROR:
+  case LogLevel::Error:
     Serial.print("ERROR:");
     break;
-  case LogLevel::CRITICAL:
+  case LogLevel::Critical:
     Serial.print("CRITICAL:");
     break;
-  case LogLevel::NONE:
+  case LogLevel::None:
     return;
   }
 

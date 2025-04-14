@@ -5,13 +5,13 @@
 
 HardwareSimulator::HardwareSimulator()
     : HardwareAbstract(),
+      mLittleFsSim(LittlefsSim::getInstance()),
       mBattery(std::make_shared<BatterySimulator>()),
       mDisplay(SDLDisplay::getInstance()),
       mWifiHandler(std::make_shared<wifiHandlerSim>()),
       mKeys(std::make_shared<KeyPressSim>()),
       mIr(std::make_shared<IRSim>()),
       mStats(std::make_shared<StatsSimulator>()),
-      mLittleFsSim(LittlefsSim::getInstance()),
       mStartTime(std::chrono::high_resolution_clock::now()) {
   mHardwareStatusTitleUpdate = std::thread([this] {
     int dataToShow = 0;
@@ -37,13 +37,28 @@ HardwareSimulator::HardwareSimulator()
     }
   });
   mLittleFsSim->mount();
+#ifdef INIT_LITTLEFS_FROM_DATA
+  mLittleFsSim->initFolderContents("./data");
+#endif
+
+  mSDLEventHandler.SetNotification(mKeys->getSDLEventNotification());
+  mSDLEventHandler = [this](SDL_Event *aEvent) { handleExtraSDLEvents(aEvent); };
 }
 
 std::shared_ptr<LittleFsInterface> HardwareSimulator::littleFs() {
   return mLittleFsSim;
 }
 
-void HardwareSimulator::loopHandler() { mBattery->getPercentage(); }
+void HardwareSimulator::loopHandler() {
+  static auto oldTime = std::chrono::high_resolution_clock::now();
+
+  auto now = std::chrono::high_resolution_clock::now();
+  if (std::chrono::duration_cast<std::chrono::milliseconds>(now - oldTime) > std::chrono::milliseconds(25)) {
+    mBattery->getPercentage();
+    mWifiHandler->mqttSync();
+    oldTime = std::chrono::high_resolution_clock::now();
+  }
+}
 
 std::unique_ptr<LoggingInterface> HardwareSimulator::logger() {
   return std::make_unique<SimLogger>();
@@ -95,3 +110,14 @@ void HardwareSimulator::setWakeupByIMUEnabled(bool wakeupByIMUEnabled) {}
 uint32_t HardwareSimulator::getSleepTimeout() { return 20000; }
 
 void HardwareSimulator::setSleepTimeout(uint32_t sleepTimeout) {}
+
+void HardwareSimulator::handleExtraSDLEvents(SDL_Event *aEvent) {
+  if (aEvent->type == SDL_KEYDOWN) {
+    const auto SDLK_key = aEvent->key.keysym.sym;
+    if (SDLK_key == SDLK_F1) {
+      mLittleFsSim->dumpContentsToFolder("./data_backup");
+    } else if (SDLK_key == SDLK_F2) {
+      mLittleFsSim->initFolderContents("./data");
+    }
+  }
+}

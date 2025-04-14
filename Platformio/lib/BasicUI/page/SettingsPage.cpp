@@ -4,6 +4,7 @@
 #include "Colors.hpp"
 #include "DisplaySettings.hpp"
 #include "HardwareFactory.hpp"
+#include "IrLearner.hpp"
 #include "List.hpp"
 #include "LoggingSettings.hpp"
 #include "MqttSettings.hpp"
@@ -27,6 +28,8 @@ SettingsPage::SettingsPage()
                          [this] { PushMqttSettings(); });
   mSettingsList->AddItem("System", LV_SYMBOL_SETTINGS,
                          [this] { PushSystemSettings(); });
+  mSettingsList->AddItem("IR Receiver", LV_SYMBOL_SETTINGS,
+                         [this] { PushIrReader(); });
   mSettingsList->AddItem("Logging", LV_SYMBOL_LIST,
                          [this] { PushLoggingSettings(); });
 }
@@ -50,6 +53,11 @@ void SettingsPage::PushMqttSettings() {
 void SettingsPage::PushWifiSettings() {
   UI::Screen::Manager::getInstance().pushPopUp(
       std::make_unique<WifiSettings>(HardwareFactory::getAbstract().wifi()));
+}
+
+void SettingsPage::PushIrReader() {
+  UI::Screen::Manager::getInstance().pushPopUp(
+      std::make_unique<Page::IrLearner>());
 }
 
 void SettingsPage::PushLoggingSettings() {

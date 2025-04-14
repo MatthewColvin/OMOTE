@@ -66,60 +66,6 @@ def PrintInfo():
     print("Detected Platform:", buildEnv["PLATFORM"])
     print('')
 
-
-def remove_espLittleFsLib():
-    """
-    Remove espLittleFsLib from the build environment if it exists.
-    This is a workaround to avoid conflicts with the LittleFS library.
-    """
-    lib = "-lesp_littlefs"
-    if lib in buildEnv.get('LIBS', []):
-        buildEnv['LIBS'].remove(lib)
-        print(f"Removed {lib} from LIBS to avoid conflicts.")
-        print('')
-
-
-# This should be removed with #41 
-def replace_mbedTlsLibs():
-    """
-    Replace mbedTLS libraries with the correct ones for the build environment.
-    This is a workaround to help get definition for mbedTLS that are necessary for idf websockets.
-    """
-    applicableBuildEnvs = ["esp32_Rev1", "esp32Debug"]
-    # No need to replace mbedTLS libs if the build environment does not require it
-    if (buildEnv["PIOENV"] not in applicableBuildEnvs):
-        return
-
-    platform = buildEnv.PioPlatform()
-    framework_dir = platform.get_package_dir("framework-arduinoespressif32")
-    framework_idf_arduino_libs_dir = framework_dir + "/tools/esp32-arduino-libs"
-    
-    targetFolders = ["esp32"]
-
-    project_dir = buildEnv.get("PROJECT_DIR", "")
-    project_mbed_tls_dir = project_dir + "/mbedTlsLibs"
-
-    print("Transferring libs from", project_mbed_tls_dir , "to", framework_idf_arduino_libs_dir)
-    
-    # For both esp32 and esp32s3 move the working libs into the framework for linking
-    for targetFolder in targetFolders:
-        project_target_mbed_tls_dir = os.path.join(project_mbed_tls_dir, targetFolder)
-        framework_idf_arduino_libs_target_dir = os.path.join(framework_idf_arduino_libs_dir, targetFolder, "lib")
-        # Check if source directory exists
-        if not os.path.exists(project_target_mbed_tls_dir):
-            print(f"Source directory {project_target_mbed_tls_dir} does not exist please report issue to github")
-            return      
-        # Check if destination directory exists
-        if not os.path.exists(framework_idf_arduino_libs_target_dir):
-            print(f"Framework directory {framework_idf_arduino_libs_target_dir} does not exist please report issue to github")
-            return    
-        # Copy all .a files
-        for file in os.listdir(project_target_mbed_tls_dir):
-            if file.endswith('.a'):
-                src_file = os.path.join(project_target_mbed_tls_dir, file)
-                dst_file = os.path.join(framework_idf_arduino_libs_target_dir, file)
-                shutil.copy2(src_file, dst_file)
-
 def removeLittleFSArduinoLib():
     """
     Remove the Littlefs arduino lib out of the framework so it properly builds
@@ -144,6 +90,5 @@ def removeLittleFSArduinoLib():
 PrintInfo()
 EnsureSubmoduleCheckout()
 verifyDependencies()
-#remove_espLittleFsLib()
+
 removeLittleFSArduinoLib()
-#replace_mbedTlsLibs()

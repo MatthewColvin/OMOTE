@@ -1,0 +1,7 @@
+{
+  "Scenes":[
+    {"SceneName":"TV", "FileName":"Scene_WatchTV.json","BindToKey":"TV","PressType":"Short"},
+    {"SceneName":"BluRay (TV)", "FileName":"Scene_BLURayTV.json", "BindToKey":"BluRay", "PressType":"Short"},
+    {"SceneName":"BluRay (Proj)", "FileName":"Scene_BLURayProj.json", "BindToKey":"BluRay", "PressType":"Long"}
+  ]
+} 

@@ -29,7 +29,6 @@
 #define SDA 1
 
 #define CRG_STAT 8
-#define ADC_BAT -1 // not usde, needed to keep common battery constructor
 
 #define ACC_INT 5
 #define TCA_INT 4
@@ -43,8 +42,9 @@
 #define KBD_BL 42
 
 #define LCD_BL_OFF digitalWrite(LCD_BL, LOW)
-#define KBD_BL_OFF digitalWrite(KBD_BL, LOW)
+
 #else
+
 #define KEYPAD_ROWS 5 // five rows
 #define KEYPAD_COLS 5 // five columns
 
@@ -73,19 +73,23 @@
 #define SDA 20
 #define ACC_INT 2
 #define CRG_STAT 1
-#define TCA_INT_GPIO 8
+#define TCA_INT 8
 
-#define SD_EN_GPIO 16
-#define SD_CS_GPIO 18
-#define SD_MISO_GPIO 7
-#define SD_MOSI_GPIO 17
-#define SD_SCK_GPIO 15
+#define SD_EN 16
+#define SD_CS 18
+#define SD_MISO 7
+#define SD_MOSI 17
+#define SD_SCK 15
 
 #define KBD_BL 46
 
 #define LCD_BL_OFF digitalWrite(LCD_BL, HIGH)
 
 #endif
+
+#define KBD_BL_OFF digitalWrite(KBD_BL, LOW)
+
+#define ADC_BAT -1 // not usde, needed to keep common battery constructor
 
 #define BUTTON_PIN_BITMASK ((0x01 << TCA_INT) | (0x01 << ACC_INT))
 #define KEYPAD_ROWS_BITMASK      \

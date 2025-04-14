@@ -21,6 +21,9 @@
 
 #define DEFAULT_BACKLIGHT_BRIGHTNESS 128
 
+/*LEDC Channel to use for the keypad backlight*/
+#define KBD_BACKLIGHT_LEDC_CHANNEL LEDC_CHANNEL_6
+
 class LGFX : public lgfx::LGFX_Device {
 public:
   LGFX(void);
@@ -62,8 +65,16 @@ public:
 
   /// @brief Set brightness setting and fade to it
   /// @param brightness
-  virtual void setBrightness(uint8_t brightness) override;
-  virtual uint8_t getBrightness() override;
+
+  virtual void setLcdDayBrightness(uint8_t brightness) override;
+  virtual void setLcdNightBrightness(uint8_t brightness) override;
+  virtual void setKbdDayBrightness(uint8_t brightness) override;
+  virtual void setKbdNightBrightness(uint8_t brightness) override;
+  virtual uint8_t getLcdDayBrightness() override;
+  virtual uint8_t getLcdNightBrightness() override;
+  virtual uint8_t getKbdDayBrightness() override;
+  virtual uint8_t getKbdNightBrightness() override;
+
   virtual void turnOff() override;
   virtual void setDayMode(bool isDay) override;
   virtual void getTouchData() override;
@@ -83,13 +94,16 @@ protected:
   /// @brief Fade toward brightness based on isAwake
   /// @return True - Fade complete
   ///         False - Fade set point not reached
-  bool fade();
+  bool fadeLcd();
+  bool fadeKbd();
   /// @brief Start the Fade task
-  void startFade();
+  void startLcdFade();
+  void startKbdFade();
 
   /// @brief Set the actual display brightness right now
   /// @param brightness
-  void setCurrentBrightness(uint8_t brightness);
+  void setCurrentLcdBrightness(uint8_t brightness);
+  void setCurrentKbdBrightness(uint8_t brightness);
 
 private:
   Display(int backlight_pin, int enable_pin);
@@ -110,12 +124,21 @@ private:
   std::shared_ptr<Notification<TouchPointType>> mTouchEvent =
       std::make_shared<Notification<TouchPointType>>();
 
-  TaskHandle_t mDisplayFadeTask = nullptr;
-  SemaphoreHandle_t mFadeTaskMutex = nullptr;
-  static void fadeImpl(void *aBrightness);
+  TaskHandle_t mDisplayLcdFadeTask = nullptr;
+  SemaphoreHandle_t mFadeLcdTaskMutex = nullptr;
+  TaskHandle_t mDisplayKbdFadeTask = nullptr;
+  SemaphoreHandle_t mFadeKbdTaskMutex = nullptr;
+  static void fadeLcdImpl(void *aBrightness);
+  static void fadeKbdImpl(void *aBrightness);
 
-  uint8_t mBrightness = 0;      // Current display brightness
-  uint8_t mAwakeBrightness = 0; // Current setting for brightness when awake
+  // not all used for all hardware but simplest to have them all here than #defs
+  uint8_t mLcdBrightness = 0;      // Current display brightness
+  uint8_t mKbdBrightness = 0;      // Current keyboard brightness
+  uint8_t mLcdDayBrightness = 0;   // Current setting for brightness when day mode
+  uint8_t mKbdDayBrightness = 0;   // Current keyboard for brightness when day mode
+  uint8_t mLcdNightBrightness = 0; // Current display for brightness when night mode
+  uint8_t mKbdNightBrightness = 0; // Current keyboard for brightness when night mode
+
   bool mIsAsleep = false;
   bool mIsDay = true;
 

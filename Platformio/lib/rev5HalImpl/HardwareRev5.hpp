@@ -21,7 +21,9 @@ private:
   void setupLightSensor();
 
   bool keyboardScan() override;
+  #ifdef OMOTE_KEYBRD_3661
   bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) override;
+  #endif
   void updateBacklightMode(uint16_t lightLevel) override;
 
   // keypad scanning
@@ -57,6 +59,6 @@ private:
       '>', 'o', 'b', 'u', 'L',  // forward,      off,    back,     up,   left
       '4', 'v', '1', '3', '2',  //    blue, channel-,     red, yellow,  green
       'i', 'R', '+', 'k', 'd',  //    info,    right, Volume+,     OK,   down
-      's', '^', '-', 'm', 'r'}, //  source, channel+, Volume-,   mute, record
+      's', '^', '-', 'm', 'r'}; //  source, channel+, Volume-,   mute, record
 #endif
 };

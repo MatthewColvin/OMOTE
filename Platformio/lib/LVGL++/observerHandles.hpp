@@ -29,7 +29,7 @@ public:
   observerHandles();
   ~observerHandles();
 
-  static uint32_t getNextID();
+  static uint32_t registerNextID(uint16_t bufSize, const char *val);
 
   static bool registerTextHandle(uint32_t key, uint16_t size, const char *Val);
   static bool registerIntHandle(uint32_t key, int32_t val);

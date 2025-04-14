@@ -41,6 +41,7 @@ void WifiSettings::OpenPasswordKeyboard(WifiInfo aNetworkToConnectTo) {
       [this, aNetworkToConnectTo](auto aUserEnteredPassword) {
         if (aUserEnteredPassword != "") {
           // Attempt Connection when user finishes up with keyboard input
+          mWifi->saveCredentialsOnConnect();
           mWifi->connect(aNetworkToConnectTo.ssid, aUserEnteredPassword);
           mScanningText->SetText("Attempting Connection to " +
                                  aNetworkToConnectTo.ssid);

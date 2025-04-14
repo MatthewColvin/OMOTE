@@ -10,10 +10,6 @@ std::shared_ptr<SDLDisplay> SDLDisplay::getInstance() {
   return std::static_pointer_cast<SDLDisplay>(mInstance);
 }
 
-void SDLDisplay::setBrightness(uint8_t brightness) { mBrightness = brightness; }
-
-uint8_t SDLDisplay::getBrightness() { return mBrightness; }
-
 void SDLDisplay::turnOff() {}
 
 void SDLDisplay::setTitle(std::string aNewTitle) {

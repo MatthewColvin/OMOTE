@@ -39,6 +39,8 @@ public:
   virtual void scan() = 0;
   /// @brief Attempt a connection to the wifi using the provided credentials
   virtual void connect(std::string ssid, std::string password) = 0;
+  /// @brief Store credentials if connection succeeds
+  virtual void saveCredentialsOnConnect() = 0;
   /// @brief Get the status of the current wifi connection
   virtual wifiStatus GetStatus() = 0;
 
@@ -52,13 +54,26 @@ public:
     return mStatusUpdate;
   };
 
+  virtual void setupMqttBroker() = 0;
+  virtual void mqttSend(std::string aTopic, std::string aMessage) = 0;
+  virtual void mqttSync() = 0;
+  virtual void mqttSetBroker(std::string broker) = 0;
+  virtual void mqttSetPort(std::string port) = 0;
+  virtual void mqttSetUser(std::string user) = 0;
+  virtual void mqttSetPassword(std::string pword) = 0;
+  virtual std::string mqttGetBroker() = 0;
+  virtual std::string mqttGetPort() = 0;
+  virtual std::string mqttGetUser() = 0;
+  virtual std::string mqttGetPassword() = 0;
+  virtual void mqttSaveCredentialsOnConnect() = 0;
+  virtual void mqttBindTextEvent(uint32_t bindId, std::string topic, std::string field) = 0;
+  virtual void mqttUnBindTextEvent(uint32_t unBindId) = 0;
+  virtual void enableMqtt(bool enabled) = 0;
+  virtual bool isMqttEnabled(void) = 0;
+
 protected:
   std::shared_ptr<ScanNotificationTy> mScanNotification =
       std::make_shared<ScanNotificationTy>();
   std::shared_ptr<Notification<wifiStatus>> mStatusUpdate =
       std::make_shared<Notification<wifiStatus>>();
-
-  // MQTT Interface
-  virtual void setupMqttBroker(std::string aBrokerIpAddress, int aPort) = 0;
-  virtual void mqttSend(std::string aTopic, std::string aMessage) = 0;
 };

@@ -15,6 +15,8 @@ public:
 
   enum class Widgets {
     Slider = static_cast<int>(Screens::INVALID_SCREEN_ID) + 1,
+    Bar,
+    Switch,
     Button,
     Label,
     List,
@@ -38,6 +40,8 @@ public:
     SystemSettings,
     MqttSettings,
     IrLearner,
+    Heating,
+    JsonPage,
     Demo,
     Tv,
     CarController,

@@ -294,12 +294,15 @@ void IRTransceiver::send(IRInterface::RawIR aRawIR) {
 }
 
 void IRTransceiver::enableRx() {
-  enableIRIn();
+  if (!mIsRxEnabled)
+    enableIRIn();
   mIsRxEnabled = true;
 }
 
 void IRTransceiver::disableRx() {
-  disableIRIn();
+  // Note: IR library crashes if disableIRIn() called before enableIRIn()
+  if (mIsRxEnabled)
+    disableIRIn();
   mIsRxEnabled = false;
 }
 

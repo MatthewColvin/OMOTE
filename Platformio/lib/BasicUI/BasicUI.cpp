@@ -1,13 +1,12 @@
 #include "BasicUI.hpp"
 
 #include "HardwareFactory.hpp"
-#include "JsonHomeScreen.hpp"
+#include "HomeScreen.hpp"
 #include "ScreenManager.hpp"
 
 using namespace UI;
 
 BasicUI::BasicUI() : UIBase() {
-  HardwareFactory::getAbstract().wifi()->begin();
   HardwareFactory::getAbstract().keys()->RegisterKeyPressHandler(
       [this](auto aKeyEvent) {
         // See if any UI elements wanted the key press first
@@ -22,12 +21,12 @@ BasicUI::BasicUI() : UIBase() {
           return false;
         }
       });
+}
 
-  auto homeScreen = std::make_unique<Screen::JsonHomeScreen>(mDeviceFactory);
+void BasicUI::InitHomeScreen() {
+  auto homeScreen = std::make_unique<Screen::HomeScreen>(mDeviceFactory);
   mHomeScreen = homeScreen.get();
   Screen::Manager::getInstance().pushScreen(std::move(homeScreen));
-
-  // HardwareFactory::getAbstract().wifi()->begin();
 }
 
 void BasicUI::restore() {

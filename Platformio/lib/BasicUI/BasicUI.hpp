@@ -5,7 +5,7 @@
 
 namespace UI {
 namespace Screen {
-class JsonHomeScreen;
+class HomeScreen;
 }
 
 class BasicUI : public UIBase {
@@ -13,15 +13,16 @@ public:
   BasicUI();
 
 protected:
-  void AddPageToHomeScreen(Page::Base::Ptr aPageToAdd);
-  bool GoToPage(ID anId);
+  virtual void InitHomeScreen();
+  virtual void AddPageToHomeScreen(Page::Base::Ptr aPageToAdd);
+  virtual bool GoToPage(ID anId);
 
   void restore() override;
 
   DeviceFactory mDeviceFactory;
 
 private:
-  Screen::JsonHomeScreen *mHomeScreen;
+  Screen::HomeScreen *mHomeScreen;
 }; // namespace UIBase
 
 } // namespace UI

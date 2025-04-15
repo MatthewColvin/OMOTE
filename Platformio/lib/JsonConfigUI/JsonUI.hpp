@@ -6,12 +6,19 @@
 namespace UI {
 
 namespace Screen {
-class HomeScreen;
+class JsonHomeScreen;
 }
 
 class JsonUI : public BasicUI {
 public:
   JsonUI();
+
+  void InitHomeScreen() override;
+  void AddPageToHomeScreen(Page::Base::Ptr aPageToAdd) override;
+  bool GoToPage(ID anId) override;
+
+private:
+  Screen::JsonHomeScreen *mJsonHomeScreen;
 
 }; // namespace UIBase
 

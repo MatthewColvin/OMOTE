@@ -29,6 +29,24 @@ void LittleFsInterface::unmount() {
   }
 }
 
+std::vector<File> LittleFsInterface::FilesIn(std::string aDirectoryPath, int aFlags) {
+  lfs_dir_t dir;
+  lfs_info info;
+
+  std::vector<File> files;
+  if (lfs_dir_open(&mLfs, &dir, aDirectoryPath.c_str()) < 0) {
+    return files;
+  }
+
+  while (lfs_dir_read(&mLfs, &dir, &info) > 0) {
+    if (info.type == LFS_TYPE_REG) {
+      auto fullPath = aDirectoryPath + "/" + info.name;
+      files.push_back(open(fullPath.c_str(), aFlags));
+    }
+  }
+  return files;
+}
+
 int LittleFsInterface::ReadImpl(const lfs_config *c, lfs_block_t block,
                                 lfs_off_t off, void *buffer, lfs_size_t size) {
   if (mInstance) {

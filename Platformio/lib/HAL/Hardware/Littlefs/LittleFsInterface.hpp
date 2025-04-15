@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "Hardware/Littlefs/File.hpp"
 #include "lfs.h"
@@ -27,6 +28,8 @@ public:
   File open(std::string aFilePath, int aFlags = LFS_O_RDWR | LFS_O_CREAT) {
     return File(aFilePath, get(), aFlags);
   }
+
+  std::vector<File> FilesIn(std::string aDirectory, int aFlags = LFS_O_RDWR);
 
 protected:
   void init();

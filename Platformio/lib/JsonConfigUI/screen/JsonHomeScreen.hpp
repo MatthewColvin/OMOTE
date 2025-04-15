@@ -30,9 +30,6 @@ protected:
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
 
 private:
-  void ActiveListPress();
-  void SettingsPress();
-
   DeviceFactory &mFactory;
 
   // Page::TabView *mTabView;

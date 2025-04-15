@@ -30,6 +30,7 @@ void BasicUI::InitHomeScreen() {
 }
 
 void BasicUI::restore() {
+  InitHomeScreen();
   mDeviceFactory.restoreFromConfig();
 }
 

@@ -31,8 +31,7 @@ std::unique_ptr<IRAction> ActionFactory::createIRAction(const std::string &aName
 std::unique_ptr<IAction> ActionFactory::createAction(const std::string &aActionName) {
   auto fs = HardwareFactory::getAbstract().littleFs();
 
-  static constexpr auto MaxActionFileLength = 500;
-  for (auto &file : fs->FilesIn("Actions")) {
+  for (auto &file : fs->FilesIn(ActionsDirectory)) {
     MemConsciousDocument actionDoc;
     auto actionJsonStr = file.read(MaxActionFileLength);
     actionDoc.Parse(actionJsonStr.c_str());
@@ -41,4 +40,22 @@ std::unique_ptr<IAction> ActionFactory::createAction(const std::string &aActionN
     }
   }
   return nullptr;
+}
+
+std::vector<std::unique_ptr<IAction>> ActionFactory::getAllActions() {
+  auto fs = HardwareFactory::getAbstract().littleFs();
+
+  std::vector<std::unique_ptr<IAction>> actions;
+  for (auto &file : fs->FilesIn(ActionsDirectory)) {
+    MemConsciousDocument actionDoc;
+    auto actionJsonStr = file.read(MaxActionFileLength);
+    actionDoc.Parse(actionJsonStr.c_str());
+    if (actionDoc.HasMember("name") && actionDoc["name"].IsString()) {
+      auto action = createAction(actionDoc);
+      if (action) {
+        actions.push_back(std::move(action));
+      }
+    }
+  }
+  return actions;
 }

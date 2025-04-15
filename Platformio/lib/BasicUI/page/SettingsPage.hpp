@@ -1,3 +1,4 @@
+#pragma once
 #include "HardwareAbstract.hpp"
 #include "PageBase.hpp"
 
@@ -8,7 +9,17 @@ class List;
 namespace UI::Page {
 class SettingsPage : public Base {
 public:
+  using InjectedItem = std::tuple<std::string, const char *,
+                                  std::function<Base::Ptr()>>;
+
   SettingsPage();
+
+  /**
+   * Add item to settings aPageGetter should return a page
+   * to launch when pressed in settings
+   */
+  void AddSettingItem(std::string aTitle, const char *aSymbol,
+                      std::function<Base::Ptr()> aPageGetter);
 
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override {
     return false;

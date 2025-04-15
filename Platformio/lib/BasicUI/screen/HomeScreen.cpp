@@ -26,7 +26,7 @@ HomeScreen::HomeScreen(DeviceFactory &aFactory)
   mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
 
   // Adds pages to the Tab view
-  //mTabView->AddTab(std::make_unique<Page::IrLearner>());
+  // mTabView->AddTab(std::make_unique<Page::IrLearner>());
   mTabView->AddTab(std::make_unique<Page::Demo>());
   mTabView->AddTab(std::make_unique<Page::Heating>(HardwareFactory::getAbstract().wifi()));
 }
@@ -43,10 +43,3 @@ void HomeScreen::SetBgColor(lv_color_t value, lv_style_selector_t selector) {
 bool HomeScreen::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   return false;
 };
-
-void HomeScreen::SettingsPress() {
-  UI::Screen::Manager::getInstance().pushPopUp(
-      std::make_unique<Page::SettingsPage>(), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
-}
-
-void HomeScreen::ActiveListPress() {}

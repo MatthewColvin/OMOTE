@@ -49,6 +49,7 @@ public:
     HomeAssistDeviceList,
     ActiveDeviceList,
     AddDevicePage,
+    ActionTesterPage,
     INVALID_PAGE_ID
   };
 

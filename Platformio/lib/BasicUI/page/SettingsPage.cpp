@@ -34,6 +34,15 @@ SettingsPage::SettingsPage()
                          [this] { PushLoggingSettings(); });
 }
 
+void SettingsPage::AddSettingItem(std::string aTitle, const char *aSymbol,
+                                  std::function<Base::Ptr()> aPageGetter) {
+  mSettingsList->AddItem(aTitle, aSymbol, [aPageGetter] {
+    if (auto page = aPageGetter(); page) {
+      UI::Screen::Manager::getInstance().pushPopUp(std::move(page));
+    }
+  });
+}
+
 void SettingsPage::PushDisplaySettings() {
   UI::Screen::Manager::getInstance().pushPopUp(
       std::make_unique<DisplaySettings>(

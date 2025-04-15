@@ -53,9 +53,18 @@ StatusBar::StatusBar(DeviceFactory &aFactory)
   mTopBarSOCLabel->BindTextEvent(SOC_STATUS, "%d%%");
 }
 
+void StatusBar::AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem) {
+  mExtraSettingsItems.push_back(aItem);
+}
+
 void StatusBar::SettingsPress() {
+  auto settings = std::make_unique<Page::SettingsPage>();
+  for (auto &item : mExtraSettingsItems) {
+    std::invoke(&Page::SettingsPage::AddSettingItem, settings.get(), std::get<0>(item), std::get<1>(item), std::get<2>(item));
+  }
+
   UI::Screen::Manager::getInstance().pushPopUp(
-      std::make_unique<Page::SettingsPage>(), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
+      std::move(settings), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
 }
 
 void StatusBar::ActiveListPress() {

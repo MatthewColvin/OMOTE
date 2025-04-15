@@ -1,5 +1,6 @@
 #include "JsonHomeScreen.hpp"
 
+#include "ActionTester.hpp"
 #include "HardwareFactory.hpp"
 #include "JsonTabView.hpp"
 #include "ScreenManager.hpp"
@@ -41,6 +42,10 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
       }
     }
   }
+
+  mStatusBar->AddExtraSettingItem({"Test Actions", LV_SYMBOL_LIST, [this] {
+                                     return std::make_unique<UI::Page::ActionTester>();
+                                   }});
 }
 
 void JsonHomeScreen::displayScenePage(std::string aFileName) {
@@ -60,10 +65,3 @@ void JsonHomeScreen::SetBgColor(lv_color_t value, lv_style_selector_t selector) 
 bool JsonHomeScreen::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   return false;
 };
-
-void JsonHomeScreen::SettingsPress() {
-  UI::Screen::Manager::getInstance().pushPopUp(
-      std::make_unique<Page::SettingsPage>(), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
-}
-
-void JsonHomeScreen::ActiveListPress() {}

@@ -1,0 +1,24 @@
+{
+    "name": "Action",
+    "version": "1.0.0",
+    "description": "A module to help define an action that Omote is capable of",
+    "keywords": "",
+    "authors": [
+        {
+            "name": "Matthew Colvin",
+            "email": "mcolvin32.7@gmail.com",
+            "maintainer": true
+        }
+    ],
+    "dependencies": [
+        "HAL"
+    ],
+    "build": {
+        "includeDir": ".",
+        "flags": [
+            "-I Actions"
+        ]
+    },
+    "frameworks": "*",
+    "platforms": "*"
+}

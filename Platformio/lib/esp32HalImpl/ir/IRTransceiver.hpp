@@ -5,10 +5,11 @@
 #include <freertos/task.h>
 
 #include "Hardware/IRInterface.h"
+#include "Hardware/LoggingInterface.hpp"
 
 class IRTransceiver : public IRInterface, protected IRsend, protected IRrecv {
 public:
-  IRTransceiver();
+  IRTransceiver(std::unique_ptr<LoggingInterface> aLogger);
   virtual ~IRTransceiver();
 
   void send(int64SendTypes protocol, uint64_t data) override;
@@ -35,4 +36,6 @@ private:
 
   bool mIsRxEnabled = false;
   decode_results mCurrentResults;
+
+  std::unique_ptr<LoggingInterface> mLog;
 };

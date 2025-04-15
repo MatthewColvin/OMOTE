@@ -23,10 +23,11 @@ enum class LogModule : uint8_t {
   Battery,
   Keys,
   LittleFs,
-  Mqtt
+  Mqtt,
+  IR
 };
 // UPDATE IF APPENDING TO THIS LIST
-static constexpr auto NumLogModules = static_cast<uint8_t>(LogModule::Mqtt) + 1;
+static constexpr auto NumLogModules = static_cast<uint8_t>(LogModule::IR) + 1;
 
 /**
  * This class is meant to be used as a way to log.

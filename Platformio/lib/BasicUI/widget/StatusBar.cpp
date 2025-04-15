@@ -60,7 +60,7 @@ void StatusBar::AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem) 
 void StatusBar::SettingsPress() {
   auto settings = std::make_unique<Page::SettingsPage>();
   for (auto &item : mExtraSettingsItems) {
-    std::invoke(&Page::SettingsPage::AddSettingItem, settings.get(), std::get<0>(item), std::get<1>(item), std::get<2>(item));
+    settings->AddSettingItem(std::get<0>(item), std::get<1>(item), std::get<2>(item));
   }
 
   UI::Screen::Manager::getInstance().pushPopUp(

@@ -1,9 +1,13 @@
 #include "IRTransceiver.hpp"
+#include "magic_enum.hpp"
 #include "omoteconfig.h"
 #include <IRutils.h>
 
-IRTransceiver::IRTransceiver()
-    : IRsend(IR_LED, true), IRrecv(IR_RX, 1024, 50, true) {
+IRTransceiver::IRTransceiver(std::unique_ptr<LoggingInterface> aLogger)
+    : IRsend(IR_LED, true), IRrecv(IR_RX, 1024, 50, true), mLog(std::move(aLogger)) {
+  if (mLog) {
+    mLog->setLogModule(LogModule::IR);
+  }
   digitalWrite(IR_VCC, HIGH); // Turn on IR receiver
   IRsend::begin();
 }
@@ -13,6 +17,11 @@ IRTransceiver::~IRTransceiver() {
 }
 
 void IRTransceiver::send(int64SendTypes protocol, uint64_t data) {
+  if (mLog && mLog->info("IR Send int64:")) {
+    std::stringstream info;
+    info << magic_enum::enum_name(protocol) << " with data " << data;
+    mLog->info(info);
+  }
   if (mIsRxEnabled) {
     IRrecv::pause();
   }
@@ -73,6 +82,11 @@ void IRTransceiver::send(int64SendTypes protocol, uint64_t data) {
   }
 };
 void IRTransceiver::send(constInt64SendTypes protocol, const uint64_t data) {
+  if (mLog && mLog->info("IR Send constint64:")) {
+    std::stringstream info;
+    info << magic_enum::enum_name(protocol) << " with data " << data;
+    mLog->info(info);
+  }
   if (mIsRxEnabled) {
     IRrecv::pause();
   }
@@ -167,6 +181,11 @@ void IRTransceiver::send(constInt64SendTypes protocol, const uint64_t data) {
   }
 };
 void IRTransceiver::send(charArrSendType protocol, const unsigned char data[]) {
+  if (mLog && mLog->info("IR Send charArr:")) {
+    std::stringstream info;
+    info << magic_enum::enum_name(protocol) << " with data " << data;
+    mLog->info(info);
+  }
   if (mIsRxEnabled) {
     IRrecv::pause();
   }

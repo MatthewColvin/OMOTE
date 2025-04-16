@@ -2,32 +2,32 @@
 
 #include <array>
 #include <experimental/array>
+#include <magic_enum.hpp>
 #include <sstream>
 #include <string>
 #include <string_view>
 
 enum class LogLevel {
-  NONE,
-  DEBUG,
-  INFO,
-  WARNING,
-  ERROR,
-  CRITICAL
+  None,
+  Debug,
+  Info,
+  Warning,
+  Error,
+  Critical
 };
 
 enum class LogModule : uint8_t {
-  General,
+  General = 0,
   WebSocket,
   Display,
   Battery,
   Keys,
   LittleFs,
   Mqtt,
-  // Add more Log Modules here
-  Count
+  IR
 };
-
-static constexpr auto NumLogModules = static_cast<uint8_t>(LogModule::Count);
+// UPDATE IF APPENDING TO THIS LIST
+static constexpr auto NumLogModules = static_cast<uint8_t>(LogModule::IR) + 1;
 
 /**
  * This class is meant to be used as a way to log.
@@ -122,80 +122,80 @@ inline LogLevel LoggingInterface::getLogLevel() const {
 inline bool LoggingInterface::isPrintWanted(LogModule aModule, LogLevel aLevelToCheck) {
   auto moduleIndex = static_cast<uint8_t>(aModule);
   auto currentLevel = mCurrentLogLevels[moduleIndex];
-  if (currentLevel == LogLevel::NONE) {
+  if (currentLevel == LogLevel::None) {
     return false;
   }
   return static_cast<int>(aLevelToCheck) >= static_cast<int>(currentLevel);
 }
 
 inline bool LoggingInterface::debug(std::string_view aMessage) {
-  if (isPrintWanted(mModule, LogLevel::DEBUG)) {
-    log(LogLevel::DEBUG, mModule, aMessage);
+  if (isPrintWanted(mModule, LogLevel::Debug)) {
+    log(LogLevel::Debug, mModule, aMessage);
     return true;
   }
   return false;
 }
 
 inline bool LoggingInterface::info(std::string_view aMessage) {
-  if (isPrintWanted(mModule, LogLevel::INFO)) {
-    log(LogLevel::INFO, mModule, aMessage);
+  if (isPrintWanted(mModule, LogLevel::Info)) {
+    log(LogLevel::Info, mModule, aMessage);
     return true;
   }
   return false;
 }
 
 inline bool LoggingInterface::warning(std::string_view aMessage) {
-  if (isPrintWanted(mModule, LogLevel::WARNING)) {
-    log(LogLevel::WARNING, mModule, aMessage);
+  if (isPrintWanted(mModule, LogLevel::Warning)) {
+    log(LogLevel::Warning, mModule, aMessage);
     return true;
   }
   return false;
 }
 
 inline bool LoggingInterface::error(std::string_view aMessage) {
-  if (isPrintWanted(mModule, LogLevel::ERROR)) {
-    log(LogLevel::ERROR, mModule, aMessage);
+  if (isPrintWanted(mModule, LogLevel::Error)) {
+    log(LogLevel::Error, mModule, aMessage);
     return true;
   }
   return false;
 }
 
 inline bool LoggingInterface::critical(std::string_view aMessage) {
-  if (isPrintWanted(mModule, LogLevel::CRITICAL)) {
-    log(LogLevel::CRITICAL, mModule, aMessage);
+  if (isPrintWanted(mModule, LogLevel::Critical)) {
+    log(LogLevel::Critical, mModule, aMessage);
     return true;
   }
   return false;
 }
 
 inline void LoggingInterface::debug(std::stringstream &aMessageStream) {
-  if (isPrintWanted(mModule, LogLevel::DEBUG)) {
-    log(LogLevel::DEBUG, mModule, aMessageStream.str().c_str());
+  if (isPrintWanted(mModule, LogLevel::Debug)) {
+    log(LogLevel::Debug, mModule, aMessageStream.str().c_str());
   }
   aMessageStream.clear();
 }
 inline void LoggingInterface::info(std::stringstream &aMessageStream) {
-  if (isPrintWanted(mModule, LogLevel::INFO)) {
-    log(LogLevel::INFO, mModule, aMessageStream.str().c_str());
+  if (isPrintWanted(mModule, LogLevel::Info)) {
+    log(LogLevel::Info, mModule, aMessageStream.str().c_str());
   }
   aMessageStream.clear();
 }
 
 inline void LoggingInterface::warning(std::stringstream &aMessageStream) {
-  if (isPrintWanted(mModule, LogLevel::WARNING)) {
-    log(LogLevel::WARNING, mModule, aMessageStream.str().c_str());
+  if (isPrintWanted(mModule, LogLevel::Warning)) {
+    log(LogLevel::Warning, mModule, aMessageStream.str().c_str());
   }
   aMessageStream.clear();
 }
 inline void LoggingInterface::error(std::stringstream &aMessageStream) {
-  if (isPrintWanted(mModule, LogLevel::ERROR)) {
-    log(LogLevel::ERROR, mModule, aMessageStream.str().c_str());
+  if (isPrintWanted(mModule, LogLevel::Error)) {
+    log(LogLevel::Error, mModule, aMessageStream.str().c_str());
   }
   aMessageStream.clear();
 }
 inline void LoggingInterface::critical(std::stringstream &aMessageStream) {
-  if (isPrintWanted(mModule, LogLevel::CRITICAL)) {
-    log(LogLevel::CRITICAL, mModule, aMessageStream.str().c_str());
+  if (isPrintWanted(mModule, LogLevel::Critical)) {
+    log(LogLevel::Critical, mModule, aMessageStream.str().c_str());
   }
   aMessageStream.clear();
 }

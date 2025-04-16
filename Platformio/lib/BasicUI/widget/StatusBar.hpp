@@ -1,8 +1,9 @@
 #pragma once
 
-#include "DeviceFactory.hpp"
 #include "Button.hpp"
+#include "DeviceFactory.hpp"
 #include "Label.hpp"
+#include "SettingsPage.hpp"
 #include "WidgetBase.hpp"
 
 namespace UI::Widget {
@@ -14,11 +15,15 @@ public:
 
   StatusBar(DeviceFactory &factory);
 
+  void AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem);
+
 private:
   void SettingsPress();
   void ActiveListPress();
 
   DeviceFactory &mFactory;
+
+  std::vector<UI::Page::SettingsPage::InjectedItem> mExtraSettingsItems;
 
   Widget::Button *mTopBarSettingsButton;
   Widget::Button *mTopBarActiveListButton;

@@ -21,15 +21,16 @@ BasicUI::BasicUI() : UIBase() {
           return false;
         }
       });
+}
 
+void BasicUI::InitHomeScreen() {
   auto homeScreen = std::make_unique<Screen::HomeScreen>(mDeviceFactory);
   mHomeScreen = homeScreen.get();
   Screen::Manager::getInstance().pushScreen(std::move(homeScreen));
-
-  HardwareFactory::getAbstract().wifi()->begin();
 }
 
 void BasicUI::restore() {
+  InitHomeScreen();
   mDeviceFactory.restoreFromConfig();
 }
 

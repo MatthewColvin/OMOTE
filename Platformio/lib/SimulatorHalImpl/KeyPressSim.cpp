@@ -2,7 +2,7 @@
 
 #include <memory>
 
-KeyPressSim::KeyPressSim() {
+KeyPressSim::KeyPressSim() : mSDLEventNotification(std::make_shared<Notification<SDL_Event *>>()) {
   mKeyHandlerThread = std::thread(
       [this] { // Delay to avoid issues with thread init issues with SDL
         while (true) {
@@ -18,6 +18,7 @@ int KeyPressSim::GrabKeyImpl(void *aSelf, SDL_Event *aEvent) {
 }
 
 void KeyPressSim::GrabKeys(SDL_Event *aEvent) {
+  mSDLEventNotification->notify(aEvent);
   if (aEvent->type == SDL_KEYDOWN || aEvent->type == SDL_KEYUP) {
     auto keyEventType = aEvent->type == SDL_KEYDOWN ? KeyEvent::Type::Press
                                                     : KeyEvent::Type::Release;

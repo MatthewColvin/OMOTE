@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "Hardware/Littlefs/File.hpp"
 #include "lfs.h"
@@ -28,6 +29,8 @@ public:
     return File(aFilePath, get(), aFlags);
   }
 
+  std::vector<File> FilesIn(std::string aDirectory, int aFlags = LFS_O_RDWR);
+
 protected:
   void init();
 
@@ -42,6 +45,8 @@ protected:
 
   // Set this with a getInstance method in the Child Class
   static inline std::shared_ptr<LittleFsInterface> mInstance;
+  bool mMounted = false;
+  lfs_config mConfig{0};
 
 private:
   static int ReadImpl(const lfs_config *c, lfs_block_t block, lfs_off_t off,
@@ -52,7 +57,5 @@ private:
   static int SyncImpl(const lfs_config *c);
 
   bool mInited = false;
-  bool mMounted = false;
   lfs_t mLfs{0};
-  lfs_config mConfig{0};
 };

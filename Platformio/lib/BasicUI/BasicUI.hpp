@@ -13,8 +13,9 @@ public:
   BasicUI();
 
 protected:
-  void AddPageToHomeScreen(Page::Base::Ptr aPageToAdd);
-  bool GoToPage(ID anId);
+  virtual void InitHomeScreen();
+  virtual void AddPageToHomeScreen(Page::Base::Ptr aPageToAdd);
+  virtual bool GoToPage(ID anId);
 
   void restore() override;
 

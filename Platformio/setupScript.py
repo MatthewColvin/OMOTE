@@ -1,8 +1,12 @@
 import SCons
 import SCons.Environment
-import subprocess
-
 from SCons.Script import DefaultEnvironment
+
+import subprocess
+from platformio import util
+
+import os
+import shutil
 env = DefaultEnvironment()
 
 buildEnv : SCons.Environment.Base = env
@@ -62,19 +66,29 @@ def PrintInfo():
     print("Detected Platform:", buildEnv["PLATFORM"])
     print('')
 
+def removeLittleFSArduinoLib():
+    """
+    Remove the Littlefs arduino lib out of the framework so it properly builds
+    """
+    applicableBuildEnvs = ["esp32_Rev1", "esp32_Rev5", "esp32Debug"]
+    # No need to remove littlefs if the build environment does not require it
+    if (buildEnv["PIOENV"] not in applicableBuildEnvs):
+        return
 
-def remove_espLittleFsLib():
-    """
-    Remove espLittleFsLib from the build environment if it exists.
-    This is a workaround to avoid conflicts with the LittleFS library.
-    """
-    lib = "-lesp_littlefs"
-    if lib in buildEnv.get('LIBS', []):
-        buildEnv['LIBS'].remove(lib)
-        print(f"Removed {lib} from LIBS to avoid conflicts.")
-        print('')
+    platform = buildEnv.PioPlatform()
+    framework_dir = platform.get_package_dir("framework-arduinoespressif32")
+
+    littleFsArduinoLibDir = os.path.join(framework_dir,"libraries","LittleFS")
+    print("Removing Arduino littleFS From Framework To Avoid Conflict...")
+    if(os.path.isdir(littleFsArduinoLibDir)):
+        shutil.rmtree(littleFsArduinoLibDir)
+        print("Removed", littleFsArduinoLibDir)
+    else:
+        print(littleFsArduinoLibDir,"Already Removed")
+    
 
 PrintInfo()
 EnsureSubmoduleCheckout()
 verifyDependencies()
-remove_espLittleFsLib()
+
+removeLittleFSArduinoLib()

@@ -43,6 +43,7 @@ protected:
   static constexpr uint8_t CMD_PWCTRL1 = 0xD0;   // Power control 1
   static constexpr uint8_t CMD_PVGAMCTRL = 0xE0; // Positive voltage gamma control
   static constexpr uint8_t CMD_NVGAMCTRL = 0xE1; // Negative voltage gamma control
+  static constexpr uint8_t CMD_GAMMASET = 0x26; // Select Gamma curve
 
   const uint8_t *getInitCommands(uint8_t listno) const override {
     static constexpr uint8_t list0[] = {
@@ -50,6 +51,7 @@ protected:
         CMD_SLPOUT, 0 + CMD_INIT_DELAY, 130, // Exit sleep mode
         CMD_MADCTL, 1, 0x88,
         CMD_COLMOD, 1, 0x55,
+        CMD_RAMCTRL, 2, 0x00, 0xf0,
         CMD_PORCTRL, 5, 0x0c, 0x0c, 0x00, 0x33, 0x33,
         CMD_GCTRL, 1, 0x35,
         CMD_VCOMS, 1, 0x2B,
@@ -59,7 +61,7 @@ protected:
         CMD_VDVSET, 1, 0x20,
         CMD_FRCTR2, 1, 0x0f, // 0x0f=60Hz
         CMD_PWCTRL1, 2, 0xa4, 0xa1,
-
+        CMD_GAMMASET, 1, 0x01,
         //--------------------------------ST7789V gamma setting---------------------------------------//
         CMD_PVGAMCTRL, 14, 0xd0, 0x00, 0x05, 0x0e,
         0x15, 0x0d, 0x37, 0x43,

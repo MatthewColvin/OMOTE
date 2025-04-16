@@ -49,4 +49,6 @@ public:
 
   virtual uint32_t getSleepTimeout() = 0;
   virtual void setSleepTimeout(uint32_t sleepTimeout) = 0;
+
+  virtual void saveSettings() = 0;
 };

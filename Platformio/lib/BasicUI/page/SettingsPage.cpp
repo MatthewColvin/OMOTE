@@ -4,7 +4,9 @@
 #include "Colors.hpp"
 #include "DisplaySettings.hpp"
 #include "HardwareFactory.hpp"
+#include "IrLearner.hpp"
 #include "List.hpp"
+#include "LoggingSettings.hpp"
 #include "MqttSettings.hpp"
 #include "PopUpScreen.hpp"
 #include "ScreenManager.hpp"
@@ -26,6 +28,19 @@ SettingsPage::SettingsPage()
                          [this] { PushMqttSettings(); });
   mSettingsList->AddItem("System", LV_SYMBOL_SETTINGS,
                          [this] { PushSystemSettings(); });
+  mSettingsList->AddItem("IR Receiver", LV_SYMBOL_SETTINGS,
+                         [this] { PushIrReader(); });
+  mSettingsList->AddItem("Logging", LV_SYMBOL_LIST,
+                         [this] { PushLoggingSettings(); });
+}
+
+void SettingsPage::AddSettingItem(std::string aTitle, const char *aSymbol,
+                                  std::function<Base::Ptr()> aPageGetter) {
+  mSettingsList->AddItem(aTitle, aSymbol, [aPageGetter] {
+    if (auto page = aPageGetter(); page) {
+      UI::Screen::Manager::getInstance().pushPopUp(std::move(page));
+    }
+  });
 }
 
 void SettingsPage::PushDisplaySettings() {
@@ -47,4 +62,14 @@ void SettingsPage::PushMqttSettings() {
 void SettingsPage::PushWifiSettings() {
   UI::Screen::Manager::getInstance().pushPopUp(
       std::make_unique<WifiSettings>(HardwareFactory::getAbstract().wifi()));
+}
+
+void SettingsPage::PushIrReader() {
+  UI::Screen::Manager::getInstance().pushPopUp(
+      std::make_unique<Page::IrLearner>());
+}
+
+void SettingsPage::PushLoggingSettings() {
+  UI::Screen::Manager::getInstance().pushPopUp(
+      std::make_unique<LoggingSettings>());
 }

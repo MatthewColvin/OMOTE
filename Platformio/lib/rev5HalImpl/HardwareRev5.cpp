@@ -1,8 +1,15 @@
 #include "HardwareRev5.hpp"
+#include "Rev5LittleFs.hpp"
 
 #include <Adafruit_TCA8418.h>
 
 void HardwareRev5::init() {
+  mLittleFs = Rev5LittleFs::getInstance();
+  if(mLittleFs->mount())
+    Serial.println("Mounted OK");
+  else
+    Serial.println("Mounted Failed");
+    
   HardwareRevX::init();
 
   static constexpr auto MaxQueueableKeyPresses = 5;
@@ -11,6 +18,7 @@ void HardwareRev5::init() {
 
   mKeys = std::make_shared<Keys>(mKeysQueueHandle);
   setupKeyboard();
+
 #ifdef OMOTE_KEYBRD_3661
   setupLightSensor();
 #endif
@@ -44,6 +52,7 @@ void HardwareRev5::setupKeyboard() {
   keypad.writeRegister(TCA8418_REG_GPI_EM_2, KEYPAD_COLS_BITMASK);
 }
 
+#ifdef OMOTE_KEYBRD_3661
 void HardwareRev5::setupLightSensor() {
   if (ltr.begin()) {
     ltr.setGain(LTR3XX_GAIN_8);
@@ -64,6 +73,7 @@ bool HardwareRev5::lightSensorScan(uint16_t &visPlusIrLevel,
   }
   return retVal;
 }
+#endif
 
 void HardwareRev5::updateBacklightMode(uint16_t lightLevel) {
 #ifdef OMOTE_KEYBRD_3661 // do we have a light sensor
@@ -135,7 +145,7 @@ bool HardwareRev5::keyboardScan() {
                       // it does
     }
     keyIndex = col + (row * KEYPAD_COLS);
-    Serial.printf("Row:%d, Col %d, Index:%d\r\n", row, col, keyIndex);
+    //Serial.printf("Row:%d, Col %d, Index:%d\r\n", row, col, keyIndex);
 
     //  clear the EVENT IRQ flag
     keypad.writeRegister(TCA8418_REG_INT_STAT, 1);
@@ -220,14 +230,24 @@ void HardwareRev5::enableWakeupByPin() {
 }
 
 void HardwareRev5::sleepDisplayPins() {
+  pinMode(LCD_WR, OUTPUT);
   digitalWrite(LCD_WR, LOW);
+  pinMode(LCD_RD, OUTPUT);
   digitalWrite(LCD_RD, LOW);
+  pinMode(LCD_D0, OUTPUT);
   digitalWrite(LCD_D0, LOW);
+  pinMode(LCD_D1, OUTPUT);
   digitalWrite(LCD_D1, LOW);
+  pinMode(LCD_D2, OUTPUT);
   digitalWrite(LCD_D2, LOW);
+  pinMode(LCD_D3, OUTPUT);
   digitalWrite(LCD_D3, LOW);
+  pinMode(LCD_D4, OUTPUT);
   digitalWrite(LCD_D4, LOW);
+  pinMode(LCD_D5, OUTPUT);
   digitalWrite(LCD_D5, LOW);
+  pinMode(LCD_D6, OUTPUT);
   digitalWrite(LCD_D6, LOW);
+  pinMode(LCD_D7, OUTPUT);
   digitalWrite(LCD_D7, LOW);
 }

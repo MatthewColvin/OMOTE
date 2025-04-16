@@ -10,10 +10,10 @@
             "maintainer": true
         }
     ],
-    "dependencies": [
-        "HAL",
-        "LovyanGFX"
-    ],
+    "dependencies": {
+        "HAL": "HAL",
+        "LovyanGFX": "lovyan03/LovyanGFX@^1.2.0"
+    },
     "build": {
         "includeDir": ".",
         "flags": [

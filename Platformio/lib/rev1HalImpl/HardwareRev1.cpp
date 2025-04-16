@@ -5,10 +5,10 @@
 #include "omoteconfig.h"
 
 void HardwareRev1::init() {
-  HardwareRevX::init();
-  mKeys = std::make_shared<Keys>();
   mLittleFs = Rev1LittleFs::getInstance();
   mLittleFs->mount();
+  HardwareRevX::init();
+  mKeys = std::make_shared<Keys>();
 }
 
 void HardwareRev1::initIO() {
@@ -34,7 +34,9 @@ void HardwareRev1::initIO() {
 }
 
 void HardwareRev1::sleepDisplayPins() {
+  pinMode(LCD_MOSI, OUTPUT);
   digitalWrite(LCD_MOSI, LOW);
+  pinMode(LCD_SCK, OUTPUT);
   digitalWrite(LCD_SCK, LOW);
 }
 

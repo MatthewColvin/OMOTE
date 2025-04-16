@@ -1,0 +1,8 @@
+{
+    "type": "IRAction",
+    "name": "RokuHome",
+    "data": {
+        "protocol": "NEC",
+        "data": "0x5743C03F"
+    }
+}

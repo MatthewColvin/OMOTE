@@ -1,0 +1,20 @@
+#pragma once
+
+#include "Hardware/KeyPressAbstract.hpp"
+#include "IAction.hpp"
+#include "RapidJsonUtilty.hpp"
+#include <map>
+#include <memory>
+
+class KeyAction {
+public:
+  KeyAction() = default;
+  KeyAction(const MemConciousValue &aKeyPressBehaviorJson);
+  virtual ~KeyAction() = default;
+
+  void ExecuteAction(KeyPressAbstract::KeyEvent::Type aKeyEventType);
+
+private:
+  // Map the KeyEvent to an Action
+  std::map<KeyPressAbstract::KeyEvent::Type, std::unique_ptr<IAction>> mActions;
+};

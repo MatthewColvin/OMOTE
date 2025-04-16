@@ -10,7 +10,8 @@
 enum class DeviceType {
   CompileTime,
   HomeAssist,
-  MQTT
+  MQTT,
+  JSON
 };
 
 enum class DeviceId {

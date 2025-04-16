@@ -1,0 +1,28 @@
+{
+    "name": "Roku",
+    "keys": {
+        "Home": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuHome",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x5743C03F"
+                }
+            }
+        },
+        "Up": {
+            "Press": {},
+            "Release": {}
+        },
+        "Down": {
+            "Press": {}
+        },
+        "Left": {
+            "Press": {}
+        },
+        "Right": {
+            "Press": {}
+        }
+    }
+}

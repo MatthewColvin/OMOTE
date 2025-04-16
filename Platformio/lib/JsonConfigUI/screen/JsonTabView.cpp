@@ -47,15 +47,9 @@ JsonTabView::JsonTabView(DeviceFactory &aFactory, std::string aFileName)
           commandPrefix = d["Pages"][i]["CommandPrefix"].GetString();
 
         mTabView->AddTab(std::make_unique<Page::JsonPage>(fileName, pageName, commandPrefix));
-        // mTabView->AddTab(std::make_unique<Page::Heating>(HardwareFactory::getAbstract().wifi()));
       }
     }
   }
-
-  // Adds pages to the Tab view
-  // mTabView->AddTab(std::make_unique<Page::IrLearner>());
-  // mTabView->AddTab(std::make_unique<Page::Demo>());
-  // mTabView->AddTab(std::make_unique<Page::Heating>(HardwareFactory::getAbstract().wifi()));
 }
 
 void JsonTabView::AddPage(Page::Base::Ptr aPage) {

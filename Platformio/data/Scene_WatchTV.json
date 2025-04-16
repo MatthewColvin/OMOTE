@@ -3,6 +3,10 @@
   "ScreenName":"TV",
   "Pages": [
     {
+      "PageName":"Image Test",
+      "FileName":"Page_ImageTest.json"
+    },
+    {
       "PageName":"Heating (Kitchen)",
       "FileName":"Page_Heating.json",
       "CommandPrefix":"KITCHEN_"

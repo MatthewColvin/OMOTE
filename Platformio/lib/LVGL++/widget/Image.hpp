@@ -9,7 +9,7 @@ public:
    * Construct Image Given a Symbol
    *  EX: Image(LV_SYMBOL_AUDIO);
    */
-  Image(const char *aSymbol);
+  Image(const void *aSymbol);
   virtual ~Image() = default;
 
   void SetRotation(int16_t aAngle);

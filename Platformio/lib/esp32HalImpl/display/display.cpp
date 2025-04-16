@@ -119,11 +119,10 @@ Display::Display(int backlight_pin, int enable_pin)
 #if defined(OMOTE_KEYBRD_3661)
   digitalWrite(mBacklightPin, LOW);
 #else
-  // TODO UPDATE to support IDF5 and change back to HIGH so screen boots off
-  digitalWrite(mBacklightPin, LOW);
+  digitalWrite(mBacklightPin, HIGH);
 #endif
 
-  // setupBacklight(); // This eliminates the flash of the backlight
+  setupBacklight(); // This eliminates the flash of the backlight
 
 #if not defined(OMOTE_HARDWARE_REV5)
   // Slowly charge the VSW voltage to prevent a brownout
@@ -171,39 +170,19 @@ void Display::setDayMode(bool isDay) {
 }
 
 void Display::setupBacklight() {
+  ledcSetClockSource(LEDC_USE_APB_CLK); //set to APB as default of XCLK doesn't seem to work
+
   // Configure the backlight PWM
-  // Manual setup because ledcSetup() briefly turns on the backlight
-  ledc_channel_config_t ledc_channel_left;
-  ledc_channel_left.gpio_num = (gpio_num_t)mBacklightPin;
-  ledc_channel_left.speed_mode = LEDC_SPEED_MODE;
-  ledc_channel_left.channel = LEDC_CHANNEL_5;
-  ledc_channel_left.intr_type = LEDC_INTR_DISABLE;
-  ledc_channel_left.timer_sel = LEDC_TIMER_1;
-#ifdef OMOTE_KEYBRD_3661
-  ledc_channel_left.flags.output_invert = 0;
-#else
-  ledc_channel_left.flags.output_invert = 1; // Can't do this with ledcSetup()
-#endif
-  ledc_channel_left.duty = 0;
-  ledc_channel_left.hpoint = 0;
-  ledc_timer_config_t ledc_timer;
-  ledc_timer.speed_mode = LEDC_SPEED_MODE;
-  ledc_timer.duty_resolution = LEDC_TIMER_8_BIT;
-  ledc_timer.timer_num = LEDC_TIMER_1;
-  ledc_timer.clk_cfg = LEDC_USE_APB_CLK;
-  ledc_timer.freq_hz = 640;
-  ledc_channel_config(&ledc_channel_left);
-  ledc_timer_config(&ledc_timer);
+  ledcAttachChannel((gpio_num_t)mBacklightPin, 640, LEDC_TIMER_8_BIT, LCD_BACKLIGHT_LEDC_CHANNEL);
+  #ifndef OMOTE_KEYBRD_3661
+  ledcOutputInvert((gpio_num_t)mBacklightPin, true);
+  #endif
+  ledcWrite((gpio_num_t)mBacklightPin, 0);  
 
 #ifdef OMOTE_HARDWARE_REV5
   // keyboard
-
-  // ledcSetup(KBD_BACKLIGHT_LEDC_CHANNEL, 5000, 8);
-  // ledcAttachPin(KBD_BL, KBD_BACKLIGHT_LEDC_CHANNEL);
-
-  // Upgrade to Arduino CoreV3 merges Ledcsetup and attach
-  ledcAttach(KBD_BL, 5000, 8);
-  ledcWrite(KBD_BACKLIGHT_LEDC_CHANNEL, 0);
+  ledcAttachChannel(KBD_BL, 5000, LEDC_TIMER_8_BIT, KBD_BACKLIGHT_LEDC_CHANNEL);
+  ledcWrite(KBD_BL, 0);
 #endif
 }
 
@@ -254,7 +233,7 @@ void Display::setCurrentLcdBrightness(uint8_t brightness) {
   mLcdBrightness = brightness;
   auto duty = static_cast<int>(mLcdBrightness);
   if (duty < 255)
-    ledcWrite(LCD_BACKLIGHT_LEDC_CHANNEL, duty);
+    ledcWrite((gpio_num_t)mBacklightPin, duty);
   else
     ledc_stop(LEDC_SPEED_MODE, LCD_BACKLIGHT_LEDC_CHANNEL, 255);
 }
@@ -264,7 +243,7 @@ void Display::setCurrentKbdBrightness(uint8_t brightness) {
   mKbdBrightness = brightness;
   auto duty = static_cast<int>(mKbdBrightness);
   if (duty < 255)
-    ledcWrite(KBD_BACKLIGHT_LEDC_CHANNEL, duty);
+    ledcWrite(KBD_BL, duty);
   else
     ledc_stop(LEDC_LOW_SPEED_MODE, KBD_BACKLIGHT_LEDC_CHANNEL, 255);
 }

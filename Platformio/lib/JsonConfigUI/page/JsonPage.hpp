@@ -4,6 +4,7 @@
 namespace UI::Widget {
 class Label;
 class Button;
+class Image;
 } // namespace UI::Widget
 
 namespace UI::Page {

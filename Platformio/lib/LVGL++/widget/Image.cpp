@@ -4,7 +4,7 @@
 
 using namespace UI::Widget;
 
-Image::Image(const char *aSymbol)
+Image::Image(const void *aSymbol)
     : Base(lv_image_create(UI::Screen::BackgroundScreen::getLvInstance()),
            ID::Widgets::Image) {
   lv_image_set_src(LvglSelf(), aSymbol);

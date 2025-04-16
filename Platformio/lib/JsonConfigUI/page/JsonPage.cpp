@@ -1,6 +1,7 @@
 #include "JsonPage.hpp"
 #include "Button.hpp"
 #include "HardwareFactory.hpp"
+#include "Image.hpp"
 #include "Label.hpp"
 
 using namespace UI::Page;
@@ -95,6 +96,27 @@ JsonPage::JsonPage(std::string aFileName, std::string aPageName, std::string aCo
                 button->SetY(lv_pct(d["Widgets"][i]["PosY"].GetUint()));
               mWidgets.push_back(AddElement(std::move(button)));
             }
+          }
+        } else if (type == "Image") {
+          if (d["Widgets"][i].HasMember("FileName")) {
+            std::string file = d["Widgets"][i]["FileName"].GetString();
+            auto image = std::make_unique<Widget::Image>(file.c_str());
+            if (d["Widgets"][i].HasMember("HeightPct"))
+              image->SetHeight(lv_pct(d["Widgets"][i]["HeightPct"].GetUint()));
+            if (d["Widgets"][i].HasMember("SizeXYinPixels"))
+              if (d["Widgets"][i]["SizeXYinPixels"].Size() == 2)
+                image->SetSize(d["Widgets"][i]["SizeXYinPixels"][0].GetUint(), d["Widgets"][i]["SizeXYinPixels"][1].GetUint());
+            if (d["Widgets"][i].HasMember("AlignTo")) {
+              unsigned int index = d["Widgets"][i]["AlignTo"].GetUint();
+              if (index < mWidgets.size())
+                image->AlignTo(mWidgets[index], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+            }
+            // set position after align so can adjust
+            if (d["Widgets"][i].HasMember("PosX"))
+              image->SetX(lv_pct(d["Widgets"][i]["PosX"].GetUint()));
+            if (d["Widgets"][i].HasMember("PosY"))
+              image->SetY(lv_pct(d["Widgets"][i]["PosY"].GetUint()));
+            mWidgets.push_back(AddElement(std::move(image)));
           }
         }
       }

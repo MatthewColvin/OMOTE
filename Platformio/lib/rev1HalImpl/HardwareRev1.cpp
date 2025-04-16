@@ -34,7 +34,9 @@ void HardwareRev1::initIO() {
 }
 
 void HardwareRev1::sleepDisplayPins() {
+  pinMode(LCD_MOSI, OUTPUT);
   digitalWrite(LCD_MOSI, LOW);
+  pinMode(LCD_SCK, OUTPUT);
   digitalWrite(LCD_SCK, LOW);
 }
 

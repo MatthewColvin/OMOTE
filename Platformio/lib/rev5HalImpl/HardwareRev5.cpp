@@ -230,14 +230,24 @@ void HardwareRev5::enableWakeupByPin() {
 }
 
 void HardwareRev5::sleepDisplayPins() {
+  pinMode(LCD_WR, OUTPUT);
   digitalWrite(LCD_WR, LOW);
+  pinMode(LCD_RD, OUTPUT);
   digitalWrite(LCD_RD, LOW);
+  pinMode(LCD_D0, OUTPUT);
   digitalWrite(LCD_D0, LOW);
+  pinMode(LCD_D1, OUTPUT);
   digitalWrite(LCD_D1, LOW);
+  pinMode(LCD_D2, OUTPUT);
   digitalWrite(LCD_D2, LOW);
+  pinMode(LCD_D3, OUTPUT);
   digitalWrite(LCD_D3, LOW);
+  pinMode(LCD_D4, OUTPUT);
   digitalWrite(LCD_D4, LOW);
+  pinMode(LCD_D5, OUTPUT);
   digitalWrite(LCD_D5, LOW);
+  pinMode(LCD_D6, OUTPUT);
   digitalWrite(LCD_D6, LOW);
+  pinMode(LCD_D7, OUTPUT);
   digitalWrite(LCD_D7, LOW);
 }

@@ -17,6 +17,7 @@ void setup() {
   lv_init();
 
   HardwareFactory::Init();
+  lv_littlefs_set_handler(HardwareFactory::getAbstract().littleFs()->get());
   HardwareFactory::getAbstract().wifi()->begin();
 
   createUI();

@@ -216,13 +216,16 @@ void HardwareRevX::enterSleep() {
                     LIS3DH_INT1_SRC); // really clear interrupt
 
   // Prepare IO states
-  digitalWrite(LCD_DC, LOW); // LCD control signals off
+  pinMode(LCD_DC, OUTPUT); // LCD control signals off
+  digitalWrite(LCD_DC, LOW);
+  pinMode(LCD_CS, OUTPUT);
   digitalWrite(LCD_CS, LOW);
 
   sleepDisplayPins();
 
   digitalWrite(LCD_EN, HIGH); // LCD logic off
-  digitalWrite(LCD_BL, HIGH); // LCD backlight off
+  pinMode(LCD_BL, OUTPUT);
+  LCD_BL_OFF;
   pinMode(CRG_STAT, INPUT);   // Disable Pull-Up
   digitalWrite(IR_VCC, LOW);  // IR Receiver off
 

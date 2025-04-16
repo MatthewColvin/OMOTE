@@ -2,7 +2,10 @@
 #include "magic_enum.hpp"
 
 IRAction::IRAction(const std::string &aName, const std::string &aProtocol, const std::string &aHexData)
-    : IAction(aName) {}
+    : IAction(aName) {
+  auto protocol = getProtocol(aProtocol);
+  getData(protocol, aHexData);
+}
 
 void IRAction::execute() {
   auto &hardware = HardwareFactory::getAbstract();

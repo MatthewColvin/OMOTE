@@ -13,6 +13,8 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
       mList(AddNewElement<Widget::List>()) {
   SetBgColor(UI::Color::BLACK);
   SetPushAnimation(LV_SCR_LOAD_ANIM_FADE_IN);
+  // Init Factory to allow building of Json devices
+  aFactory.InitJsonFactory();
 
   static constexpr auto ContentHeight =
       SCREEN_HEIGHT - Widget::StatusBar::Height;

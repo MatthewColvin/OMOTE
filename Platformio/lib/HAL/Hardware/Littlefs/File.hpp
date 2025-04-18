@@ -14,8 +14,13 @@ public:
   File(std::string aFileName, lfs_t *aLfs,
        int aFlags = LFS_O_RDWR | LFS_O_CREAT)
       : mLfs(aLfs), mFile(std::make_unique<lfs_file_t>()) {
-    mLastStatus = lfs_file_open(mLfs, mFile.get(), aFileName.c_str(), aFlags);
-    mIsOpen = mLastStatus == 0;
+    lfs_info info;
+    if (lfs_stat(mLfs, aFileName.c_str(), &info) == 0) {
+      if (info.type == LFS_TYPE_REG) {
+        mLastStatus = lfs_file_open(mLfs, mFile.get(), aFileName.c_str(), aFlags);
+        mIsOpen = mLastStatus == 0;
+      }
+    }
   }
 
   // Don't allow copy as then you would could have double close issues

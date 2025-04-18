@@ -4,7 +4,6 @@
 #include "DeviceFactory.hpp"
 #include "HardwareAbstract.hpp"
 #include "Label.hpp"
-#include "MainTopBar.hpp"
 #include "PageBase.hpp"
 #include "ScreenBase.hpp"
 #include "StatusBar.hpp"
@@ -33,6 +32,9 @@ protected:
    * Put aNewTabView on the HomeScreen and return the old one.
    */
   std::unique_ptr<Page::TabView> SwapTabView(std::unique_ptr<Page::TabView> aNewTabView);
+
+  Widget::StatusBar *GetStatusBar() const { return mStatusBar; }
+  DeviceFactory &GetDeviceFactory() const { return mFactory; }
 
 private:
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;

@@ -9,9 +9,7 @@
 using namespace UI::Screen;
 
 JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
-    : Base(UI::ID::Screens::Home),
-      mFactory(aFactory),
-      mStatusBar(AddNewElement<Widget::StatusBar>(mFactory)),
+    : HomeScreen(aFactory),
       mList(AddNewElement<Widget::List>()) {
   SetBgColor(UI::Color::BLACK);
   SetPushAnimation(LV_SCR_LOAD_ANIM_FADE_IN);
@@ -19,7 +17,7 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   static constexpr auto ContentHeight =
       SCREEN_HEIGHT - Widget::StatusBar::Height;
   mList->SetHeight(ContentHeight);
-  mList->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
+  mList->AlignTo(GetStatusBar(), LV_ALIGN_OUT_BOTTOM_MID);
   File fp = HardwareFactory::getAbstract().littleFs()->open("Scenes.json", LFS_O_RDONLY);
   if (!fp)
     return;
@@ -43,25 +41,13 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
     }
   }
 
-  mStatusBar->AddExtraSettingItem({"Test Actions", LV_SYMBOL_LIST, [this] {
-                                     return std::make_unique<UI::Page::ActionTester>();
-                                   }});
+  GetStatusBar()->AddExtraSettingItem({"Test Actions", LV_SYMBOL_LIST, [this] {
+                                         return std::make_unique<UI::Page::ActionTester>();
+                                       }});
 }
 
 void JsonHomeScreen::displayScenePage(std::string aFileName) {
-  UI::Screen::Manager::getInstance().pushScreen(
-      std::make_unique<JsonTabView>(mFactory, aFileName));
+  // TODO Convert JsonTabView to extend the baseTabViewWIdget
+  //  auto oldSceneTabView = SwapTabView(
+  //    std::make_unique<JsonTabView>(mFactory, aFileName));
 }
-
-void JsonHomeScreen::AddPage(Page::Base::Ptr aPage) {
-  // mTabView->AddTab(std::move(aPage));
-}
-
-void JsonHomeScreen::SetBgColor(lv_color_t value, lv_style_selector_t selector) {
-  // mTabView->SetBgColor(value, selector);
-  UI::UIElement::SetBgColor(value, selector);
-}
-
-bool JsonHomeScreen::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
-  return false;
-};

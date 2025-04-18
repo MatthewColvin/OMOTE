@@ -25,6 +25,9 @@ public:
 
   ActiveDevices &getActiveDevices() { return mActiveDevices; }
 
+  // Seach the filesystem to find devices that are defined in JSON
+  std::vector<std::shared_ptr<IDevice>> getJsonDevices(std::string aDevicesDirectory = "/Devices");
+
   void restoreFromConfig();
 
 private:

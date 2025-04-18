@@ -36,6 +36,13 @@ IDevice::Ptr DeviceFactory::CreateJsonDevice(const std::string &aDeviceJsonFileP
   return mJsonFactory->Create(aDeviceJsonFilePath);
 }
 
+std::vector<std::shared_ptr<IDevice>> DeviceFactory::getJsonDevices(std::string aDevicesDirectory) {
+  if (mJsonFactory) {
+    return mJsonFactory->getDevices(aDevicesDirectory);
+  }
+  return {};
+}
+
 void DeviceFactory::restoreFromConfig() {
   auto devices = mDeviceConfig->loadDevices();
   mActiveDevices.restoreDevices(devices);

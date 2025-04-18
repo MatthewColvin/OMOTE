@@ -4,24 +4,44 @@
 
 namespace Json {
 
-JsonDeviceFactory::JsonDeviceFactory() {}
+JsonDeviceFactory::JsonDeviceFactory() : mFs(HardwareFactory::getAbstract().littleFs()) {}
 
 IDevice::Ptr JsonDeviceFactory::Create(const MemConciousValue &aDeviceJson) {
   return std::make_shared<JsonDevice>(aDeviceJson);
 }
 
 IDevice::Ptr JsonDeviceFactory::Create(const std::string &aFilePathToDevice) {
-  auto deviceFile = HardwareFactory::getAbstract().littleFs()->open(aFilePathToDevice);
+  auto deviceFile = mFs->open(aFilePathToDevice);
+  return Create(deviceFile);
+}
+
+IDevice::Ptr JsonDeviceFactory::Create(File &aDeviceFile) {
   constexpr auto maxDeviceFileSize = 2000;
-  if (deviceFile.size() > maxDeviceFileSize) {
+  if (aDeviceFile.size() > maxDeviceFileSize) {
     return nullptr;
   }
 
-  auto deviceJsonStr = deviceFile.read(maxDeviceFileSize);
+  auto deviceJsonStr = aDeviceFile.read(maxDeviceFileSize);
   MemConsciousDocument deviceJson;
   deviceJson.Parse(deviceJsonStr.c_str());
 
   return Create(deviceJson);
+}
+
+std::vector<std::shared_ptr<IDevice>> JsonDeviceFactory::getDevices(const std::string &aDirectory) {
+  if (!mFs->isDir(aDirectory)) {
+    return {};
+  }
+
+  std::vector<std::shared_ptr<IDevice>> devices;
+  for (auto &file : mFs->FilesIn(aDirectory)) {
+    auto device = Create(file);
+    if (device) {
+      devices.push_back(device);
+    }
+  }
+
+  return devices;
 }
 
 } // namespace Json

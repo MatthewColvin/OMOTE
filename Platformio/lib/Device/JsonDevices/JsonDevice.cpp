@@ -2,15 +2,19 @@
 
 namespace Json {
 
-JsonDevice::JsonDevice(const MemConciousValue &aConfig) {
-  mName = aConfig["name"].GetString();
+JsonDevice::JsonDevice(File &aDeviceJsonFile) {
+  constexpr auto maxDeviceFileSize = 2000;
+  if (aDeviceJsonFile.size() > maxDeviceFileSize) {
+    mIsValid = false;
+    return;
+  }
+
+  auto deviceJsonStr = aDeviceJsonFile.read(maxDeviceFileSize);
+  MemConsciousDocument deviceJson;
+  deviceJson.Parse(deviceJsonStr.c_str());
+
+  mName = deviceJson["name"].GetString();
   mId = DeviceId::None;
-
-  // TODO switch the constructor to take file name so it can
-  // Persist and restore correctly
-
-  // Parse Keys Json by making function that loops over keyids
-  // and add to the key actions map
 }
 
 std::string JsonDevice::GetName() const {
@@ -57,6 +61,10 @@ std::unique_ptr<UI::Page::Base> JsonDevice::GetControlPage() {
   // Return nullptr for now - this would need to be implemented based on your UI system
   // Maybe device could define page json?
   return nullptr;
+}
+
+bool JsonDevice::isValid() const {
+  return mIsValid;
 }
 
 } // namespace Json

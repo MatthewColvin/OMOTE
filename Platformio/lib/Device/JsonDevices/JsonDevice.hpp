@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Hardware/Littlefs/File.hpp"
 #include "IDevice.hpp"
 #include "JsonDevices/KeyAction.hpp"
 #include "RapidJsonUtilty.hpp"
@@ -10,7 +11,7 @@ class JsonDevice : public IDevice {
 public:
   // TODO Need to update to use filepath here so
   // it can be stored off when we save active devices
-  explicit JsonDevice(const MemConciousValue &aConfig);
+  explicit JsonDevice(File &aJsonDeviceFile);
   virtual ~JsonDevice() = default;
 
   // Core device information
@@ -29,12 +30,16 @@ public:
   bool HandleKeyEvent(KeyPressAbstract::KeyEvent event) override;
   std::unique_ptr<UI::Page::Base> GetControlPage() override;
 
+  bool isValid() const;
+
 private:
   std::string mName;
   std::map<KeyPressAbstract::KeyId, KeyAction> mKeyActions;
 
   DeviceId mId;
   DeviceType mType;
+
+  bool mIsValid = false;
 };
 
 } // namespace Json

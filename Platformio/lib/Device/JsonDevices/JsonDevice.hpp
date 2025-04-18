@@ -9,9 +9,15 @@ namespace Json {
 
 class JsonDevice : public IDevice {
 public:
-  // TODO Need to update to use filepath here so
-  // it can be stored off when we save active devices
-  explicit JsonDevice(File &aJsonDeviceFile);
+  enum class ParseResult {
+    Success,
+    GeneralInfoError,
+    KeyActionsError,
+    FileError,
+    Invalid
+  };
+
+  explicit JsonDevice(File &aDeviceJsonFile);
   virtual ~JsonDevice() = default;
 
   // Core device information
@@ -23,8 +29,8 @@ public:
   DeviceType GetType() const override;
   DeviceId GetId() const override;
 
-  void SetExtraConfig(const MemConsciousDocument &config);
-  MemConsciousDocument GetExtraConfig() const;
+  // Data used on bootup to restore json device
+  MemConsciousDocument GetExtraConfig() const override;
 
   // Interaction handlers
   bool HandleKeyEvent(KeyPressAbstract::KeyEvent event) override;
@@ -32,14 +38,20 @@ public:
 
   bool isValid() const;
 
+protected:
+  ParseResult parse(const MemConsciousDocument &aJson);
+  bool parseGeneralInfo(const MemConsciousDocument &aJson);
+  bool parseKeyActions(const MemConciousValue &aKeysJson);
+
 private:
   std::string mName;
-  std::map<KeyPressAbstract::KeyId, KeyAction> mKeyActions;
+  std::string mFilePath;
+  std::map<KeyPressAbstract::KeyId, std::unique_ptr<KeyAction>> mKeyActions;
 
   DeviceId mId;
   DeviceType mType;
 
-  bool mIsValid = false;
+  ParseResult mParseResult = ParseResult::Invalid;
 };
 
 } // namespace Json

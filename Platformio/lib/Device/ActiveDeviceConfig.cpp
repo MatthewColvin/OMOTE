@@ -81,18 +81,22 @@ std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
       device = mFactory.Create(id);
     }
     if (deviceObj.HasMember("config")) {
+      auto &configObj = deviceObj["config"];
       HardwareFactory::getAbstract().debugPrint("Found Config");
-      MemConsciousDocument configDoc;
-      configDoc.CopyFrom(deviceObj["config"], configDoc.GetAllocator());
-      // Check Config for entityId to build HA Device
-      if (!device && configDoc.HasMember("entityId") && configDoc["entityId"].IsString()) {
-        HardwareFactory::getAbstract().debugPrint("found");
-        if (std::string entityIdFromConfig = configDoc["entityId"].GetString(); !entityIdFromConfig.empty()) {
-          device = mFactory.CreateHomeAssistDevice(entityIdFromConfig);
-        }
+      switch (type) {
+      case DeviceType::HomeAssist:
+        device = createHomeAssistDevice(configObj);
+        break;
+      case DeviceType::JSON:
+        device = createJsonDevice(configObj);
+        break;
+      default:
+        break;
       }
 
       if (device) {
+        MemConsciousDocument configDoc;
+        configDoc.CopyFrom(configObj, configDoc.GetAllocator());
         device->SetExtraConfig(configDoc);
       }
     }
@@ -103,4 +107,26 @@ std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
   }
 
   return devices;
+}
+
+std::shared_ptr<IDevice> ActiveDeviceConfig::createHomeAssistDevice(const MemConciousValue &aActiveDeviceJsonConfigMember) {
+  MemConsciousDocument configDoc;
+  configDoc.CopyFrom(aActiveDeviceJsonConfigMember, configDoc.GetAllocator());
+  // Check Config for entityId to build HA Device
+  if (configDoc.HasMember("entityId") && configDoc["entityId"].IsString()) {
+    HardwareFactory::getAbstract().debugPrint("found");
+    if (std::string entityIdFromConfig = configDoc["entityId"].GetString(); !entityIdFromConfig.empty()) {
+      return mFactory.CreateHomeAssistDevice(entityIdFromConfig);
+    }
+  }
+  return nullptr;
+}
+
+std::shared_ptr<IDevice> ActiveDeviceConfig::createJsonDevice(const MemConciousValue &aActiveDeviceJsonConfigMember) {
+  if (!aActiveDeviceJsonConfigMember.HasMember("file_path") ||
+      !aActiveDeviceJsonConfigMember["file_path"].IsString()) {
+    return nullptr;
+  }
+  auto filePath = aActiveDeviceJsonConfigMember["file_path"].GetString();
+  return mFactory.CreateJsonDevice(filePath);
 }

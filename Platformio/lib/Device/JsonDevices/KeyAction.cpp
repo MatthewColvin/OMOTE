@@ -18,6 +18,10 @@ KeyAction::KeyAction(const MemConciousValue &aKeyPressBehaviorJson) {
   }
 }
 
+bool KeyAction::isValid() const {
+  return !mActions.empty();
+}
+
 void KeyAction::ExecuteAction(KeyPressAbstract::KeyEvent::Type aKeyEventType) {
   auto it = mActions.find(aKeyEventType);
   if (it != mActions.end()) {

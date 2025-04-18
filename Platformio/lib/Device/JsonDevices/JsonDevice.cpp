@@ -1,11 +1,12 @@
 #include "JsonDevices/JsonDevice.hpp"
+#include "magic_enum.hpp"
 
 namespace Json {
 
 JsonDevice::JsonDevice(File &aDeviceJsonFile) {
   constexpr auto maxDeviceFileSize = 2000;
   if (aDeviceJsonFile.size() > maxDeviceFileSize) {
-    mIsValid = false;
+    mParseResult = ParseResult::FileError;
     return;
   }
 
@@ -13,8 +14,40 @@ JsonDevice::JsonDevice(File &aDeviceJsonFile) {
   MemConsciousDocument deviceJson;
   deviceJson.Parse(deviceJsonStr.c_str());
 
-  mName = deviceJson["name"].GetString();
+  mParseResult = parse(deviceJson);
+}
+
+JsonDevice::ParseResult JsonDevice::parse(const MemConsciousDocument &aDeviceJson) {
+  if (!parseGeneralInfo(aDeviceJson)) {
+    return ParseResult::GeneralInfoError;
+  }
+  if (aDeviceJson.HasMember("keys") && !parseKeyActions(aDeviceJson["keys"])) {
+    return ParseResult::KeyActionsError;
+  }
+  return ParseResult::Success;
+}
+
+bool JsonDevice::parseGeneralInfo(const MemConsciousDocument &aDeviceJson) {
+  // Todo add color info and checks
+  mName = aDeviceJson["name"].GetString();
   mId = DeviceId::None;
+  return true;
+}
+
+bool JsonDevice::parseKeyActions(const MemConciousValue &aKeysJson) {
+  if (!aKeysJson.IsObject()) {
+    return false;
+  }
+  for (auto keyEnum : magic_enum::enum_values<KeyPressAbstract::KeyId>()) {
+    auto keyIdStr = magic_enum::enum_name(keyEnum);
+    if (aKeysJson.HasMember(keyIdStr.data())) {
+      auto keyAction = std::make_unique<KeyAction>(aKeysJson[keyIdStr.data()]);
+      if (keyAction->isValid()) {
+        mKeyActions[keyEnum] = std::move(keyAction);
+      }
+    }
+  }
+  return true;
 }
 
 std::string JsonDevice::GetName() const {
@@ -39,12 +72,16 @@ DeviceId JsonDevice::GetId() const {
 }
 
 MemConsciousDocument JsonDevice::GetExtraConfig() const {
-  // TODO add File path to Device so it can be restored on boot
-  return {};
-}
+  MemConsciousDocument extraInfo;
+  auto &alloc = extraInfo.GetAllocator();
+  extraInfo.SetObject();
 
-void JsonDevice::SetExtraConfig(const MemConsciousDocument &config) {
-  // TODO restore from file
+  MemConciousValue filePath;
+  filePath.SetString(mFilePath.c_str(), alloc);
+
+  extraInfo.AddMember("file_path", filePath, alloc);
+
+  return extraInfo;
 }
 
 bool JsonDevice::HandleKeyEvent(KeyPressAbstract::KeyEvent aEvent) {
@@ -53,7 +90,7 @@ bool JsonDevice::HandleKeyEvent(KeyPressAbstract::KeyEvent aEvent) {
   }
   // TODO should we have ExecuteAction and execute return bool?
   auto &keyHandler = mKeyActions[aEvent.mId];
-  keyHandler.ExecuteAction(aEvent.mType);
+  keyHandler->ExecuteAction(aEvent.mType);
   return true;
 }
 
@@ -64,7 +101,7 @@ std::unique_ptr<UI::Page::Base> JsonDevice::GetControlPage() {
 }
 
 bool JsonDevice::isValid() const {
-  return mIsValid;
+  return mParseResult == ParseResult::Success;
 }
 
 } // namespace Json

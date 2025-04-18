@@ -4,7 +4,6 @@
 #include "DeviceFactory.hpp"
 #include "HardwareAbstract.hpp"
 #include "Label.hpp"
-#include "MainTopBar.hpp"
 #include "PageBase.hpp"
 #include "ScreenBase.hpp"
 #include "StatusBar.hpp"
@@ -26,9 +25,20 @@ public:
   bool GoToPage(ID anId) { return mTabView->GoToTab(anId); }
 
 protected:
-  bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
+  // Height of the tabview under the status bar on the homescreen
+  static constexpr auto ContentHeight = SCREEN_HEIGHT - Widget::StatusBar::Height;
+
+  /**
+   * Put aNewTabView on the HomeScreen and return the old one.
+   */
+  std::unique_ptr<Page::TabView> SwapTabView(std::unique_ptr<Page::TabView> aNewTabView);
+
+  Widget::StatusBar *GetStatusBar() const { return mStatusBar; }
+  DeviceFactory &GetDeviceFactory() const { return mFactory; }
 
 private:
+  bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
+
   DeviceFactory &mFactory;
 
   Page::TabView *mTabView;

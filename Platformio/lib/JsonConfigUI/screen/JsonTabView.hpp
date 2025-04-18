@@ -1,41 +1,13 @@
 #pragma once
 #include <string>
 
-#include "DeviceFactory.hpp"
-#include "HardwareAbstract.hpp"
-#include "Label.hpp"
-#include "MainTopBar.hpp"
-#include "PageBase.hpp"
-#include "ScreenBase.hpp"
-#include "StatusBar.hpp"
 #include "TabView.hpp"
 
-namespace UI::Screen {
+namespace UI::Page {
 
-#define TOP_BAR_HEIGHT 20
-
-class JsonTabView : public Base {
+class JsonTabView : public TabView {
 public:
-  JsonTabView(DeviceFactory &factory, std::string aFileName);
-
-  void SetBgColor(lv_color_t value,
-                  lv_style_selector_t selector = LV_PART_MAIN) override;
-
-  void AddPage(Page::Base::Ptr aPage);
-
-  bool GoToPage(ID anId) { return mTabView->GoToTab(anId); }
-
-protected:
-  bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
-
-private:
-  void ActiveListPress();
-  void SettingsPress();
-
-  DeviceFactory &mFactory;
-
-  Page::TabView *mTabView;
-  Widget::StatusBar *mStatusBar;
+  JsonTabView(std::string aFileName);
 };
 
-} // namespace UI::Screen
+} // namespace UI::Page

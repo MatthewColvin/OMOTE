@@ -21,7 +21,7 @@ public:
 
   IDevice::Ptr Create(DeviceId aId);
   IDevice::Ptr CreateHomeAssistDevice(const std::string &aEntityString);
-  IDevice::Ptr CreateJsonDevice(const MemConciousValue &aDeviceJson);
+  IDevice::Ptr CreateJsonDevice(const std::string &aDeviceJsonFilePath);
 
   ActiveDevices &getActiveDevices() { return mActiveDevices; }
 

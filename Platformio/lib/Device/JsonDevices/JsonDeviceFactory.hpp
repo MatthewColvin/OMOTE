@@ -1,8 +1,8 @@
 #pragma once
 
 #include "IDevice.hpp"
-#include "RapidJsonUtilty.hpp"
 #include "JsonDevices/KeyAction.hpp"
+#include "RapidJsonUtilty.hpp"
 #include <memory>
 #include <string>
 
@@ -12,6 +12,7 @@ class JsonDeviceFactory {
 public:
   JsonDeviceFactory();
   IDevice::Ptr Create(const MemConciousValue &aDeviceJson);
+  IDevice::Ptr Create(const std::string &aFilePathToDevice);
 };
 
 } // namespace Json

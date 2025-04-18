@@ -29,11 +29,11 @@ IDevice::Ptr DeviceFactory::CreateHomeAssistDevice(const std::string &aEntityStr
   return mHomeAssistFactory->Create(aEntityString);
 }
 
-IDevice::Ptr DeviceFactory::CreateJsonDevice(const MemConciousValue &aDeviceJson) {
+IDevice::Ptr DeviceFactory::CreateJsonDevice(const std::string &aDeviceJsonFilePath) {
   if (!mJsonFactory) {
     return nullptr;
   }
-  return mJsonFactory->Create(aDeviceJson);
+  return mJsonFactory->Create(aDeviceJsonFilePath);
 }
 
 void DeviceFactory::restoreFromConfig() {

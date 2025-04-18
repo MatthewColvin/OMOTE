@@ -29,7 +29,10 @@ public:
     return File(aFilePath, get(), aFlags);
   }
 
-  std::vector<File> FilesIn(std::string aDirectory, int aFlags = LFS_O_RDWR);
+  std::vector<File> FilesIn(const std::string &aDirectory, int aFlags = LFS_O_RDWR);
+
+  bool isDir(const std::string &aPath);
+  bool isFile(const std::string &aPath);
 
 protected:
   void init();
@@ -49,6 +52,8 @@ protected:
   lfs_config mConfig{0};
 
 private:
+  bool isType(const std::string &aPath, lfs_type aType);
+
   static int ReadImpl(const lfs_config *c, lfs_block_t block, lfs_off_t off,
                       void *buffer, lfs_size_t size);
   static int ProgImpl(const lfs_config *c, lfs_block_t block, lfs_off_t off,

@@ -17,6 +17,8 @@ public:
             const std::vector<std::string> &aDeviceNames,
             DeviceCreatorTy aDeviceCreationCallback);
 
+  AddDevice(ActiveDevices &aActiveDevices, std::vector<std::shared_ptr<IDevice>> aDevices);
+
   virtual ~AddDevice() = default;
 
   // Override from Base so title is shown to user
@@ -25,11 +27,15 @@ public:
 private:
   void OnAddButtonClicked();
 
+  void InitWidgets();
+
   Widget::Label *mInstructionLabel;
   Widget::Roller<std::string> *mDeviceTypeRoller;
   Widget::Button *mAddButton;
   ActiveDevices &mActiveDevices;
   DeviceCreatorTy mDeviceCreator;
+
+  std::vector<std::shared_ptr<IDevice>> mDevices;
 };
 
 } // namespace UI::Page

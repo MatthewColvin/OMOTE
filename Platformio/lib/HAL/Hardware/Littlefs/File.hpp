@@ -95,7 +95,7 @@ public:
     return lfs_file_tell(mLfs, mFile.get());
   }
 
-  int size(lfs_soff_t &size) {
+  int size() {
     if (!mLfs) {
       return 0;
     }

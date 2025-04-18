@@ -11,9 +11,11 @@ class File {
 public:
   using lfsStatusCode = int;
 
-  File(std::string aFileName, lfs_t *aLfs,
+  File(const std::string &aFileName, lfs_t *aLfs,
        int aFlags = LFS_O_RDWR | LFS_O_CREAT)
-      : mLfs(aLfs), mFile(std::make_unique<lfs_file_t>()) {
+      : mLfs(aLfs),
+        mFile(std::make_unique<lfs_file_t>()),
+        mPath(aFileName) {
     lfs_info info;
     if (lfs_stat(mLfs, aFileName.c_str(), &info) == 0) {
       if (info.type == LFS_TYPE_REG) {
@@ -30,6 +32,7 @@ public:
   // Moving is fine as then you will be fine with the close
   File(File &&aOther) noexcept
       : mFile(std::move(aOther.mFile)),
+        mPath(aOther.mPath),
         mLfs(aOther.mLfs),
         mLastStatus(aOther.mLastStatus),
         mIsOpen(aOther.mIsOpen) {
@@ -48,6 +51,7 @@ public:
       mLfs = aOther.mLfs;
       mLastStatus = aOther.mLastStatus;
       mIsOpen = aOther.mIsOpen;
+      mPath = aOther.mPath;
 
       // Clear the source object's members WITHOUT closing the file
       aOther.mLfs = nullptr;
@@ -111,6 +115,10 @@ public:
     return lfs_file_truncate(mLfs, mFile.get(), aTruncationSize);
   }
 
+  std::string GetPath() const {
+    return mPath;
+  }
+
   operator bool() const { return mLfs && mLastStatus == 0 && mIsOpen; }
 
 protected:
@@ -123,6 +131,7 @@ protected:
 
 private:
   std::unique_ptr<lfs_file_t> mFile = nullptr;
+  std::string mPath;
   lfs_t *mLfs;
   lfsStatusCode mLastStatus = 0;
   bool mIsOpen = false;

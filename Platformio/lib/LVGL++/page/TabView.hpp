@@ -1,3 +1,5 @@
+#pragma once
+
 #include "PageBase.hpp"
 #include <functional>
 

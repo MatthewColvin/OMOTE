@@ -18,11 +18,12 @@ public:
         mFile(std::make_unique<lfs_file_t>()),
         mPath(aFileName) {
     lfs_info info;
-    if (lfs_stat(mLfs, aFileName.c_str(), &info) == 0) {
-      if (info.type == LFS_TYPE_REG) {
-        mLastStatus = lfs_file_open(mLfs, mFile.get(), aFileName.c_str(), aFlags);
-        mIsOpen = mLastStatus == 0;
-      }
+    auto isExistingFile =
+        lfs_stat(mLfs, aFileName.c_str(), &info) == 0 && info.type == LFS_TYPE_REG;
+
+    if (isExistingFile || aFlags & LFS_O_CREAT) {
+      mLastStatus = lfs_file_open(mLfs, mFile.get(), aFileName.c_str(), aFlags);
+      mIsOpen = mLastStatus == 0;
     }
   }
 

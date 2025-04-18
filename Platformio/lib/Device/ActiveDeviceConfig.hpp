@@ -22,7 +22,7 @@ public:
   std::vector<IDevice::Ptr> loadDevices();
 
 private:
-  static constexpr auto ACTIVE_DEVICES_CONFIG_FILE = "/devices.json";
+  static constexpr auto ACTIVE_DEVICES_CONFIG_FILE = "/activeDevices.json";
   std::shared_ptr<LittleFsInterface> mFs;
   DeviceFactory &mFactory;
 

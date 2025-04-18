@@ -1,6 +1,7 @@
 #include "JsonHomeScreen.hpp"
 
 #include "ActionTester.hpp"
+#include "AddDevice.hpp"
 #include "HardwareFactory.hpp"
 #include "JsonTabView.hpp"
 #include "ScreenManager.hpp"
@@ -45,6 +46,11 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
 
   mStatusBar->AddExtraSettingItem({"Test Actions", LV_SYMBOL_LIST, [this] {
                                      return std::make_unique<UI::Page::ActionTester>();
+                                   }});
+  mStatusBar->AddExtraSettingItem({"Add Json Device", LV_SYMBOL_EDIT, [this] {
+                                     auto jsonDevices = mFactory.getJsonDevices();
+                                     // return std::make_unique<UI::Page::AddDevice>(ActiveDevices, jsonDevices);
+                                     return nullptr;
                                    }});
 }
 

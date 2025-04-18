@@ -3,7 +3,6 @@
 #include "ActionTester.hpp"
 #include "HardwareFactory.hpp"
 #include "JsonTabView.hpp"
-#include "ScreenManager.hpp"
 #include "SettingsPage.hpp"
 
 using namespace UI::Screen;
@@ -47,7 +46,8 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
 }
 
 void JsonHomeScreen::displayScenePage(std::string aFileName) {
-  // TODO Convert JsonTabView to extend the baseTabViewWIdget
-  //  auto oldSceneTabView = SwapTabView(
-  //    std::make_unique<JsonTabView>(mFactory, aFileName));
+  // Use Base class HomeScreen replacing its tabview to represent the new scene.
+  auto oldSceneTabView = SwapTabView(
+      std::make_unique<UI::Page::JsonTabView>(aFileName));
+  // TODO: Save the non scene tabview and then restore it when scene is complete?
 }

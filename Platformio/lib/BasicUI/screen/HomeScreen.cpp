@@ -20,8 +20,6 @@ HomeScreen::HomeScreen(DeviceFactory &aFactory)
   SetBgColor(UI::Color::BLACK);
   SetPushAnimation(LV_SCR_LOAD_ANIM_FADE_IN);
 
-  static constexpr auto ContentHeight =
-      SCREEN_HEIGHT - Widget::StatusBar::Height;
   mTabView->SetHeight(ContentHeight);
   mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
 
@@ -43,3 +41,11 @@ void HomeScreen::SetBgColor(lv_color_t value, lv_style_selector_t selector) {
 bool HomeScreen::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   return false;
 };
+
+std::unique_ptr<UI::Page::TabView> HomeScreen::SwapTabView(std::unique_ptr<UI::Page::TabView> aNewTabView) {
+  auto oldTabView = RemoveElement(mTabView);
+  mTabView = AddElement(std::move(aNewTabView));
+  mTabView->SetHeight(ContentHeight);
+  mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
+  return std::unique_ptr<UI::Page::TabView>(static_cast<UI::Page::TabView *>(oldTabView.release()));
+}

@@ -26,9 +26,17 @@ public:
   bool GoToPage(ID anId) { return mTabView->GoToTab(anId); }
 
 protected:
-  bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
+  // Height of the tabview under the status bar on the homescreen
+  static constexpr auto ContentHeight = SCREEN_HEIGHT - Widget::StatusBar::Height;
+
+  /**
+   * Put aNewTabView on the HomeScreen and return the old one.
+   */
+  std::unique_ptr<Page::TabView> SwapTabView(std::unique_ptr<Page::TabView> aNewTabView);
 
 private:
+  bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
+
   DeviceFactory &mFactory;
 
   Page::TabView *mTabView;

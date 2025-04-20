@@ -43,6 +43,8 @@ public:
 protected:
   void OnLvglEvent(lv_event_t *anEvent) override;
 
+  Page::Tab *GetCurrentTab();
+
 private:
   void HandleTabChange();
 

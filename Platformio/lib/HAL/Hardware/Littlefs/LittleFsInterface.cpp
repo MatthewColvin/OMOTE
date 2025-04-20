@@ -44,6 +44,9 @@ std::vector<File> LittleFsInterface::FilesIn(const std::string &aDirectoryPath, 
       files.push_back(open(fullPath.c_str(), aFlags));
     }
   }
+
+  lfs_dir_close(&mLfs, &dir);
+
   return files;
 }
 

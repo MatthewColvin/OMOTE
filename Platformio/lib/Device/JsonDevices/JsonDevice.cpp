@@ -4,7 +4,7 @@
 namespace Json {
 
 JsonDevice::JsonDevice(File &aDeviceJsonFile) {
-  constexpr auto maxDeviceFileSize = 2000;
+  constexpr auto maxDeviceFileSize = 5000;
   if (aDeviceJsonFile.size() > maxDeviceFileSize) {
     mParseResult = ParseResult::FileError;
     return;

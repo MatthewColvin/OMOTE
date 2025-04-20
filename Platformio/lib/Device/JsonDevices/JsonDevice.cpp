@@ -15,6 +15,10 @@ JsonDevice::JsonDevice(File &aDeviceJsonFile) {
   deviceJson.Parse(deviceJsonStr.c_str());
 
   mParseResult = parse(deviceJson);
+
+  if (mParseResult == ParseResult::Success) {
+    mFilePath = aDeviceJsonFile.GetPath();
+  }
 }
 
 JsonDevice::ParseResult JsonDevice::parse(const MemConsciousDocument &aDeviceJson) {

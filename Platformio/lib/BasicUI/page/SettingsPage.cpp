@@ -20,18 +20,12 @@ using namespace UI::Color;
 SettingsPage::SettingsPage()
     : Base(ID::Pages::Settings), mSettingsList(AddNewElement<Widget::List>()) {
 
-  mSettingsList->AddItem("Display", LV_SYMBOL_EYE_OPEN,
-                         [this] { PushDisplaySettings(); });
-  mSettingsList->AddItem("Wifi", LV_SYMBOL_WIFI,
-                         [this] { PushWifiSettings(); });
-  mSettingsList->AddItem("MQTT", LV_SYMBOL_HOME,
-                         [this] { PushMqttSettings(); });
-  mSettingsList->AddItem("System", LV_SYMBOL_SETTINGS,
-                         [this] { PushSystemSettings(); });
-  mSettingsList->AddItem("IR Receiver", LV_SYMBOL_SETTINGS,
-                         [this] { PushIrReader(); });
-  mSettingsList->AddItem("Logging", LV_SYMBOL_LIST,
-                         [this] { PushLoggingSettings(); });
+  mSettingsList->AddItem("Display", LV_SYMBOL_EYE_OPEN, [this] { PushDisplaySettings(); }, mHeight);
+  mSettingsList->AddItem("Wifi", LV_SYMBOL_WIFI, [this] { PushWifiSettings(); }, mHeight);
+  mSettingsList->AddItem("MQTT", LV_SYMBOL_HOME, [this] { PushMqttSettings(); }, mHeight);
+  mSettingsList->AddItem("System", LV_SYMBOL_SETTINGS, [this] { PushSystemSettings(); }, mHeight);
+  mSettingsList->AddItem("IR Receiver", LV_SYMBOL_SETTINGS, [this] { PushIrReader(); }, mHeight);
+  mSettingsList->AddItem("Logging", LV_SYMBOL_LIST, [this] { PushLoggingSettings(); }, mHeight);
 }
 
 void SettingsPage::AddSettingItem(std::string aTitle, const char *aSymbol,
@@ -39,8 +33,7 @@ void SettingsPage::AddSettingItem(std::string aTitle, const char *aSymbol,
   mSettingsList->AddItem(aTitle, aSymbol, [aPageGetter] {
     if (auto page = aPageGetter(); page) {
       UI::Screen::Manager::getInstance().pushPopUp(std::move(page));
-    }
-  });
+    } }, mHeight);
 }
 
 void SettingsPage::PushDisplaySettings() {

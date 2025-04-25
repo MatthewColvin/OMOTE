@@ -18,12 +18,16 @@ LoggingSettings::LoggingSettings() : Base(ID::Pages::LoggingSettings) {
   }
 }
 
+LoggingSettings::~LoggingSettings() {
+  LoggingInterface::saveSettings();
+}
+
 void LoggingSettings::AddRow(LogModule aModule, bool aIsFirst) {
   // Create label for this module
   auto moduleName = std::string(magic_enum::enum_name(aModule));
   auto label = AddNewElement<Widget::Label>(moduleName);
   label->SetWidth(LABEL_WIDTH);
-  label->SetHeight(30);
+  label->SetHeight(25);
   if (aIsFirst) {
     label->AlignTo(this, LV_ALIGN_TOP_LEFT, SPACING, SPACING);
   } else {

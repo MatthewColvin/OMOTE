@@ -13,6 +13,7 @@ namespace UI::Widget {
 StatusBar::StatusBar(DeviceFactory &aFactory)
     : Base(ID::Widgets::StatusBar),
       mFactory(aFactory),
+      mSceneChange(std::make_shared<Notification<std::string>>()),
       mTopBarBatteryLabel(AddNewElement<Widget::Label>("")),
       mTopBarWiFiLabel(AddNewElement<Widget::Label>("")),
       mTopBarSOCLabel(AddNewElement<Widget::Label>("--%")),
@@ -37,6 +38,7 @@ StatusBar::StatusBar(DeviceFactory &aFactory)
   mTopBarSOCLabel->SetHeight(Height);
   mTopBarSOCLabel->SetWidth(40);
   mTopBarSOCLabel->SetTextStyle(UI::TextStyle().Align(LV_TEXT_ALIGN_CENTER));
+  mTopBarActiveListLabel->SetLongMode(LV_LABEL_LONG_SCROLL_CIRCULAR);
   mTopBarActiveListLabel->SetHeight(Height);
   mTopBarActiveListLabel->SetWidth(mTopBarActiveListButton->GetWidth());
   mTopBarActiveListLabel->SetTextStyle(UI::TextStyle().Align(LV_TEXT_ALIGN_CENTER));
@@ -57,6 +59,10 @@ void StatusBar::AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem) 
   mExtraSettingsItems.push_back(aItem);
 }
 
+void StatusBar::SetTopButtonLabel(std::string aLabel) {
+  mTopBarActiveListLabel->SetText(aLabel);
+}
+
 void StatusBar::SettingsPress() {
   auto settings = std::make_unique<Page::SettingsPage>();
   for (auto &item : mExtraSettingsItems) {
@@ -68,8 +74,10 @@ void StatusBar::SettingsPress() {
 }
 
 void StatusBar::ActiveListPress() {
-  UI::Screen::Manager::getInstance().pushPopUp(
-      std::make_unique<Page::ActiveDeviceList>(mFactory), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
+  // UI::Screen::Manager::getInstance().pushPopUp(
+  //     std::make_unique<Page::ActiveDeviceList>(mFactory), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
+  //  Example of triggering handler to run using notify
+  mSceneChange->notify("TheNewScene");
 }
 
 } // namespace UI::Widget

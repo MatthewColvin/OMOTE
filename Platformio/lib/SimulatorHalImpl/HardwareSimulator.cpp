@@ -49,6 +49,10 @@ std::shared_ptr<LittleFsInterface> HardwareSimulator::littleFs() {
   return mLittleFsSim;
 }
 
+void HardwareSimulator::init() {
+  LoggingInterface::restoreSettings();
+}
+
 void HardwareSimulator::loopHandler() {
   static auto oldTime = std::chrono::high_resolution_clock::now();
 
@@ -56,6 +60,7 @@ void HardwareSimulator::loopHandler() {
   if (std::chrono::duration_cast<std::chrono::milliseconds>(now - oldTime) > std::chrono::milliseconds(25)) {
     mBattery->getPercentage();
     mWifiHandler->mqttSync();
+    mKeys->KeyboardScan();
     oldTime = std::chrono::high_resolution_clock::now();
   }
 }

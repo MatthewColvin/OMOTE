@@ -38,13 +38,21 @@ public:
   // returns true if it was successful
   bool GoToTab(ID anId);
 
+  void OnTabChangeEvent(std::function<void(uint16_t)> aTabChangeEventHandler) {
+    mTabChangeEventHandler = aTabChangeEventHandler;
+  }
+
 protected:
   void OnLvglEvent(lv_event_t *anEvent) override;
+
+  Page::Tab *GetCurrentTab();
 
 private:
   void HandleTabChange();
 
   std::vector<Page::Tab::Ptr> mTabs;
+
+  std::function<void(uint16_t)> mTabChangeEventHandler = nullptr;
 };
 
 } // namespace UI::Page

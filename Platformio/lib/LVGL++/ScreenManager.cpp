@@ -9,6 +9,8 @@ Manager &Manager::getInstance() { return mManager; }
 
 Manager::Manager() {}
 
+bool Manager::allScreenProcessKeys = false;
+
 void Manager::pushScreen(Screen::Base::Ptr aScreen) {
   if (!mScreens.empty()) {
     mScreens.back()->OnHide();
@@ -57,6 +59,14 @@ UI::Screen::Base::Ptr Manager::popScreen(Screen::Base *aScreenToRemove) {
 }
 
 bool Manager::distributeKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
-  // Send Key Even to top Screen for handling
-  return mScreens.back()->KeyEvent(aKeyEvent);
+  if (allScreenProcessKeys) {
+    for (auto &i : mScreens) {
+      if (i->KeyEvent(aKeyEvent))
+        return true;
+    }
+    return false;
+  } else {
+    // Send Key Even to top Screen for handling
+    return mScreens.back()->KeyEvent(aKeyEvent);
+  }
 }

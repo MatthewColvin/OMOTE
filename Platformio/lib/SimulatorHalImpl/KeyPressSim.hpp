@@ -17,8 +17,10 @@ public:
   static int GrabKeyImpl(void *aSelf, SDL_Event *aEvent);
   void GrabKeys(SDL_Event *aEvent);
 
-  void HandleKeyPresses() override;
-  void QueueKeyEvent(KeyEvent aJustOccuredKeyEvent) override;
+  void HandleKeyPresses(const KeyEvent &aJustOccuredKeyEvent) override;
+  // void QueueKeyEvent(KeyEvent aJustOccuredKeyEvent) override;
+
+  void KeyboardScan();
 
   inline Notification<SDL_Event *>::Ptr getSDLEventNotification() {
     return mSDLEventNotification;
@@ -63,5 +65,8 @@ private:
       {SDLK_1, Key::Aux1},
       {SDLK_2, Key::Aux2},
       {SDLK_3, Key::Aux3},
-      {SDLK_4, Key::Aux4}};
+      {SDLK_4, Key::Aux4},
+      // 3661 keys
+      {SDLK_t, Key::TV},
+      {SDLK_a, Key::Audio}};
 };

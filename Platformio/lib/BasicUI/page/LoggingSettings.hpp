@@ -13,6 +13,7 @@ namespace UI::Page {
 class LoggingSettings : public Base {
 public:
   LoggingSettings();
+  ~LoggingSettings();
   std::string GetTitle() override { return "Logging Settings"; }
 
 private:

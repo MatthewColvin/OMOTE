@@ -16,7 +16,7 @@ class HardwareSimulator : public HardwareAbstract {
 public:
   HardwareSimulator();
 
-  void init() override {};
+  void init() override;
   void loopHandler() override;
 
   void debugPrint(const char *fmt, ...) override {

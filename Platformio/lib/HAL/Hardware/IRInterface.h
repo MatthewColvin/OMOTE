@@ -5,8 +5,8 @@
 class IRInterface {
 public:
   enum class protocol {
-    UNKNOWN = -1,
-    UNUSED = 0,
+    UNKNOWN = 1,
+    DELAY = 0,
     RC5,
     RC6,
     NEC,
@@ -132,8 +132,8 @@ public:
     GORENJE,
     WOWWEE,
     CARRIER_AC84, // 125
-    YORK
-  };
+    YORK //magic_enum only goes up to 127 by default so care needed if list increases
+  };    //also use int8_t to hold protocol field in freeRTOS massage
 
   // uint64_t data, uint16_t nbits = <defaulted>, uint16_t repeat = <defaulted>
   enum class int64SendTypes {
@@ -260,15 +260,21 @@ public:
     York = static_cast<int>(protocol::YORK)
   };
 
+  enum class int16SendTypes {
+    Pronto = static_cast<int>(protocol::PRONTO)
+  };
+
   struct RawIR {
     protocol mprotocol;
     std::vector<uint16_t> data;
   };
 
   virtual void send(int64SendTypes protocol, uint64_t data) = 0;
+  virtual void send(int16SendTypes protocol, std::vector<uint16_t> &data, uint16_t repeat) = 0;
   virtual void send(constInt64SendTypes protocol, const uint64_t data) = 0;
   virtual void send(charArrSendType protocol, const unsigned char data[]) = 0;
   virtual void send(RawIR aRawIr) = 0;
+  virtual void sendBackground(std::string protocol, std::vector<std::string> data) = 0;
 
   virtual int8_t calibrateTx() = 0;
 

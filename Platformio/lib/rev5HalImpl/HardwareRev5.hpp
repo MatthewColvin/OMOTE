@@ -1,10 +1,11 @@
 #pragma once
 
 #include "HardwareRevX.hpp"
+#include "Hardware/LoggingInterface.hpp"
 
 class HardwareRev5 : public HardwareRevX {
 public:
-  HardwareRev5() = default;
+  HardwareRev5();
   virtual ~HardwareRev5() = default;
 
 protected:
@@ -34,9 +35,11 @@ private:
   Adafruit_LTR303 ltr = Adafruit_LTR303();
 #endif
 
-  QueueHandle_t mKeysQueueHandle;
+  //QueueHandle_t mKeysQueueHandle;
 
   bool mlightSensorInitSuccessful = false;
+
+  std::unique_ptr<LoggingInterface> mLogger = nullptr;
 
   // Note: 'off' is not actually in matrix but dedicated pin, mapped to vacant
   // position in matrix for processing

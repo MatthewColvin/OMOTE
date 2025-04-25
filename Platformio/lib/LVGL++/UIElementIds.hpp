@@ -8,6 +8,7 @@ public:
 
   enum class Screens {
     Background = static_cast<int>(INVALID) + 1,
+    Status,
     Home,
     PopUp,
     INVALID_SCREEN_ID
@@ -26,6 +27,8 @@ public:
     Joystick,
     Arc,
     StatusBar,
+    ColorButtons,
+    NumberPad,
     MainTopBar,
     LED,
     Image,

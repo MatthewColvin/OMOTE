@@ -25,7 +25,7 @@ public:
 
 private:
   void SettingsPress();
-  void ActiveListPress();
+  void PushActiveDeviceList();
 
   DeviceFactory &mFactory;
 

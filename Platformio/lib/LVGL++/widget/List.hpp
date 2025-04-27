@@ -22,7 +22,7 @@ class List : public Base {
 public:
   List();
   void AddItem(std::string aTitle, const char *aSymbol,
-               std::function<void()> onItemSelected);
+               std::function<void()> onItemSelected, lv_coord_t aHeight = lv_pct(20));
 
 protected:
 private:

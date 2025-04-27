@@ -1,0 +1,12 @@
+{
+  "Widgets": 
+  [
+    {
+      "Type":"Image",
+      "FileName":"Images/OMOTE_Logo.png",
+      "SizeXYinPixels":[177,177],
+      "AlignTo":0,
+      "AlignMode":"LV_ALIGN_OUT_BOTTOM_MID"
+    }
+  ]
+}

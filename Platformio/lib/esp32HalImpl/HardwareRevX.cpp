@@ -42,7 +42,9 @@ void HardwareRevX::initIO() {
   gpio_deep_sleep_hold_dis();
 }
 
-HardwareRevX::HardwareRevX() : HardwareAbstract() {}
+HardwareRevX::HardwareRevX() : HardwareAbstract(), mLogger(std::make_unique<LoggingInterface>()) {
+  mLogger->setLogModule(LogModule::General);
+}
 
 HardwareRevX::WakeReason getWakeReason() {
   // Find out wakeup cause
@@ -91,7 +93,9 @@ void HardwareRevX::init() {
   UI::observerHandles::registerTextHandle(WIFI_STATUS, OBSERVER_BUF_SIZE, "");
   UI::observerHandles::registerIntHandle(SOC_STATUS, 0);
 
-  debugPrint("Finished RevX Hardware Setup in %dms", millis());
+  mLogger->setLogModule(LogModule::General);
+  if (mLogger->isPrintWanted(LogLevel::Info)) {
+        mLogStream << "Finished RevX Hardware Setup in " << millis() << "ms"; mLogger->log(LogLevel::Info, mLogStream);}
 }
 
 void HardwareRevX::debugPrint(const char *fmt, ...) {
@@ -168,6 +172,11 @@ bool HardwareRevX::activityDetection() {
     accZold = accZ;
     if (motion > MOTION_THRESHOLD)
       activityDetected = true;
+
+    mLogger->setLogModule(LogModule::IMU);
+    if (mLogger->isPrintWanted(LogLevel::Debug)) {
+      std::stringstream ss;
+      ss << "Motion Level :" <<  motion << ", Detected: " << activityDetected; mLogger->log(LogLevel::Debug, ss);}
   }
   return activityDetected;
 }
@@ -204,7 +213,10 @@ void HardwareRevX::saveSettings() {
   if (!mPreferences.getBool("alreadySetUp"))
     mPreferences.putBool("alreadySetUp", true);
   mPreferences.end();
-  // Serial.println("Settings Saved");
+ 
+  mLogger->setLogModule(LogModule::Display);
+  if (mLogger->isPrintWanted(LogLevel::Info))
+    mLogger->log(LogLevel::Info, "Settings Saved");
 }
 
 void HardwareRevX::enterSleep() {
@@ -386,10 +398,12 @@ void HardwareRevX::loopHandler() {
 
     uint16_t visPlusIrLevel, irLevel;
     if (lightSensorScan(visPlusIrLevel, irLevel)) {
-      // Serial.printf("ll:%d\r\n", irLevel);
       // use IR as still responds to ambient light level but
       //  less sensitive to keypad illumination
       updateBacklightMode(irLevel);
+      mLogger->setLogModule(LogModule::Display);
+      if (mLogger->isPrintWanted(LogLevel::Debug)) {
+        mLogStream << "Light sensor:" << irLevel; mLogger->log(LogLevel::Debug, mLogStream);}
     }
 
     mDisplay->getTouchData(); // trigger read here to keep all I2C accesses
@@ -397,10 +411,18 @@ void HardwareRevX::loopHandler() {
 
     static uint16_t secCount = 20; // update immediately on power up
     if (secCount++ >= 20) {
-      Serial.printf("Heap: %.2f%% free of %dkB, Pram: %.2f%% free of %dkB\r\n",
-                    (100.0f * ESP.getFreeHeap()) / ESP.getHeapSize(), ESP.getHeapSize() / 1024,
-                    (100.0f * ESP.getFreePsram()) / ESP.getPsramSize(), ESP.getPsramSize() / 1024);
-
+      mLogger->setLogModule(LogModule::Memory);
+      if (mLogger->isPrintWanted(LogLevel::Info)) {
+        mLogStream.precision(2);
+        mLogStream << "Heap:" <<
+            (100.0f * ESP.getFreeHeap()) / ESP.getHeapSize() << "% free of " << 
+            ESP.getHeapSize() / 1024 << "kB, Pram:" <<
+            (100.0f * ESP.getFreePsram()) / ESP.getPsramSize() << "% free of " <<
+            ESP.getPsramSize() / 1024 << "kB, Stack min free: " << 
+            uxTaskGetStackHighWaterMark(nullptr) << "w";
+        mLogger->log(LogLevel::Info, mLogStream);
+      }
+      
       secCount = 0;
       int32_t iSoc = mBattery->getPercentage();
       if (iSoc > 99)
@@ -427,12 +449,13 @@ void HardwareRevX::loopHandler() {
         UI::observerHandles::setText(WIFI_STATUS, LV_SYMBOL_WIFI);
       else
         UI::observerHandles::setText(WIFI_STATUS, "");
-      // Serial.printf("IR:%d, V+IR:%d, SOC:%.0f, Volts:%.2f\r\n",irLevel,
-      // visPlusIrLevel, soc, voltage);
     }
 
     if (mStandbyTimer == 0) {
-      Serial.println("Entering Sleep Mode. Goodbye.");
+      mLogger->setLogModule(LogModule::General);
+      if (mLogger->isPrintWanted(LogLevel::Info))
+        mLogger->log(LogLevel::Info, "Entering Sleep Mode. Goodbye.");
+
       enterSleep();
     }
     IMUTaskTimer = millis();

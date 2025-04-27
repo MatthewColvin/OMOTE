@@ -7,15 +7,20 @@
 #include "Hardware/IRInterface.h"
 #include "Hardware/LoggingInterface.hpp"
 
+#define MAX_MESSAGE_SIZE 800 //pronto message can be 522bytes!
+
 class IRTransceiver : public IRInterface, protected IRsend, protected IRrecv {
+
 public:
   IRTransceiver(std::unique_ptr<LoggingInterface> aLogger);
   virtual ~IRTransceiver();
 
   void send(int64SendTypes protocol, uint64_t data) override;
+  void send(int16SendTypes protocol, std::vector<uint16_t> &data, uint16_t repeat) override;
   void send(constInt64SendTypes protocol, const uint64_t data) override;
   void send(charArrSendType protocol, const unsigned char data[]) override;
   void send(IRInterface::RawIR aRawIr) override;
+  void sendBackground(std::string protocol, std::vector<std::string> data) override;
 
   int8_t calibrateTx() override {
     maxOutTaskPriority();
@@ -30,6 +35,7 @@ public:
   void loopHandleRx() override;
 
 private:
+  static void IRSendTask(void *aStruct);
   void maxOutTaskPriority();
   void restoreTaskPriority();
   BaseType_t mPreSendPriority = 0;
@@ -37,5 +43,6 @@ private:
   bool mIsRxEnabled = false;
   decode_results mCurrentResults;
 
-  std::unique_ptr<LoggingInterface> mLog;
+  std::unique_ptr<LoggingInterface> mLog = nullptr;
+  TaskHandle_t mIRSendTask;
 };

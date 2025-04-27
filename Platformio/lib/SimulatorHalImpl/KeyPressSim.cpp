@@ -3,14 +3,8 @@
 #include <memory>
 
 KeyPressSim::KeyPressSim() : mSDLEventNotification(std::make_shared<Notification<SDL_Event *>>()) {
-  mKeyHandlerThread = std::thread(
-      [this] { // Delay to avoid issues with thread init issues with SDL
-        while (true) {
-          HandleKeyPresses();
-        }
-      });
   SDL_AddEventWatch(KeyPressSim::GrabKeyImpl, this);
-};
+}
 
 int KeyPressSim::GrabKeyImpl(void *aSelf, SDL_Event *aEvent) {
   reinterpret_cast<KeyPressSim *>(aSelf)->GrabKeys(aEvent);
@@ -18,32 +12,32 @@ int KeyPressSim::GrabKeyImpl(void *aSelf, SDL_Event *aEvent) {
 }
 
 void KeyPressSim::GrabKeys(SDL_Event *aEvent) {
+  // Not running in LVGL thread so not safe to issue events from here
+  // instead add to queue to transfer to LVGL thread
   mSDLEventNotification->notify(aEvent);
   if (aEvent->type == SDL_KEYDOWN || aEvent->type == SDL_KEYUP) {
     auto keyEventType = aEvent->type == SDL_KEYDOWN ? KeyEvent::Type::Press
                                                     : KeyEvent::Type::Release;
     const auto SDLK_key = aEvent->key.keysym.sym;
     if (KeyMap.count(SDLK_key) > 0) {
-      QueueKeyEvent(KeyEvent(KeyMap.at(SDLK_key), keyEventType));
+      std::lock_guard lock(mQueueGaurd);
+      mKeyEventQueue.push(KeyEvent(KeyMap.at(SDLK_key), keyEventType));
+      mProcessKeyQueueCondition.notify_one();
     }
   }
-};
+}
 
-void KeyPressSim::HandleKeyPresses() {
+// this is repeatedly called from main LVGL thread so safe to send events from here
+void KeyPressSim::KeyboardScan() {
   std::unique_lock lock(mQueueGaurd);
-  mProcessKeyQueueCondition.wait(lock,
-                                 [this] { return !mKeyEventQueue.empty(); });
-
-  while (!mKeyEventQueue.empty()) {
-    if (mKeyEventHandler) {
-      mKeyEventHandler(mKeyEventQueue.front());
-    }
+  if (!mKeyEventQueue.empty()) {
+    HandleKeyPresses(mKeyEventQueue.front());
     mKeyEventQueue.pop();
   }
-};
+}
 
-void KeyPressSim::QueueKeyEvent(KeyEvent aJustOccuredKeyEvent) {
-  std::lock_guard lock(mQueueGaurd);
-  mKeyEventQueue.push(aJustOccuredKeyEvent);
-  mProcessKeyQueueCondition.notify_one();
-};
+void KeyPressSim::HandleKeyPresses(const KeyEvent &aJustOccuredKeyEvent) {
+  if (mKeyEventHandler) {
+    mKeyEventHandler(aJustOccuredKeyEvent);
+  }
+}

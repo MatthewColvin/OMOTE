@@ -7,6 +7,7 @@
 namespace UI::Widget {
 class Button : public Base {
 public:
+  Button();
   Button(std::function<void()> aOnPressHandler,
          std::function<void()> aOnReleaseHandler = nullptr);
   virtual ~Button() = default;
@@ -17,13 +18,20 @@ public:
   void SetTextStyle(TextStyle aNewStyle,
                     lv_style_selector_t aStyle = LV_PART_MAIN) override;
 
+  Button &OnPress(std::function<void()> aOnPressHandler);
+  Button &OnRelease(std::function<void()> aOnReleaseHandler);
+  Button &OnShortClick(std::function<void()> aOnShortClickHandler);
+  Button &OnLongHold(std::function<void()> aOnLongClickHandler);
+
 protected:
   void OnLvglEvent(lv_event_t *anEvent) override;
 
 private:
   Label *mText = nullptr;
-  std::function<void()> mOnPress;
-  std::function<void()> mOnRelease;
+  std::function<void()> mOnPress = nullptr;
+  std::function<void()> mOnRelease = nullptr;
+  std::function<void()> mOnShortClick = nullptr;
+  std::function<void()> mOnLongHold = nullptr;
 };
 
 } // namespace UI::Widget

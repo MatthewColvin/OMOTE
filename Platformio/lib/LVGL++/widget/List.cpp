@@ -22,7 +22,8 @@ List::List()
 }
 
 void List::AddItem(std::string aTitle, const char *aSymbol,
-                   std::function<void()> onItemSelected) {
+                   std::function<void()> onItemSelected,
+                   lv_coord_t aHeight) {
   lv_obj_t *lvListItem = nullptr;
   {
     auto lock = LvglResourceManager::GetInstance().scopeLock();
@@ -30,5 +31,5 @@ void List::AddItem(std::string aTitle, const char *aSymbol,
   }
   mListItems.push_back(
       std::make_unique<ListItem>(lvListItem, std::move(onItemSelected)));
-  mListItems.back()->SetHeight(lv_pct(20));
+  mListItems.back()->SetHeight(aHeight);
 }

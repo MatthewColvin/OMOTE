@@ -7,6 +7,7 @@
 void HardwareRev1::init() {
   mLittleFs = Rev1LittleFs::getInstance();
   mLittleFs->mount();
+  LoggingInterface::restoreSettings();
   HardwareRevX::init();
   mKeys = std::make_shared<Keys>();
 }
@@ -57,3 +58,26 @@ void HardwareRev1::configPinsForSleepInterrupts() {
   gpio_hold_en((gpio_num_t)SW_4);
   gpio_hold_en((gpio_num_t)SW_5);
 };
+
+bool HardwareRev1::keyboardScan() {
+  bool retVal = false;
+  if (!customKeypad.getKeys()) {
+    return false; // no activity return early.
+  }
+  for (int i = 0; i < LIST_MAX; i++) {
+    if (customKeypad.key[i].kstate == PRESSED ||
+        customKeypad.key[i].kstate == RELEASED) {
+      auto eventType = customKeypad.key[i].kstate == PRESSED
+                           ? KeyPressAbstract::KeyEvent::Type::Press
+                           : KeyPressAbstract::KeyEvent::Type::Release;
+      const auto keyChar = customKeypad.key[i].kchar;
+      auto stateChange = customKeypad.key[i].stateChanged;
+      if (Keys::isValidId && stateChange) {
+        mKeys->HandleKeyPresses(KeyPressAbstract::KeyEvent(Keys::CharKeyToKeyId(keyChar), eventType));
+        if (eventType == KeyPressAbstract::KeyEvent::Type::Press)
+          retVal = true;
+      }
+    }
+  }
+  return retVal;
+}

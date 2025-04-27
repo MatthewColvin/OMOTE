@@ -81,6 +81,8 @@ public:
 
   UIElement::Ptr RemoveElement(UIElement *aUIElementRef);
 
+  void RemoveAllElements();
+
   /**
    * Helper to resize widget to match the content width and height of
    * @param aUIElementToMatch - The container

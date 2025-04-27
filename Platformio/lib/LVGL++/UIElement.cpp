@@ -47,6 +47,10 @@ UIElement::Ptr UIElement::RemoveElement(UIElement *anElementRef) {
   return nullptr;
 }
 
+void UIElement::RemoveAllElements() {
+  mContainedElements.clear();
+}
+
 void UIElement::MatchContentDimentions(UIElement *aUIElementToMatch) {
   if (!aUIElementToMatch) {
     return;

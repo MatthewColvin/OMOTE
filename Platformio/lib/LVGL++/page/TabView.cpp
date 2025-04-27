@@ -45,16 +45,19 @@ void TabView::HandleTabChange() {
       mTabs[i]->OnHide();
     }
   }
+  if (mTabChangeEventHandler)
+    mTabChangeEventHandler(GetCurrentTabIdx());
 }
 
 bool TabView::KeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   if (OnKeyEvent(aKeyEvent)) {
     return true;
   }
-  if (auto *current = GetCurrentTab(); current) {
-    current->KeyEvent(aKeyEvent);
+  if (auto *current = GetCurrentTab(); current ) {
+    return current->KeyEvent(aKeyEvent);
   }
-};
+  return false;
+}
 
 void TabView::OnLvglEvent(lv_event_t *anEvent) {
   if (lv_event_get_code(anEvent) == LV_EVENT_VALUE_CHANGED) {

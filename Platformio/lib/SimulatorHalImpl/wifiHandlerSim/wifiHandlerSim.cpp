@@ -71,12 +71,13 @@ void wifiHandlerSim::mqttBindTextEvent(uint32_t bindId, std::string topic, std::
 }
 
 void wifiHandlerSim::mqttUnBindTextEvent(uint32_t unBindId) {
-  for (std::multimap<std::string, fieldIdStruct>::iterator it = Subscriptions.begin(); it != Subscriptions.end(); it++) {
+  for (std::multimap<std::string, fieldIdStruct>::iterator it = Subscriptions.begin(); it != Subscriptions.end();) {
     if (it->second.id == unBindId) {
       if (Subscriptions.count(it->first) == 1) // only delete if last topic entry
         mqtt_unsubscribe(&mMqttClient, it->first.c_str());
-      Subscriptions.erase(it);
-    }
+      it = Subscriptions.erase(it);
+    } else
+      ++it;
   }
 }
 
@@ -92,7 +93,8 @@ void publish_cb(void **state, struct mqtt_response_publish *publish) {
   if (range.first != Subscriptions.end()) {
     // have match so parse json
     rapidjson::Document d;
-    d.Parse(payload);
+    if (d.Parse(payload).HasParseError())
+      return;
 
     for (auto i = range.first; i != range.second; ++i) {
       // see if we can find a json field that matches and if so call the observer on the id
@@ -208,15 +210,6 @@ void wifiHandlerSim::mqttSaveCredentials() {
     d.AddMember("password", mMqttPassword, d.GetAllocator());
     d.AddMember("client", mMqttClientName, d.GetAllocator());
 
-    /*FILE *fp = fopen("data/mqtt.json", "w");
-    char writeBuffer[1024];
-    FileWriteStream os(fp, writeBuffer, sizeof(writeBuffer));
-
-    Writer<FileWriteStream> writer(os);
-    d.Accept(writer);
-
-    fclose(fp);*/
-
     File file = HardwareFactory::getAbstract().littleFs()->open("/mqtt.json", LFS_O_WRONLY | LFS_O_CREAT);
 
     if (!file)
@@ -232,19 +225,6 @@ void wifiHandlerSim::mqttSaveCredentials() {
 
 void wifiHandlerSim::restoreCredentials() {
   // restore from disk
-  /*FILE *fp = fopen("data/mqtt.json", "r");
-
-  if (fp == NULL)
-    return;
-
-  char readBuffer[1024];
-  rapidjson::FileReadStream is(fp, readBuffer,
-                               sizeof(readBuffer));
-
-  rapidjson::Document d;
-  d.ParseStream(is);
-  fclose(fp);*/
-
   File fp = HardwareFactory::getAbstract().littleFs()->open("/mqtt.json", LFS_O_RDONLY);
 
   if (!fp)
@@ -267,7 +247,4 @@ void wifiHandlerSim::restoreCredentials() {
     mMqttPassword = d["password"].GetString();
   if (d.HasMember("client"))
     mMqttClientName = d["client"].GetString();
-
-  printf("%s,%s,%s,%s,%s", mMqttBroker.c_str(), mMqttPort.c_str(),
-         mMqttUser.c_str(), mMqttPassword.c_str(), mMqttClientName.c_str());
 }

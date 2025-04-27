@@ -151,12 +151,13 @@ void wifiHandler::mqttBindTextEvent(uint32_t bindId, std::string topic, std::str
 }
 
 void wifiHandler::mqttUnBindTextEvent(uint32_t unBindId) {
-  for (std::multimap<std::string, fieldIdStruct>::iterator it = Subscriptions.begin(); it != Subscriptions.end(); it++) {
+  for (std::multimap<std::string, fieldIdStruct>::iterator it = Subscriptions.begin(); it != Subscriptions.end();) {
     if (it->second.id == unBindId) {
       if (Subscriptions.count(it->first) == 1) // only delete if last topic entry
         mMqttClient.unsubscribe(it->first.c_str());
-      Subscriptions.erase(it);
-    }
+      it = Subscriptions.erase(it);
+    } else
+      ++it;
   }
 }
 
@@ -171,7 +172,8 @@ void publish_cb(char *aTopic, byte *aPayload, unsigned int length) {
     // Serial.println("Subscription found");
     //  have match so parse json
     rapidjson::Document d;
-    d.Parse(payload);
+    if (d.Parse(payload).HasParseError())
+      return;
 
     for (auto i = range.first; i != range.second; ++i) {
       // see if we can find a json field that matches and if so call the observer on the id
@@ -243,17 +245,6 @@ void wifiHandler::mqttSaveCredentials() {
   std::string jsonStr = ToString(d);
   file.write(jsonStr);
   file ? file.truncate(jsonStr.length()) : []() { return -1; }();
-
-  /*
-  Preferences preferences;
-  preferences.begin("MqttSettings", false);
-  preferences.putString("broker", mMqttBroker.c_str());
-  preferences.putString("port", mMqttPort.c_str());
-  preferences.putString("user", mMqttUser.c_str());
-  preferences.putString("password", mMqttPassword.c_str());
-  preferences.putString("client", mMqttClientName.c_str());
-  preferences.end();*/
-
   // Serial.println("MQTT credentials saved");
 
   mMqttSaveOnConnect = false;
@@ -271,45 +262,31 @@ void wifiHandler::enableMqtt(bool enabled) {
 
 void wifiHandler::mqttRestoreCredentials() {
   // restore from disk
-  // Serial.println("MQTT Restore");
-
   File fp = HardwareFactory::getAbstract().littleFs()->open("/mqtt.json", LFS_O_RDONLY);
 
   if (!fp)
     return;
 
   std::string content = fp.read(1000);
-  Serial.println(content.c_str());
-
+  
   MemConsciousDocument d;
-  d.Parse(content.c_str());
-  // fclose(fp);
-
-  // if (d.HasMember("enabled"))
-  //   mMqttEnabled = d["enabled"].GetBool();
-  if (d.HasMember("broker"))
-    mMqttBroker = d["broker"].GetString();
-  if (d.HasMember("port"))
-    mMqttPort = d["port"].GetString();
-  if (d.HasMember("user"))
-    mMqttUser = d["user"].GetString();
-  if (d.HasMember("password"))
-    mMqttPassword = d["password"].GetString();
-  if (d.HasMember("client"))
-    mMqttClientName = d["client"].GetString();
-
-  // printf("%s,%s,%s,%s,%s", mMqttBroker.c_str(), mMqttPort.c_str(),
-  //        mMqttUser.c_str(), mMqttPassword.c_str(), mMqttClientName.c_str());
+  if (!d.Parse(content.c_str()).HasParseError()) {
+    if (d.HasMember("broker") && d["broker"].IsString())
+      mMqttBroker = d["broker"].GetString();
+    if (d.HasMember("port") && d["port"].IsString())
+      mMqttPort = d["port"].GetString();
+    if (d.HasMember("user") && d["user"].IsString())
+      mMqttUser = d["user"].GetString();
+    if (d.HasMember("password") && d["password"].IsString())
+      mMqttPassword = d["password"].GetString();
+    if (d.HasMember("client") && d["client"].IsString())
+      mMqttClientName = d["client"].GetString();
+  }
 
   // enabled kept in preferences as updated seperately
   Preferences preferences;
   preferences.begin("MqttSettings", false);
   mMqttEnabled = preferences.getBool("enabled", false);
-  // mMqttBroker = preferences.getString("broker", "broker").c_str();
-  // mMqttPort = preferences.getString("port", "1883").c_str();
-  // mMqttUser = preferences.getString("user", "user").c_str();
-  // mMqttPassword = preferences.getString("password", "password").c_str();
-  // mMqttClientName = preferences.getString("client", "OMOTE").c_str();
   preferences.end();
   // Serial.println("MQTT credentials restored");
 }

@@ -35,7 +35,6 @@ public:
     Aux2,
     Aux3,
     Aux4,
-    INVALID,
     // 3661 Extended keyboard codes
     Guide,
     Home,
@@ -47,7 +46,8 @@ public:
     STB,
     Audio,
     BluRay,
-    DVD
+    DVD,
+    INVALID
   };
 
   class KeyEvent {
@@ -80,14 +80,14 @@ protected:
   ///        proccesssing of key presses by calling mKeyEventHandler
   ///        best case this is done on a seprate thread/task
   ///        since it could take a while to handle a KeyPress
-  virtual void HandleKeyPresses() = 0;
+  virtual void HandleKeyPresses(const KeyEvent &aJustOccuredKeyEvent) = 0;
 
   /// @brief Function to queue up Key events to be handled later on by
   ///        HandleKeyPresses() hopefully on a seprate thread or task
   ///        This function should be implemented in a way that makes it ISR
   ///        safe
   /// @param aJustOccuredKeyEvent - A Key even that just occured
-  virtual void QueueKeyEvent(KeyEvent aJustOccuredKeyEvent) = 0;
+  //virtual void QueueKeyEvent(KeyEvent aJustOccuredKeyEvent) = 0;
 
   std::function<bool(KeyEvent)> mKeyEventHandler;
 };

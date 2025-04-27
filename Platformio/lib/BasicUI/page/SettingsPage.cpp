@@ -17,15 +17,17 @@
 using namespace UI::Page;
 using namespace UI::Color;
 
+static constexpr auto SettingItemHeight = 45;
+
 SettingsPage::SettingsPage()
     : Base(ID::Pages::Settings), mSettingsList(AddNewElement<Widget::List>()) {
 
-  mSettingsList->AddItem("Display", LV_SYMBOL_EYE_OPEN, [this] { PushDisplaySettings(); }, mHeight);
-  mSettingsList->AddItem("Wifi", LV_SYMBOL_WIFI, [this] { PushWifiSettings(); }, mHeight);
-  mSettingsList->AddItem("MQTT", LV_SYMBOL_HOME, [this] { PushMqttSettings(); }, mHeight);
-  mSettingsList->AddItem("System", LV_SYMBOL_SETTINGS, [this] { PushSystemSettings(); }, mHeight);
-  mSettingsList->AddItem("IR Receiver", LV_SYMBOL_SETTINGS, [this] { PushIrReader(); }, mHeight);
-  mSettingsList->AddItem("Logging", LV_SYMBOL_LIST, [this] { PushLoggingSettings(); }, mHeight);
+  mSettingsList->AddItem("Display", LV_SYMBOL_EYE_OPEN, [this] { PushDisplaySettings(); }, SettingItemHeight);
+  mSettingsList->AddItem("Wifi", LV_SYMBOL_WIFI, [this] { PushWifiSettings(); }, SettingItemHeight);
+  mSettingsList->AddItem("MQTT", LV_SYMBOL_HOME, [this] { PushMqttSettings(); }, SettingItemHeight);
+  mSettingsList->AddItem("System", LV_SYMBOL_SETTINGS, [this] { PushSystemSettings(); }, SettingItemHeight);
+  mSettingsList->AddItem("IR Receiver", LV_SYMBOL_SETTINGS, [this] { PushIrReader(); }, SettingItemHeight);
+  mSettingsList->AddItem("Logging", LV_SYMBOL_LIST, [this] { PushLoggingSettings(); }, SettingItemHeight);
 }
 
 void SettingsPage::AddSettingItem(std::string aTitle, const char *aSymbol,
@@ -33,7 +35,7 @@ void SettingsPage::AddSettingItem(std::string aTitle, const char *aSymbol,
   mSettingsList->AddItem(aTitle, aSymbol, [aPageGetter] {
     if (auto page = aPageGetter(); page) {
       UI::Screen::Manager::getInstance().pushPopUp(std::move(page));
-    } }, mHeight);
+    } }, SettingItemHeight);
 }
 
 void SettingsPage::PushDisplaySettings() {

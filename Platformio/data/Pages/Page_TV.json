@@ -1,0 +1,44 @@
+{
+  "CommandFile":"Commands/Commands_PanasonicTV.json",
+  "Widgets": 
+  [
+    {
+      "Type":"Button",
+      "Text":"Source",
+      "Command":"SOURCE",
+      "HeightPct":10,
+      "AlignTo":0
+    },
+    {
+      "Type":"ColorButtons",
+      "Command":["RED", "GREEN", "YELLOW", "BLUE"],
+      "AlignTo":1
+    },
+    {
+      "Type":"NumberPad",
+      "Command":["NUM_0", "NUM_1", "NUM_2", "NUM_3", "NUM_4", "NUM_5", "NUM_6", "NUM_7", "NUM_8", "NUM_9"],
+      "AlignTo":2
+    }
+  ],
+  "ButtonMaps":
+  {
+    "Power":{"Press":"PWR_TOGGLE"},
+    "Up":{"Press":"UP"},
+    "Down":{"Press":"DOWN"},
+    "Left":{"Press":"LEFT"},
+    "Right":{"Press":"RIGHT"},
+    "Center":{"Press":"SELECT"},
+    "VolUp":{"Press":"VOL_UP", "Repeat":"VOL_UP"},
+    "VolDown":{"Press":"VOL_DOWN", "Repeat":"VOL_DOWN"},
+    "Mute":{"Press":"MUTE"},
+    "ChannelUp":{"Press":"CHAN_UP"},
+    "ChannelDown":{"Press":"CHAN_DOWN"},
+    "Guide":{"Press":"GUIDE"},
+    "Home":{"Press":"OPTION"},
+    "Cycle":{"Press":"LAST_VIEW"},
+    "Exit":{"Press":"EXIT"},
+    "Menu":{"Press":"MENU"},
+    "Info":{"Press":"INFO"},
+    "Back":{"Press":"BACK"}
+  }
+}

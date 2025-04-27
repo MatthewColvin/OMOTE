@@ -10,6 +10,7 @@ const auto BLUE = lv_color_make(0, 0, 255);
 
 const auto PURPLE = lv_color_make(128, 0, 128);
 const auto LILAC = lv_color_make(231, 209, 255);
+const auto YELLOW = lv_color_make(255, 255, 0);
 
 const auto GREY = lv_color_make(105, 105, 105);
 

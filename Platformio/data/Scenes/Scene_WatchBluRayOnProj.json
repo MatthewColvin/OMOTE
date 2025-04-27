@@ -1,0 +1,48 @@
+{
+  "Type":"Scene",
+  // Name to display at top of screen
+  "ScreenName":"BluRay on Projector",
+  // List of pages to populate tabview
+  "Pages": [
+    {
+      "PageName":"BluRay Player",
+      "FileName":"Pages/Page_BluRay.json",
+      // keys defined here from this page will overide all other pages within this scene
+      "OverrideKeys":["Stop", "Rewind", "Play","FastForward", "Pause"]
+    },
+    {
+      "PageName":"AV Receiver",
+      "FileName":"Pages/Page_AVReceiver.json",
+      "OverrideKeys":["VolUp", "VolDown", "Mute"]
+    },
+    { 
+      "PageName":"Projector",
+      "FileName":"Projector.json"
+    },
+    {
+      "PageName":"Heating (Lounge)",
+      "FileName":"Pages/Page_Heating.json",
+      // Include a command prefix to allow generic page
+      // to control specific room
+      "CommandPrefix":"LOUNGE_"
+    },
+    {
+      "PageName":"Lights (Lounge)",
+      "FileName":"Pages/Page_Lights.json",
+      "CommandPrefix":"LOUNGE_"
+    }
+  ],
+  "StartCommandSequence":[
+    {"CommandsFile":"Commands_PanasonicBluRay.json", "Command":"On"},
+    {"CommandsFile":"Commands_YamahaAVReveiver.json", "Command":"On"},
+    {"CommandsFile":"Commands_SonyProjector.json", "Command":"On"}
+  ],
+  // Sequence of actions that will be executed on leaving this scene
+  // Note: leaving means pressing Power button or switching to another scene that
+  // has a StartActionsSequence defined
+  "ExitCommandSequence":[
+    {"CommandsFile":"Commands_PanasonicBluRay.json", "Command":"Off"},
+    {"CommandsFile":"Commands_YamahaAVReveiver.json", "Command":"Off"},
+    {"CommandsFile":"Commands_SonyProjector.json", "Command":"Off"}
+  ]
+}

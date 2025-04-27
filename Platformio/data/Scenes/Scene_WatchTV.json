@@ -1,0 +1,32 @@
+{
+  "Type":"Scene",
+  "ScreenName":"TV",
+  "Pages": [
+    {
+      "PageName":"TV",
+      "FileName":"Pages/Page_TV.json",
+      "OverrideKeys":["VolUp", "VolDown", "Mute"]
+    },
+    {
+      "PageName":"Image Test",
+      "FileName":"Pages/Page_ImageTest.json"
+    },
+    {
+      "PageName":"Heating (Kitchen)",
+      "FileName":"Pages/Page_Heating.json",
+      "CommandPrefix":"KITCHEN_"
+    },
+    { 
+      "PageName":"Heating (Lounge)",
+      "FileName":"Pages/Page_Heating.json",
+      "CommandPrefix":"LOUNGE_"
+    }
+  ],
+  "StartCommandSequence":[
+    {"CommandFile":"Commands/Commands_PanasonicTV.json", "Command":"PWR_ON"},
+    {"CommandFile":"Commands/Commands_PanasonicTV.json", "Command":"DELAY_1S"}
+  ],
+  "ExitCommandSequence":[
+    {"CommandFile":"Commands/Commands_PanasonicTV.json", "Command":"PWR_OFF"}
+  ]
+}

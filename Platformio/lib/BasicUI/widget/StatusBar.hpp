@@ -3,8 +3,11 @@
 #include "Button.hpp"
 #include "DeviceFactory.hpp"
 #include "Label.hpp"
+#include "Notification.hpp"
 #include "SettingsPage.hpp"
 #include "WidgetBase.hpp"
+
+#include <memory>
 
 namespace UI::Widget {
 
@@ -16,6 +19,9 @@ public:
   StatusBar(DeviceFactory &factory);
 
   void AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem);
+  void SetTopButtonLabel(std::string aLabel);
+
+  Notification<std::string>::Ptr GetSceneChangeNotification() { return mSceneChange; };
 
 private:
   void SettingsPress();
@@ -23,7 +29,10 @@ private:
 
   DeviceFactory &mFactory;
 
-  std::vector<UI::Page::SettingsPage::InjectedItem> mExtraSettingsItems;
+  Notification<std::string>::Ptr mSceneChange;
+
+  std::vector<UI::Page::SettingsPage::InjectedItem>
+      mExtraSettingsItems;
 
   Widget::Button *mTopBarSettingsButton;
   Widget::Button *mTopBarActiveListButton;

@@ -3,27 +3,33 @@
 
 #include <Adafruit_TCA8418.h>
 
+HardwareRev5::HardwareRev5() : mLogger(std::make_unique<LoggingInterface>()) {
+  mLogger->setLogModule(LogModule::General);
+}
+
 void HardwareRev5::init() {
   mLittleFs = Rev5LittleFs::getInstance();
-  if(mLittleFs->mount())
-    Serial.println("Mounted OK");
-  else
-    Serial.println("Mounted Failed");
-    
+  mLogger->setLogModule(LogModule::LittleFs);
+  if (mLittleFs->mount()) {
+    if (mLogger->isPrintWanted(LogLevel::Info)) mLogger->log(LogLevel::Info, "Mounted OK");}
+  else {
+    if (mLogger->isPrintWanted(LogLevel::Info)) mLogger->log(LogLevel::Info, "Mounted Failed");}
+  LoggingInterface::restoreSettings();
   HardwareRevX::init();
 
   static constexpr auto MaxQueueableKeyPresses = 5;
-  mKeysQueueHandle =
-      xQueueCreate(MaxQueueableKeyPresses, sizeof(KeyPressAbstract::KeyEvent));
 
-  mKeys = std::make_shared<Keys>(mKeysQueueHandle);
+  mKeys = std::make_shared<Keys>();
   setupKeyboard();
 
-#ifdef OMOTE_KEYBRD_3661
+  #ifdef OMOTE_KEYBRD_3661
   setupLightSensor();
-#endif
+  #endif
 
-  debugPrint("Finished Rev5 Hardware Setup in %dms", millis());
+  mLogger->setLogModule(LogModule::General);
+  if (mLogger->isPrintWanted(LogLevel::Info)) {
+    std::stringstream ss;
+    ss << "Finished Rev5 Hardware Setup in :" <<  millis() << "ms"; mLogger->log(LogLevel::Info, ss);}
 }
 
 void HardwareRev5::initIO() {
@@ -34,7 +40,8 @@ void HardwareRev5::initIO() {
 
 void HardwareRev5::setupKeyboard() {
   if (!keypad.begin(TCA8418_DEFAULT_ADDR, &Wire)) {
-    Serial.println("Keypad TCA8418 not found!");
+    mLogger->setLogModule(LogModule::Keys);
+    if (mLogger->isPrintWanted(LogLevel::Error)) mLogger->log(LogLevel::Error, "Keypad TCA8418 not found!");
   }
   keypad.matrix(KEYPAD_ROWS, KEYPAD_COLS);
   keypad.pinMode(5, INPUT_PULLUP); // SW_PWR
@@ -59,9 +66,10 @@ void HardwareRev5::setupLightSensor() {
     ltr.setIntegrationTime(LTR3XX_INTEGTIME_100);
     ltr.setMeasurementRate(LTR3XX_MEASRATE_100);
     mlightSensorInitSuccessful = true;
-    // Serial.println("LTR-303 initialised!");
-  } else
-    Serial.println("Couldn't find LTR-303 sensor!");
+  } else {
+    mLogger->setLogModule(LogModule::Display);
+    if (mLogger->isPrintWanted(LogLevel::Error)) mLogger->log(LogLevel::Error, "Couldn't find LTR-303 sensor!");
+  }
 }
 
 bool HardwareRev5::lightSensorScan(uint16_t &visPlusIrLevel,
@@ -134,7 +142,6 @@ bool HardwareRev5::keyboardScan() {
       row = 1;
       col = 1;
 #endif
-      // Serial.println(keyCode);
     } else {
       // process matrix
       keyCode--;
@@ -145,8 +152,13 @@ bool HardwareRev5::keyboardScan() {
                       // it does
     }
     keyIndex = col + (row * KEYPAD_COLS);
-    //Serial.printf("Row:%d, Col %d, Index:%d\r\n", row, col, keyIndex);
 
+    mLogger->setLogModule(LogModule::Keys);
+    if (mLogger->isPrintWanted(LogLevel::Info)) {
+      std::stringstream ss;
+      ss << "Row:" << (uint16_t)row << ", Col:" << (uint16_t)col << ", Index:" << (uint16_t)keyIndex; 
+      mLogger->log(LogLevel::Info, ss);}
+    
     //  clear the EVENT IRQ flag
     keypad.writeRegister(TCA8418_REG_INT_STAT, 1);
 
@@ -188,13 +200,16 @@ bool HardwareRev5::keyboardScan() {
       if (keyStates[index].isPressed) {
         keyStates[index].longSent = false;
         event.mType = KeyPressAbstract::KeyEvent::Type::Press;
-        xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+        mKeys->HandleKeyPresses(event);
+        mLogger->debug("Press");
       } else {
         event.mType = KeyPressAbstract::KeyEvent::Type::Release;
-        xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+        mKeys->HandleKeyPresses(event);
+        mLogger->debug("Release");
         if (timeNow - keyStates[index].firstPressedTime < 500) {
           event.mType = KeyPressAbstract::KeyEvent::Type::Short;
-          xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+          mKeys->HandleKeyPresses(event);
+          mLogger->debug("Short");
         }
       }
       keyStates[index].wasPressed = keyStates[index].isPressed;
@@ -205,7 +220,8 @@ bool HardwareRev5::keyboardScan() {
           keyStates[index].lastRepeatedTime = timeNow;
           event.mId = Keys::CharKeyToKeyId(indexToChar[index]);
           event.mType = KeyPressAbstract::KeyEvent::Type::Repeat;
-          xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+          mKeys->HandleKeyPresses(event);
+          mLogger->debug("Repeat");
         }
         if ((timeNow - keyStates[index].firstPressedTime >= 500) &&
             !keyStates[index].longSent) {
@@ -213,7 +229,8 @@ bool HardwareRev5::keyboardScan() {
           keyStates[index].longSent = true;
           event.mId = Keys::CharKeyToKeyId(indexToChar[index]);
           event.mType = KeyPressAbstract::KeyEvent::Type::Long;
-          xQueueSendFromISR(mKeysQueueHandle, &event, &higherPriorityTaskAwoke);
+          mKeys->HandleKeyPresses(event);
+          mLogger->debug("Long");
         }
       }
     }

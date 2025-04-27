@@ -1,48 +1,26 @@
 #pragma once
-#include <Keypad.h> // modified for inverted logic
+//#include <Keypad.h> // modified for inverted logic
 
 #include <map>
 
 #include "Hardware/KeyPressAbstract.hpp"
-#include "omoteconfig.h"
+//#include "omoteconfig.h"
 
 class Keys : public KeyPressAbstract {
 public:
   Keys();
-  Keys(QueueHandle_t queueHandle);
-  void HandleKeyPresses() override;
-  void QueueKeyEvent(KeyEvent aJustOccuredKeyEvent) override;
+
+  void HandleKeyPresses(const KeyEvent &aJustOccuredKeyEvent) override;
 
   static KeyId CharKeyToKeyId(char keyChar) {
     return charKeyToKeyIds.at(keyChar);
-  }
+  };
 
-protected:
-  void GrabKeys();
+  static bool isValidId(char keyChar) {
+    return (charKeyToKeyIds.count(keyChar) > 0);
+  };
 
 private:
-  static void KeyGrabberTask(void *aSelf);
-  static void KeyProccessor(void *aSelf);
-
-  QueueHandle_t mKeyPressQueueHandle;
-  TaskHandle_t mKeyGrabbingTask;
-  TaskHandle_t mKeyHandlingTask;
-
-  // Keypad declarations
-  static const byte ROWS = KEYPAD_ROWS; // 5;  // four rows
-  static const byte COLS = KEYPAD_COLS; // 5;  // four columns
-// define the symbols on the buttons of the keypads
-#if not defined(OMOTE_HARDWARE_REV5)
-  char hexaKeys[ROWS][COLS] = {
-      {'s', '^', '-', 'm', 'r'}, //  source, channel+, Volume-,   mute, record
-      {'i', 'R', '+', 'k', 'd'}, //    info,    right, Volume+,     OK,   down
-      {'4', 'v', '1', '3', '2'}, //    blue, channel-,     red, yellow,  green
-      {'>', 'o', 'b', 'u', 'L'}, // forward,      off,    back,     up,   left
-      {'?', 'p', 'c', '<', '='}  //       ?,     play,  config, rewind,   stop
-  };
-#endif
-  // Note: ? row/column entry is unused in hardware key matrix
-
   // TODO Should be able to optomize this out by reordering Ids at some point
   // or even using interrupts to trigger key press queueing
   static inline const std::map<char, KeyId> charKeyToKeyIds{
@@ -88,13 +66,4 @@ private:
       {'A', KeyId::Audio},
       {'Y', KeyId::BluRay},
       {'D', KeyId::DVD}};
-
-#if not defined(OMOTE_HARDWARE_REV5)
-  byte rowPins[ROWS] = {SW_A, SW_B, SW_C, SW_D,
-                        SW_E}; // connect to the row pinouts of the keypad
-  byte colPins[COLS] = {SW_1, SW_2, SW_3, SW_4,
-                        SW_5}; // connect to the column pinouts of the keypad
-  Keypad customKeypad =
-      Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
-#endif
 };

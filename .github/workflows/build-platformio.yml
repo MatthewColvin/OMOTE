@@ -32,3 +32,7 @@ jobs:
       - name: Build Rev_5 Hardware
         working-directory: ./Platformio
         run: pio run --environment esp32_Rev5
+      
+      - name: Build Rev_5_3661 Hardware
+        working-directory: ./Platformio
+        run: pio run --environment esp32_Rev5_3661

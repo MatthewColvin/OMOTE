@@ -3,17 +3,142 @@
 #include "omoteconfig.h"
 #include <IRutils.h>
 
+struct callbackStruct {
+  MessageBufferHandle_t IRSendHandle;
+  IRTransceiver *thisPtr;
+};
+
+static callbackStruct CallbackData;
+
 IRTransceiver::IRTransceiver(std::unique_ptr<LoggingInterface> aLogger)
-    : IRsend(IR_LED, true), IRrecv(IR_RX, 1024, 50, true), mLog(std::move(aLogger)) {
+    :
+#ifdef OMOTE_KEYBRD_3661
+      IRsend(IR_LED, false), // IR driver not inverted on 3661 hardware
+#else
+      IRsend(IR_LED, true),
+#endif
+      IRrecv(IR_RX, 1024, 50, true),
+      mLog(std::move(aLogger)) {
+
   if (mLog) {
     mLog->setLogModule(LogModule::IR);
   }
-  digitalWrite(IR_VCC, HIGH); // Turn on IR receiver
+  
   IRsend::begin();
+
+  digitalWrite(IR_VCC, HIGH); // Turn on IR receiver
+
+  CallbackData.thisPtr = this;
+  CallbackData.IRSendHandle = xMessageBufferCreate(4096);
+  xTaskCreate(IRSendTask, "IRSendTask", 4096, &CallbackData, configMAX_PRIORITIES - 1, &mIRSendTask);
 }
 
 IRTransceiver::~IRTransceiver() {
   digitalWrite(IR_VCC, LOW); // Turn off IR receiver
+}
+
+void IRTransceiver::IRSendTask(void *aStruct) {
+  callbackStruct *cs = (callbackStruct *)aStruct;
+
+  char RxMessBuff[MAX_MESSAGE_SIZE];
+  while (true) {
+    auto rxSize = xMessageBufferReceive(cs->IRSendHandle, RxMessBuff, MAX_MESSAGE_SIZE, portMAX_DELAY);
+    // Serial.print("IR Send, ");
+    if (rxSize > 1) {
+      // extract protocol from first byte
+      auto protocol = magic_enum::enum_cast<IRInterface::protocol>(RxMessBuff[0]);
+      if (protocol.has_value()) {
+        std::string command;
+        command.assign(&RxMessBuff[1], &RxMessBuff[0] + rxSize);
+        if (cs->thisPtr->mLog && cs->thisPtr->mLog->isPrintWanted(LogLevel::Debug)) {
+          std::stringstream info;
+          info << "IRSendTask, send with protocol:" << magic_enum::enum_name(protocol.value()) << " with command:" << command;
+          cs->thisPtr->mLog->debug(info);
+        }
+        
+        uint16_t repeat = 0;
+        auto pos = command.find(':');
+        if(pos != std::string::npos)
+          repeat = std::stoul(command.substr(pos+1));
+
+        if(IRInterface::protocol::DELAY == protocol.value()) {
+          uint32_t msec = std::stoul(command, nullptr, 0);
+          if (cs->thisPtr->mLog && cs->thisPtr->mLog->isPrintWanted(LogLevel::Debug)) {
+            std::stringstream info;
+            info << "IRSendTask: Sending Delay: " << msec << "ms";
+            cs->thisPtr->mLog->debug(info);
+          }
+          if(msec <10000)
+            vTaskDelay(msec / portTICK_PERIOD_MS);
+        }
+        else
+        {
+          auto intVal = magic_enum::enum_integer(protocol.value());
+
+          if (magic_enum::enum_contains<IRInterface::constInt64SendTypes>(intVal)) {
+            if (cs->thisPtr->mLog) cs->thisPtr->mLog->debug("IRSendTask, constInt64SendTypes");
+            cs->thisPtr->send((IRInterface::constInt64SendTypes)intVal, std::stoull(command, nullptr, 0));
+          } else if (magic_enum::enum_contains<IRInterface::int64SendTypes>(intVal)) {
+            if (cs->thisPtr->mLog) cs->thisPtr->mLog->debug("IRSendTask, int64SendTypes");
+            cs->thisPtr->send((IRInterface::int64SendTypes)intVal, std::stoull(command, nullptr, 0));
+          } else if (magic_enum::enum_contains<IRInterface::int16SendTypes>(intVal)) {
+            if (cs->thisPtr->mLog) cs->thisPtr->mLog->debug("IRSendTask, int16SendTypes");
+            std::vector<uint16_t> dataArray;
+            std::stringstream ss(command);
+            while (ss.good()) {
+              std::string values;
+              std::getline(ss, values, ',');
+              dataArray.push_back(std::stoul(values, nullptr, 16));
+            }
+            std::stringstream info; info << "Repeat: " << repeat; cs->thisPtr->mLog->debug(info);
+            cs->thisPtr->send((IRInterface::int16SendTypes)intVal, dataArray, repeat);
+          } else if (magic_enum::enum_contains<IRInterface::charArrSendType>(intVal)) {
+            if (cs->thisPtr->mLog) cs->thisPtr->mLog->debug("IRSendTask, charArrSendType");
+            std::vector<uint8_t> dataArray;
+            std::stringstream ss(command);
+            while (ss.good()) {
+              std::string values;
+              std::getline(ss, values, ',');
+              dataArray.push_back(std::stoul(values, nullptr, 0));
+            }
+            cs->thisPtr->send((IRInterface::charArrSendType)intVal, dataArray.data());
+          }
+          vTaskDelay(50 / portTICK_PERIOD_MS); // don't process another command for 50ms
+        }
+      }
+    }
+  }
+}
+
+void IRTransceiver::sendBackground(std::string aProtocol, std::vector<std::string> data) {
+  auto protocol = magic_enum::enum_cast<IRInterface::protocol>(aProtocol);
+  // Serial.println("Sending IR");
+  if (protocol.has_value() && (data.size() > 0)) {
+    int8_t protocolAsInt = magic_enum::enum_integer(protocol.value());
+    std::string commInclProtocol = data[0];
+    commInclProtocol.insert(0, 1, protocolAsInt);
+    if (commInclProtocol.size() < MAX_MESSAGE_SIZE) {
+      size_t numBytes = xMessageBufferSend(CallbackData.IRSendHandle, commInclProtocol.data(), commInclProtocol.size(), 0); // don't block
+    }
+  }
+}
+
+void IRTransceiver::send(int16SendTypes protocol, std::vector<uint16_t> &data, uint16_t repeat) {
+  if (mLog && mLog->isPrintWanted(LogLevel::Info)) {
+    std::stringstream info;
+    info << "IR Send int16:" << magic_enum::enum_name(protocol) << ", repeat of:" << repeat << " with " << data.size() << " words of data:";
+    for (auto x : data)
+      info << x << ", ";
+    mLog->info(info);
+  }
+  if (mIsRxEnabled) {
+    IRrecv::pause();
+  }
+  maxOutTaskPriority();
+  switch (protocol) {
+  case int16SendTypes::Pronto:
+    return sendPronto(data.data(), data.size(), repeat);
+  }
 }
 
 void IRTransceiver::send(int64SendTypes protocol, uint64_t data) {

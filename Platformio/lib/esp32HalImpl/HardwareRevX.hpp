@@ -74,7 +74,7 @@ protected:
   void restorePreferences();
   void setupIMU();
 
-  virtual bool keyboardScan() { return false; };
+  virtual bool keyboardScan() = 0;
   virtual bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) {
     return false;
   };
@@ -114,11 +114,15 @@ private:
   int mSleepTimeout = SLEEP_TIMEOUT;
   int mMotion = 0;
   WakeReason mWakeupReason;
-  ESP32Logger mLogger;
+  //ESP32Logger mLogger;
 
   bool mWakeupByIMUEnabled = true;
   byte mCurrentDevice = 1; // Current Device to control (allows switching
                            // mappings between devices)
 
   Handler<Display::TouchPointType> mTouchHandler;
+
+  //std::unique_ptr<LoggingInterface> mLogger;
+  std::unique_ptr<LoggingInterface> mLogger = nullptr;
+  mutable std::stringstream mLogStream;
 };

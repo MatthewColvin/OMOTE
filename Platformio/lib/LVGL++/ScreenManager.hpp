@@ -24,9 +24,12 @@ public:
 
   bool distributeKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent);
 
+  static void setAllScreenProcessKeys(bool state) { allScreenProcessKeys = state; };
+
 private:
   Manager();
   static Manager mManager;
+  static bool allScreenProcessKeys;
 
   std::vector<Screen::Base::Ptr> mScreens;
 };

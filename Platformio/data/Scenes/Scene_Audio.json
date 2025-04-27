@@ -1,0 +1,22 @@
+{
+  "Type":"Scene",
+  "ScreenName":"Audio",
+  "Pages": [
+    {
+      "PageName":"Image Test",
+      "FileName":"Pages/Page_ImageTest.json"
+    },
+    { 
+      "PageName":"Heating (Lounge)",
+      "FileName":"Pages/Page_Heating.json",
+      "CommandPrefix":"LOUNGE_"
+    }
+  ],
+  "StartCommandSequence":[
+    {"CommandFile":"Commands/Commands_PanasonicTV.json", "Command":"PWR_ON"},
+    {"CommandFile":"Commands/Commands_PanasonicTV.json", "Command":"DELAY_1S"}
+  ],
+  "ExitCommandSequence":[
+    {"CommandFile":"Commands/Commands_PanasonicTV.json", "Command":"PWR_OFF"}
+  ]
+}

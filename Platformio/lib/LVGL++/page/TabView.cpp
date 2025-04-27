@@ -45,14 +45,19 @@ void TabView::HandleTabChange() {
       mTabs[i]->OnHide();
     }
   }
+  if (mTabChangeEventHandler)
+    mTabChangeEventHandler(GetCurrentTabIdx());
 }
 
 bool TabView::KeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   if (OnKeyEvent(aKeyEvent)) {
     return true;
   }
-  return mTabs[GetCurrentTabIdx()]->KeyEvent(aKeyEvent);
-};
+  if (auto *current = GetCurrentTab(); current ) {
+    return current->KeyEvent(aKeyEvent);
+  }
+  return false;
+}
 
 void TabView::OnLvglEvent(lv_event_t *anEvent) {
   if (lv_event_get_code(anEvent) == LV_EVENT_VALUE_CHANGED) {
@@ -71,6 +76,19 @@ bool TabView::GoToTab(ID anId) {
   return false;
 }
 
-void TabView::OnShow() { mTabs[GetCurrentTabIdx()]->OnShow(); }
+void TabView::OnShow() {
+  if (auto *current = GetCurrentTab(); current) {
+    current->OnShow();
+  }
+}
 
-void TabView::OnHide() { mTabs[GetCurrentTabIdx()]->OnHide(); }
+void TabView::OnHide() {
+  if (auto *current = GetCurrentTab(); current) {
+    current->OnHide();
+  }
+}
+
+UI::Page::Tab *TabView::GetCurrentTab() {
+  auto idx = GetCurrentTabIdx();
+  return idx < mTabs.size() ? mTabs[idx].get() : nullptr;
+}

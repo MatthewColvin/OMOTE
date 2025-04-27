@@ -6,13 +6,9 @@ void ESP32Logger::log(LogLevel aLevel, LogModule aModule, std::string_view aMess
   auto module = magic_enum::enum_name(aModule);
   auto level = magic_enum::enum_name(aLevel);
 
-  // Use ESP_LOG_LEVEL_LOCAL to bypass ESP32's log level filtering
-  // since we already handled filtering in LoggingInterface::isPrintWanted
-  if (aLevel != LogLevel::None) {
-    Serial.print(module.data());
-    Serial.print(":");
-  }
+  Serial.print(module.data());
+  Serial.print(":");
   Serial.print(level.data());
-
+  Serial.print(" ");
   Serial.println(aMessage.data());
 }

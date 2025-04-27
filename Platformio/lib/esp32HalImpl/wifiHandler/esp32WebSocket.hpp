@@ -42,7 +42,7 @@ private:
   std::shared_ptr<wifiHandler> mWifiHandler;
   Handler<wifiHandlerInterface::wifiStatus> mWifiStatusUpdateHandler;
 
-  std::unique_ptr<LoggingInterface> mLogger;
+  std::unique_ptr<LoggingInterface> mLogger = nullptr;
   mutable std::stringstream mLogStream;
 
   esp_websocket_client_handle_t client;

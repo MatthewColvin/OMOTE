@@ -40,5 +40,6 @@ protected:
 
   Widget::Button *mButton;
   Widget::List *mSettingsList;
+  const lv_coord_t mHeight = 45;
 };
 } // namespace UI::Page

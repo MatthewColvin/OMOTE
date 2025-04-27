@@ -64,21 +64,22 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
 
   if (d.HasMember("Scenes")) {
     for (rapidjson::SizeType i = 0; i < d["Scenes"].Size(); i++) {
-      if (d["Scenes"][i].HasMember("FileName") && d["Scenes"][i]["FileName"].IsString()) {
-        std::string fileName = d["Scenes"][i]["FileName"].GetString();
+      auto &scene = d["Scenes"][i];
+      if (scene.HasMember("FileName") && scene["FileName"].IsString()) {
+        std::string fileName = scene["FileName"].GetString();
         std::string sceneName;
-        if (d["Scenes"][i].HasMember("SceneName") && d["Scenes"][i]["SceneName"].IsString())
-          sceneName = d["Scenes"][i]["SceneName"].GetString();
+        if (scene.HasMember("SceneName") && scene["SceneName"].IsString())
+          sceneName = scene["SceneName"].GetString();
         else
           sceneName = fileName;
 
         auto symbol = checkSceneForEntryExit(fileName) ? LV_SYMBOL_EYE_OPEN : LV_SYMBOL_EYE_CLOSE;
         mList->AddItem(sceneName, symbol, [this, fileName] { displayScenePage(fileName, false); });
 
-        if (d["Scenes"][i].HasMember("BindToKey") && d["Scenes"][i]["BindToKey"].IsString()) {
-          if (d["Scenes"][i].HasMember("PressType") && d["Scenes"][i]["PressType"].IsString()) {
-            auto id = magic_enum::enum_cast<KeyIds>(d["Scenes"][i]["BindToKey"].GetString());
-            auto type = magic_enum::enum_cast<KeyPressTypes>(d["Scenes"][i]["PressType"].GetString());
+        if (scene.HasMember("BindToKey") && scene["BindToKey"].IsString()) {
+          if (scene.HasMember("PressType") && scene["PressType"].IsString()) {
+            auto id = magic_enum::enum_cast<KeyIds>(scene["BindToKey"].GetString());
+            auto type = magic_enum::enum_cast<KeyPressTypes>(scene["PressType"].GetString());
             if (id.has_value() && type.has_value())
               mSceneKeyHandlers.insert({id.value(), {type.value(), fileName}});
           }
@@ -235,7 +236,8 @@ bool JsonHomeScreen::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   // handle exit sequence first
   if ((aKeyEvent.mId == KeyPressAbstract::KeyId::Power)) {
     if (aKeyEvent.mType == Command::KeyPressTypes::Press) {
-      if (!mExitCommands.empty()) return true; //prevent page from responding to press event
+      if (!mExitCommands.empty())
+        return true; // prevent page from responding to press event
     } else if (aKeyEvent.mType == Command::KeyPressTypes::Short) {
       // short press, if we have exit sequence send and and return to home screen
       // otherwise let page deal with it (can lways use long press to force exit)

@@ -22,9 +22,6 @@ HomeScreen::HomeScreen(DeviceFactory &aFactory)
 
   mTabView->SetHeight(ContentHeight);
   mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
-
-  // Adds pages to the Tab view
-  mTabView->AddTab(std::make_unique<Page::Demo>());
 }
 
 void HomeScreen::AddPage(Page::Base::Ptr aPage) {

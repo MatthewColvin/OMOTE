@@ -92,6 +92,15 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
     // Serial.printf("Restoring scene from: %s\r\n", RtcLastState.currentScene);
     displayScenePage(RtcLastState.currentScene, true);
   } // else Serial.println("RTC sig invalid");
+
+  mStatusBar->AddDebugSettingItem({"Test Actions", LV_SYMBOL_LIST, [this] {
+                                     return std::make_unique<UI::Page::ActionTester>();
+                                   }});
+
+  mStatusBar->AddDebugSettingItem({"Add Json Device", LV_SYMBOL_EDIT, [this] {
+                                     auto jsonDevices = mFactory.getJsonDevices();
+                                     return std::make_unique<UI::Page::AddDevice>(mFactory.getActiveDevices(), jsonDevices);
+                                   }});
 }
 
 bool JsonHomeScreen::checkSceneForEntryExit(const std::string &aFileName) {

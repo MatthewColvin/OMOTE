@@ -19,20 +19,22 @@ public:
   StatusBar(DeviceFactory &factory);
 
   void AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem);
+  void AddDebugSettingItem(UI::Page::SettingsPage::InjectedItem aItem);
+
   void SetTopButtonLabel(std::string aLabel);
 
   Notification<std::string>::Ptr GetSceneChangeNotification() { return mSceneChange; };
 
 private:
-  void SettingsPress();
+  void PushSettingsList(bool aWithDebug = false);
   void PushActiveDeviceList();
 
   DeviceFactory &mFactory;
 
   Notification<std::string>::Ptr mSceneChange;
 
-  std::vector<UI::Page::SettingsPage::InjectedItem>
-      mExtraSettingsItems;
+  std::vector<UI::Page::SettingsPage::InjectedItem> mExtraSettingsItems;
+  std::vector<UI::Page::SettingsPage::InjectedItem> mDebugSettingsItems;
 
   Widget::Button *mTopBarSettingsButton;
   Widget::Button *mTopBarActiveListButton;

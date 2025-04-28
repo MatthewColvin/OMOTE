@@ -17,7 +17,7 @@ StatusBar::StatusBar(DeviceFactory &aFactory)
       mTopBarBatteryLabel(AddNewElement<Widget::Label>("")),
       mTopBarWiFiLabel(AddNewElement<Widget::Label>("")),
       mTopBarSOCLabel(AddNewElement<Widget::Label>("--%")),
-      mTopBarSettingsButton(AddNewElement<Widget::Button>([this] { SettingsPress(); })),
+      mTopBarSettingsButton(AddNewElement<Widget::Button>()),
       mTopBarActiveListButton(AddNewElement<Widget::Button>()),
       mTopBarActiveListLabel(AddNewElement<Widget::Label>("Active List")) {
   SetHeight(Height);
@@ -56,20 +56,32 @@ StatusBar::StatusBar(DeviceFactory &aFactory)
 
   mTopBarActiveListButton->OnShortClick([this] { mSceneChange->notify("TheNewScene"); })
       .OnLongHold([this] { PushActiveDeviceList(); });
+
+  mTopBarSettingsButton->OnShortClick([this] { PushSettingsList(); })
+      .OnLongHold([this] { PushSettingsList(true); });
 }
 
 void StatusBar::AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem) {
   mExtraSettingsItems.push_back(aItem);
 }
 
+void StatusBar::AddDebugSettingItem(UI::Page::SettingsPage::InjectedItem aItem) {
+  mDebugSettingsItems.push_back(aItem);
+}
+
 void StatusBar::SetTopButtonLabel(std::string aLabel) {
   mTopBarActiveListLabel->SetText(aLabel);
 }
 
-void StatusBar::SettingsPress() {
+void StatusBar::PushSettingsList(const bool aWithDebug) {
   auto settings = std::make_unique<Page::SettingsPage>();
   for (auto &item : mExtraSettingsItems) {
     settings->AddSettingItem(std::get<0>(item), std::get<1>(item), std::get<2>(item));
+  }
+  if (aWithDebug) {
+    for (auto &item : mDebugSettingsItems) {
+      settings->AddSettingItem(std::get<0>(item), std::get<1>(item), std::get<2>(item));
+    }
   }
 
   UI::Screen::Manager::getInstance().pushPopUp(

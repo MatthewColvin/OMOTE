@@ -27,6 +27,14 @@ void ActiveDevices::removeDevice(const std::string &deviceName) {
   }
 }
 
+void ActiveDevices::removeDevice(IDevice::Ptr device) {
+  auto it = std::find(mDevices.begin(), mDevices.end(), device);
+  if (it != mDevices.end()) {
+    mDevices.erase(it);
+    mListUpdated->notify(ListEvent::Removed);
+  }
+}
+
 bool ActiveDevices::handleKeyEvent(KeyPressAbstract::KeyEvent event) {
   for (auto dev : mDevices) {
     if (dev->HandleKeyEvent(event)) {
@@ -39,11 +47,31 @@ bool ActiveDevices::handleKeyEvent(KeyPressAbstract::KeyEvent event) {
 
 std::deque<IDevice::Ptr> ActiveDevices::getDevices() const { return mDevices; }
 
-ActiveDevices::ListUpdatedNotification
-ActiveDevices::getListUpdateNotification() {
+void ActiveDevices::setDevicePriority(IDevice::Ptr aDevice, int aPriority) {
+  if (aPriority < 0 || aPriority >= mDevices.size()) {
+    return;
+  }
+  auto it = std::find(mDevices.begin(), mDevices.end(), aDevice);
+  if (it != mDevices.end()) {
+    mDevices.erase(it);
+    auto newPos = mDevices.begin() + aPriority;
+    mDevices.insert(newPos, aDevice);
+    mListUpdated->notify(ListEvent::Reorder);
+  }
+}
+
+int ActiveDevices::getDevicePriority(IDevice::Ptr aDevice) {
+  auto it = std::find(mDevices.begin(), mDevices.end(), aDevice);
+  if (it != mDevices.end()) {
+    return std::distance(mDevices.begin(), it);
+  }
+  return -1;
+}
+
+ActiveDevices::ListUpdatedNotification ActiveDevices::getListUpdateNotification() {
   return mListUpdated;
 }
-ActiveDevices::KeyHandledNotification
-ActiveDevices::getKeyPressHandledNotification() {
+
+ActiveDevices::KeyHandledNotification ActiveDevices::getKeyPressHandledNotification() {
   return mDeviceHandledKeyEvent;
 }

@@ -2,7 +2,8 @@
 #include "DeviceFactory.hpp"
 #include "Notification.hpp"
 #include "PageBase.hpp"
-#include "widget/List.hpp"
+#include "WidgetBase.hpp"
+#include "widget/SelectedItemsList.hpp"
 
 namespace UI::Page {
 
@@ -13,9 +14,16 @@ public:
 
 private:
   void RefreshDeviceList();
+  void BuildReorderControlsUI();
+
+  void SetHeight(lv_coord_t aHeight) override;
 
   DeviceFactory &mFactory;
-  UI::Widget::List *mDeviceList;
+  UI::Widget::SelectedItemsList *mDeviceList = nullptr;
+  std::map<UI::Widget::ListItem *, IDevice::Ptr> mDeviceListItemToDevice;
+  UI::Widget::ListItem *mSelectedItem = nullptr;
+
+  UI::Widget::Base *mReorderControls = nullptr;
   Handler<ActiveDevices::ListEvent> mUpdateHandler;
 };
 

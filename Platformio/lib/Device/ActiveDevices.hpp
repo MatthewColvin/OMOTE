@@ -9,7 +9,8 @@
 class ActiveDevices {
 public:
   enum class ListEvent { Added,
-                         Removed };
+                         Removed,
+                         Reorder };
   using KeyHandledNotification =
       Notification<IDevice::Ptr, KeyPressAbstract::KeyEvent>::Ptr;
   using ListUpdatedNotification = Notification<ListEvent>::Ptr;
@@ -20,8 +21,12 @@ public:
 
   void addDevice(IDevice::Ptr device);
   void removeDevice(const std::string &deviceName);
+  void removeDevice(IDevice::Ptr device);
   bool handleKeyEvent(KeyPressAbstract::KeyEvent event);
   std::deque<IDevice::Ptr> getDevices() const;
+
+  void setDevicePriority(IDevice::Ptr aDevice, int aPriority);
+  int getDevicePriority(IDevice::Ptr aDevice);
 
   ListUpdatedNotification getListUpdateNotification();
   KeyHandledNotification getKeyPressHandledNotification();

@@ -18,6 +18,8 @@ public:
   void UnCheck();
   void ToggleCheck();
 
+  void MoveToIndex(int aIndex);
+
 protected:
   void OnLvglEvent(lv_event_t *anEvent) override;
   bool OnKeyEvent(KeyPressAbstract::KeyEvent anEvent) override {

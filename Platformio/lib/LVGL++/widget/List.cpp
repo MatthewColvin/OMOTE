@@ -53,6 +53,11 @@ void ListItem::ToggleCheck() {
   IsChecked() ? UnCheck() : Check();
 }
 
+void ListItem::MoveToIndex(int aIndex) {
+  lv_obj_move_to_index(LvglSelf(), aIndex);
+  lv_obj_scroll_to_view(LvglSelf(), LV_ANIM_ON);
+}
+
 List::List()
     : Base(lv_list_create(Screen::BackgroundScreen::getLvInstance()),
            ID::Widgets::List) {

@@ -25,7 +25,7 @@ public:
   bool handleKeyEvent(KeyPressAbstract::KeyEvent event);
   std::deque<IDevice::Ptr> getDevices() const;
 
-  void setDevicePriority(IDevice::Ptr aDevice, int aPriority);
+  bool setDevicePriority(IDevice::Ptr aDevice, int aPriority);
   int getDevicePriority(IDevice::Ptr aDevice);
 
   ListUpdatedNotification getListUpdateNotification();

@@ -47,9 +47,9 @@ bool ActiveDevices::handleKeyEvent(KeyPressAbstract::KeyEvent event) {
 
 std::deque<IDevice::Ptr> ActiveDevices::getDevices() const { return mDevices; }
 
-void ActiveDevices::setDevicePriority(IDevice::Ptr aDevice, int aPriority) {
+bool ActiveDevices::setDevicePriority(IDevice::Ptr aDevice, int aPriority) {
   if (aPriority < 0 || aPriority >= mDevices.size()) {
-    return;
+    return false;
   }
   auto it = std::find(mDevices.begin(), mDevices.end(), aDevice);
   if (it != mDevices.end()) {
@@ -57,7 +57,9 @@ void ActiveDevices::setDevicePriority(IDevice::Ptr aDevice, int aPriority) {
     auto newPos = mDevices.begin() + aPriority;
     mDevices.insert(newPos, aDevice);
     mListUpdated->notify(ListEvent::Reorder);
+    return true;
   }
+  return false;
 }
 
 int ActiveDevices::getDevicePriority(IDevice::Ptr aDevice) {

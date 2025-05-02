@@ -9,7 +9,12 @@ ActiveDeviceList::ActiveDeviceList(DeviceFactory &aFactory)
       mDeviceList(nullptr) {
   RefreshDeviceList();
   mUpdateHandler.SetNotification(mFactory.getActiveDevices().getListUpdateNotification());
-  mUpdateHandler = [this](auto event) { RefreshDeviceList(); };
+  mUpdateHandler = [this](auto event) {
+    // Do not rebuild list on reorder this will make sure the order stays correct
+    if (event != ActiveDevices::ListEvent::Reorder) {
+      RefreshDeviceList();
+    }
+  };
 
   BuildReorderControlsUI();
 }
@@ -72,42 +77,47 @@ void ActiveDeviceList::BuildReorderControlsUI() {
   bottomButton->SetText("Bottom");
   deleteButton->SetText("Delete");
 
-  topButton->OnShortClick([this]() {
+  auto setSelectedDevicePriority = [this](int aNewPriority) {
+    auto &activeDevices = mFactory.getActiveDevices();
+    if (activeDevices.setDevicePriority(mDeviceListItemToDevice[mSelectedItem], aNewPriority)) {
+      mSelectedItem->MoveToIndex(aNewPriority);
+    }
+  };
+
+  auto moveSelectedDevicePriority = [this, setSelectedDevicePriority](int aDelta) {
+    auto &activeDevices = mFactory.getActiveDevices();
+    auto currentPriority = activeDevices.getDevicePriority(mDeviceListItemToDevice[mSelectedItem]);
+    setSelectedDevicePriority(currentPriority + aDelta);
+  };
+
+  topButton->OnShortClick([this, setSelectedDevicePriority]() {
     if (mSelectedItem) {
-      mFactory.getActiveDevices().setDevicePriority(mDeviceListItemToDevice[mSelectedItem], 0);
+      setSelectedDevicePriority(0);
     }
   });
-  upButton->OnShortClick([this]() {
+  upButton->OnShortClick([this, moveSelectedDevicePriority] {
     if (mSelectedItem) {
-      auto &activeDevices = mFactory.getActiveDevices();
-      auto currentPriority = activeDevices.getDevicePriority(mDeviceListItemToDevice[mSelectedItem]);
-      activeDevices.setDevicePriority(mDeviceListItemToDevice[mSelectedItem], currentPriority - 1);
+      moveSelectedDevicePriority(-1);
     }
   });
-  downButton->OnShortClick([this]() {
+  downButton->OnShortClick([this, moveSelectedDevicePriority]() {
     if (mSelectedItem) {
-      auto &activeDevices = mFactory.getActiveDevices();
-      auto currentPriority = activeDevices.getDevicePriority(mDeviceListItemToDevice[mSelectedItem]);
-      activeDevices.setDevicePriority(mDeviceListItemToDevice[mSelectedItem], currentPriority + 1);
+      moveSelectedDevicePriority(1);
     }
   });
-  bottomButton->OnShortClick([this]() {
+  bottomButton->OnShortClick([this, setSelectedDevicePriority]() {
     if (mSelectedItem) {
       auto &activeDevices = mFactory.getActiveDevices();
       auto numDevices = activeDevices.getDevices().size();
-      activeDevices.setDevicePriority(mDeviceListItemToDevice[mSelectedItem], numDevices - 1);
+      auto newPriority = numDevices - 1;
+      setSelectedDevicePriority(newPriority);
     }
   });
   deleteButton->OnShortClick([this]() {
     if (mSelectedItem) {
-      mFactory.getActiveDevices().removeDevice(mDeviceListItemToDevice[mSelectedItem]->GetName());
+      mFactory.getActiveDevices().removeDevice(mDeviceListItemToDevice[mSelectedItem]);
     }
   });
-
-  // topButton->AlignTo(mReorderControls, LV_ALIGN_TOP_MID);
-  // upButton->AlignTo(topButton, LV_ALIGN_OUT_BOTTOM_MID);
-  // downButton->AlignTo(upButton, LV_ALIGN_OUT_BOTTOM_MID);
-  // bottomButton->AlignTo(downButton, LV_ALIGN_OUT_BOTTOM_MID);
 }
 
 } // namespace UI::Page

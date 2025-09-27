@@ -19,7 +19,9 @@ LoggingSettings::LoggingSettings() : Base(ID::Pages::LoggingSettings) {
 }
 
 LoggingSettings::~LoggingSettings() {
-  LoggingInterface::saveSettings();
+  if (mSaveRequired) {
+    LoggingInterface::saveSettings();
+  }
 }
 
 void LoggingSettings::AddRow(LogModule aModule, bool aIsFirst) {
@@ -37,8 +39,9 @@ void LoggingSettings::AddRow(LogModule aModule, bool aIsFirst) {
 
   // Create DropDown with the verbosity levels
   auto dropdown = AddNewElement<Widget::DropDown<LogLevel>>(
-      [aModule](LogLevel level) {
+      [this, aModule](LogLevel level) {
         LoggingInterface::setLogLevel(aModule, level);
+        mSaveRequired = true;
       });
 
   for (auto level : magic_enum::enum_values<LogLevel>()) {

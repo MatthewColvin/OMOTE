@@ -21,6 +21,8 @@ private:
 
   std::vector<Widget::Label *> mModuleLabels;
   std::vector<Widget::DropDown<LogLevel> *> mLogLevelDropDowns;
+
+  bool mSaveRequired = false;
 };
 
 } // namespace UI::Page

@@ -202,12 +202,18 @@ void wifiHandler::setupMqttBroker() {
   mMqttInitDone = true;
 }
 
+void wifiHandler::mqttForceReconnect() {
+  mForceReconnect = true;
+}
+
 void wifiHandler::mqttSync() {
   mMqttClient.loop();
   unsigned long time = millis();
-  // Note - connect is a blocking call, timeout set to min of 1sec but still
-  //     don't retry too often and only when WiFi connected
-  if (((time - mOldTime) > MQTT_RETRY) && mMqttInitDone && WiFi.isConnected() && !mMqttClient.connected() && mMqttEnabled) {
+  // Serial.printf("MQTT Sync, init:%i, wifi:%i, mqtt:%i, mqtt_en:%i, time:%i, oldTime:%i\r\n", mMqttInitDone, WiFi.isConnected(), mMqttClient.connected(), mMqttEnabled, time, mOldTime);
+  //  Note - connect is a blocking call, timeout set to min of 1sec but still
+  //      don't retry too often and only when WiFi connected
+  if ((((time - mOldTime) > MQTT_RETRY) || mForceReconnect) && mMqttInitDone && WiFi.isConnected() && !mMqttClient.connected() && mMqttEnabled) {
+    mForceReconnect = false;
     mOldTime = time;
     Serial.printf("Attempting Mqtt Connect, client: %s, user: %s \r\n", mMqttClientName.c_str(), mMqttUser.c_str());
     if (mMqttClient.connect(mMqttClientName.c_str(), mMqttUser.c_str(), mMqttPassword.c_str())) {

@@ -20,20 +20,23 @@ public:
   void setupMqttBroker() override;
   void mqttSend(std::string aTopic, std::string aMessage) override;
   void mqttSync() override;
+  void mqttForceReconnect() override {};
   void mqttSetBroker(std::string broker) override { mMqttBroker = broker; };
   void mqttSetPort(std::string port) override { mMqttPort = port; };
   void mqttSetUser(std::string user) override { mMqttUser = user; };
   void mqttSetPassword(std::string pword) override { mMqttPassword = pword; };
+  void mqttSetClientID(std::string clientid) override { mMqttClientName = clientid; };
   std::string mqttGetBroker() override { return mMqttBroker; };
   std::string mqttGetPort() override { return mMqttPort; };
   std::string mqttGetUser() override { return mMqttUser; };
   std::string mqttGetPassword() override { return mMqttPassword; };
+  std::string mqttGetClientID() override { return mMqttClientName; };
   void mqttSaveCredentialsOnConnect() override { mMqttSaveOnConnect = true; };
   void mqttBindTextEvent(uint32_t bindId, std::string topic, std::string field) override;
   void mqttUnBindTextEvent(uint32_t unBindId) override;
   void mqttSaveCredentials();
-  virtual void enableMqtt(bool enabled) override { mMqttEnabled = enabled; };
-  virtual bool isMqttEnabled(void) override { return mMqttEnabled; };
+  void enableMqtt(bool enabled) override { mMqttEnabled = enabled; };
+  bool isMqttEnabled(void) override { return mMqttEnabled; };
 
   bool mMqttConnected = false;
 
@@ -50,7 +53,7 @@ private:
   std::string mMqttPort = "port";
   std::string mMqttUser = "user";
   std::string mMqttPassword = "password";
-  std::string mMqttClientName = "OMOTE";
+  std::string mMqttClientName = "OMOTESIM";
   bool mMqttSaveOnConnect = false;
   bool mMqttEnabled = false;
 };

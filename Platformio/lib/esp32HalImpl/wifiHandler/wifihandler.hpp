@@ -22,19 +22,22 @@ public:
   void setupMqttBroker() override;
   void mqttSend(std::string aTopic, std::string aMessage) override;
   void mqttSync() override;
+  void mqttForceReconnect() override;
   void mqttSetBroker(std::string broker) override { mMqttBroker = broker; };
   void mqttSetPort(std::string port) override { mMqttPort = port; };
   void mqttSetUser(std::string user) override { mMqttUser = user; };
   void mqttSetPassword(std::string pword) override { mMqttPassword = pword; };
+  void mqttSetClientID(std::string clientid) override { mMqttClientName = clientid; };
   std::string mqttGetBroker() override { return mMqttBroker; };
   std::string mqttGetPort() override { return mMqttPort; };
   std::string mqttGetUser() override { return mMqttUser; };
   std::string mqttGetPassword() override { return mMqttPassword; };
+  std::string mqttGetClientID() override { return mMqttClientName; };
   void mqttSaveCredentialsOnConnect() override { mMqttSaveOnConnect = true; };
   void mqttBindTextEvent(uint32_t bindId, std::string topic, std::string field) override;
   void mqttUnBindTextEvent(uint32_t unBindId) override;
   void enableMqtt(bool enabled) override;
-  bool isMqttEnabled(void) override {return mMqttEnabled;};
+  bool isMqttEnabled(void) override { return mMqttEnabled; };
   void mqttSaveCredentials();
   void mqttRestoreCredentials();
 
@@ -91,4 +94,6 @@ private:
   WiFiClient mEspClient;
   unsigned long mOldTime = 0;
   bool mMqttEnabled = false;
+  bool mForceReconnect = false;
+
 };

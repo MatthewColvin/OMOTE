@@ -57,14 +57,17 @@ public:
   virtual void setupMqttBroker() = 0;
   virtual void mqttSend(std::string aTopic, std::string aMessage) = 0;
   virtual void mqttSync() = 0;
+  virtual void mqttForceReconnect() = 0;
   virtual void mqttSetBroker(std::string broker) = 0;
   virtual void mqttSetPort(std::string port) = 0;
   virtual void mqttSetUser(std::string user) = 0;
   virtual void mqttSetPassword(std::string pword) = 0;
+  virtual void mqttSetClientID(std::string clientid) = 0;
   virtual std::string mqttGetBroker() = 0;
   virtual std::string mqttGetPort() = 0;
   virtual std::string mqttGetUser() = 0;
   virtual std::string mqttGetPassword() = 0;
+  virtual std::string mqttGetClientID() = 0;
   virtual void mqttSaveCredentialsOnConnect() = 0;
   virtual void mqttBindTextEvent(uint32_t bindId, std::string topic, std::string field) = 0;
   virtual void mqttUnBindTextEvent(uint32_t unBindId) = 0;

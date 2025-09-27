@@ -62,6 +62,7 @@ public:
 
   virtual ~LoggingInterface() = default;
   LoggingInterface() = default;
+  LoggingInterface(LogModule aModuleToLogFor) : mModule(aModuleToLogFor) {};
 
   // Return True if the message was logged
   bool debug(std::string_view aMessage);

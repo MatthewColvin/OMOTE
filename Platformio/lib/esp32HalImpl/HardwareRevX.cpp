@@ -73,6 +73,11 @@ void HardwareRevX::init() {
   mWifiHandler->mqttRestoreCredentials();
   mWifiHandler->setupMqttBroker();
 
+  mWifiHandler->ntpRestoreCredentials();
+  mWifiHandler->setupNtp();
+
+  mWifiHandler->ftpRestoreCredentials();
+
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>(logger());
 
@@ -95,7 +100,9 @@ void HardwareRevX::init() {
 
   mLogger->setLogModule(LogModule::General);
   if (mLogger->isPrintWanted(LogLevel::Info)) {
-        mLogStream << "Finished RevX Hardware Setup in " << millis() << "ms"; mLogger->log(LogLevel::Info, mLogStream);}
+    mLogStream << "Finished RevX Hardware Setup in " << millis() << "ms";
+    mLogger->log(LogLevel::Info, mLogStream);
+  }
 }
 
 void HardwareRevX::debugPrint(const char *fmt, ...) {
@@ -172,7 +179,9 @@ bool HardwareRevX::activityDetection() {
     mLogger->setLogModule(LogModule::IMU);
     if (mLogger->isPrintWanted(LogLevel::Debug)) {
       std::stringstream ss;
-      ss << "Motion Level :" <<  motion << ", Detected: " << activityDetected; mLogger->log(LogLevel::Debug, ss);}
+      ss << "Motion Level :" << motion << ", Detected: " << activityDetected;
+      mLogger->log(LogLevel::Debug, ss);
+    }
   }
   return activityDetected;
 }
@@ -209,7 +218,7 @@ void HardwareRevX::saveSettings() {
   if (!mPreferences.getBool("alreadySetUp"))
     mPreferences.putBool("alreadySetUp", true);
   mPreferences.end();
- 
+
   mLogger->setLogModule(LogModule::Display);
   if (mLogger->isPrintWanted(LogLevel::Info))
     mLogger->log(LogLevel::Info, "Settings Saved");
@@ -234,8 +243,8 @@ void HardwareRevX::enterSleep() {
   digitalWrite(LCD_EN, HIGH); // LCD logic off
   pinMode(LCD_BL, OUTPUT);
   LCD_BL_OFF;
-  pinMode(CRG_STAT, INPUT);   // Disable Pull-Up
-  digitalWrite(IR_VCC, LOW);  // IR Receiver off
+  pinMode(CRG_STAT, INPUT);  // Disable Pull-Up
+  digitalWrite(IR_VCC, LOW); // IR Receiver off
 
   configPinsForSleepInterrupts();
 
@@ -370,6 +379,11 @@ void HardwareRevX::startTasks() {}
 
 void HardwareRevX::loopHandler() {
   mWifiHandler->mqttSync();
+  mWifiHandler->ftpSync();
+
+  mWifiHandler->nptSync();
+
+  mWifiHandler->ftpSync();
 
   mIr->loopHandleRx();
 
@@ -399,7 +413,9 @@ void HardwareRevX::loopHandler() {
       updateBacklightMode(irLevel);
       mLogger->setLogModule(LogModule::Display);
       if (mLogger->isPrintWanted(LogLevel::Debug)) {
-        mLogStream << "Light sensor:" << irLevel; mLogger->log(LogLevel::Debug, mLogStream);}
+        mLogStream << "Light sensor:" << irLevel;
+        mLogger->log(LogLevel::Debug, mLogStream);
+      }
     }
 
     mDisplay->getTouchData(); // trigger read here to keep all I2C accesses
@@ -410,15 +426,10 @@ void HardwareRevX::loopHandler() {
       mLogger->setLogModule(LogModule::Memory);
       if (mLogger->isPrintWanted(LogLevel::Info)) {
         mLogStream.precision(2);
-        mLogStream << "Heap:" <<
-            (100.0f * ESP.getFreeHeap()) / ESP.getHeapSize() << "% free of " << 
-            ESP.getHeapSize() / 1024 << "kB, Pram:" <<
-            (100.0f * ESP.getFreePsram()) / ESP.getPsramSize() << "% free of " <<
-            ESP.getPsramSize() / 1024 << "kB, Stack min free: " << 
-            uxTaskGetStackHighWaterMark(nullptr) << "w";
+        mLogStream << "Heap:" << (100.0f * ESP.getFreeHeap()) / ESP.getHeapSize() << "% free of " << ESP.getHeapSize() / 1024 << "kB, Pram:" << (100.0f * ESP.getFreePsram()) / ESP.getPsramSize() << "% free of " << ESP.getPsramSize() / 1024 << "kB, Stack min free: " << uxTaskGetStackHighWaterMark(nullptr) << "w";
         mLogger->log(LogLevel::Info, mLogStream);
       }
-      
+
       secCount = 0;
       int32_t iSoc = mBattery->getPercentage();
       if (iSoc > 99)

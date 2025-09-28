@@ -41,6 +41,23 @@ public:
   void mqttSaveCredentials();
   void mqttRestoreCredentials();
 
+  // FTP interface
+  void enableFtp(bool enabled) override {
+    mFtpEnabled = enabled;
+    if (enabled)
+      mFtpForceConnect = true;
+  };
+  bool isFtpEnabled(void) override { return mFtpEnabled; };
+  void ftpSync();
+  void ftpSetUser(std::string user) override { mFtpUser = user; };
+  void ftpSetPassword(std::string password) override { mFtpPassword = password; };
+  void mDNSSetName(std::string name) override { mmDNSName = name; };
+  std::string ftpGetUser() override { return mFtpUser; };
+  std::string ftpGetPassword() override { return mFtpPassword; };
+  std::string mDNSGetName() override { return mmDNSName; };
+  void ftpSaveCredentials() override;
+  void ftpRestoreCredentials();
+
 protected:
   wifiHandler() = default;
   static std::shared_ptr<wifiHandler> mInstance;
@@ -96,4 +113,11 @@ private:
   bool mMqttEnabled = false;
   bool mForceReconnect = false;
 
+  std::string mFtpUser = "OMOTE";
+  std::string mFtpPassword = "OMOTE";
+  std::string mmDNSName = "omote";
+  bool mFtpEnabled = false;
+  bool mFtpInitialised = false;
+  unsigned long mOldFtpTime = 0;
+  bool mFtpForceConnect = true;
 };

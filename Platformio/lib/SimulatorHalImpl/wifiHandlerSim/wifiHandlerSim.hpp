@@ -38,6 +38,26 @@ public:
   void enableMqtt(bool enabled) override { mMqttEnabled = enabled; };
   bool isMqttEnabled(void) override { return mMqttEnabled; };
 
+  void enableFtp(bool enabled) override { mFtpEnabled = enabled; };
+  bool isFtpEnabled(void) override { return mFtpEnabled; };
+  void ftpSetUser(std::string user) override { mFtpUser = user; };
+  void ftpSetPassword(std::string password) override { mFtpPassword = password; };
+  void mDNSSetName(std::string name) override { mmDNSName = name; };
+  std::string ftpGetUser() override { return mFtpUser; };
+  std::string ftpGetPassword() override { return mFtpPassword; };
+  std::string mDNSGetName() override { return mmDNSName; };
+  void ftpSaveCredentials() override {};
+
+  void enableFtp(bool enabled) override { mFtpEnabled = enabled; };
+  bool isFtpEnabled(void) override { return mFtpEnabled; };
+  void ftpSetUser(std::string user) override { mFtpUser = user; };
+  void ftpSetPassword(std::string password) override { mFtpPassword = password; };
+  void mDNSSetName(std::string name) override { mmDNSName = name; };
+  std::string ftpGetUser() override { return mFtpUser; };
+  std::string ftpGetPassword() override { return mFtpPassword; };
+  std::string mDNSGetName() override { return mmDNSName; };
+  void ftpSaveCredentials() override {};
+
   bool mMqttConnected = false;
 
 private:
@@ -56,4 +76,8 @@ private:
   std::string mMqttClientName = "OMOTESIM";
   bool mMqttSaveOnConnect = false;
   bool mMqttEnabled = false;
+  std::string mFtpUser = "OMOTE";
+  std::string mFtpPassword = "OMOTE";
+  std::string mmDNSName = "omote";
+  bool mFtpEnabled = false;
 };

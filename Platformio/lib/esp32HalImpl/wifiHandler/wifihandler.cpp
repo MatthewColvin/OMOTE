@@ -9,10 +9,12 @@
 #include "HardwareAbstract.hpp"
 #include "HardwareFactory.hpp"
 #include "WiFi.h"
+#include "ftp.hpp"
 #include "observerHandles.hpp"
 #include "omoteconfig.h"
 
 #define MQTT_RETRY 60000
+#include <ESPmDNS.h>
 
 std::shared_ptr<wifiHandler> wifiHandler::mInstance = nullptr;
 std::unique_ptr<LoggingInterface> mLogger = nullptr;
@@ -352,3 +354,82 @@ void wifiHandler::mqttRestoreCredentials() {
   mLogger->info("MQTT credentials restored");
   // Serial.println("MQTT credentials restored");
 }
+  void wifiHandler::ftpSync() {
+    unsigned long time = millis();
+    if (mFtpEnabled && WiFi.isConnected()) {
+      if (mFtpInitialised) {
+        ftp::sync();
+      } else {
+        // don't retry too often
+        if (((time - mOldFtpTime) > MQTT_RETRY) || mFtpForceConnect) {
+          mFtpForceConnect = false;
+          mLogger->info("Starting FTP Server");
+          MDNS.begin(mmDNSName.c_str());
+          ftp::begin(mFtpUser.c_str(), mFtpPassword.c_str());
+          mOldFtpTime = time;
+          mFtpInitialised = true;
+        }
+      }
+    } else {
+      if (mFtpInitialised) {
+        mLogger->info("Stopping FTP Server");
+        MDNS.end();
+        ftp::end();
+        mFtpInitialised = false;
+      }
+    }
+  }
+
+  void wifiHandler::ftpSaveCredentials() {
+
+    // persist to disk
+    rapidjson::Document d;
+    d.SetObject();
+
+    // Add data to the JSON document
+    d.AddMember("enabled", mFtpEnabled, d.GetAllocator());
+    d.AddMember("mDnsName", mmDNSName, d.GetAllocator());
+    d.AddMember("user", mFtpUser, d.GetAllocator());
+    d.AddMember("password", mFtpPassword, d.GetAllocator());
+
+    std::ofstream file(FS_PATH "ftp.json", std::ios::out | std::ios::trunc);
+    if (!file) {
+      mLogger->error("Could not save FTP credentials.");
+      return;
+    }
+
+    std::string jsonStr = ToString(d);
+    file << jsonStr;
+    file.close();
+
+    mLogger->info("FTP credentials saved");
+  }
+
+  void wifiHandler::ftpRestoreCredentials() {
+    // restore from disk
+    std::ifstream file(FS_PATH "ftp.json", std::ios::in);
+    if (!file) {
+      mLogger->error("Could not load FTP credentials.");
+      return;
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    file.close();
+    std::string content(buffer.str());
+
+    MemConsciousDocument d;
+    if (!d.Parse(content.c_str()).HasParseError()) {
+      if (d.HasMember("enabled") && d["enabled"].IsBool())
+        mFtpEnabled = d["enabled"].GetBool();
+      if (d.HasMember("mDnsName") && d["mDnsName"].IsString())
+        mmDNSName = d["mDnsName"].GetString();
+      if (d.HasMember("user") && d["user"].IsString())
+        mFtpUser = d["user"].GetString();
+      if (d.HasMember("password") && d["password"].IsString())
+        mFtpPassword = d["password"].GetString();
+      mLogger->info("FTP credentials restored");
+      mLogger->debug("mDNS: " + mmDNSName + ", FTP: " + mFtpUser + (mFtpEnabled ? ", FTP enabled" : ", FTP disabled"));
+    } else
+      mLogger->info("FTP defaults used");
+  }

@@ -74,6 +74,15 @@ public:
   virtual void enableMqtt(bool enabled) = 0;
   virtual bool isMqttEnabled(void) = 0;
 
+  virtual void enableFtp(bool enabled) = 0;
+  virtual bool isFtpEnabled(void) = 0;
+  virtual void ftpSetUser(std::string user) = 0;
+  virtual void ftpSetPassword(std::string password) = 0;
+  virtual void mDNSSetName(std::string name) = 0;
+  virtual std::string ftpGetUser() = 0;
+  virtual std::string ftpGetPassword() = 0;
+  virtual std::string mDNSGetName() = 0;
+  virtual void ftpSaveCredentials() = 0;
 protected:
   std::shared_ptr<ScanNotificationTy> mScanNotification =
       std::make_shared<ScanNotificationTy>();

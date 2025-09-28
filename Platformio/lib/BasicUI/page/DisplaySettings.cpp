@@ -13,20 +13,29 @@ DisplaySettings::DisplaySettings(std::shared_ptr<DisplayAbstract> aDisplay)
       mKbdNightLabel(AddNewElement<Widget::Label>("Keypad Night Brightness")),
       mLcdDaySlider(AddNewElement<Widget::Slider>(
           [this](auto aNewBrightness) {
+            // TODO: Add the bool arg back to these when needed
             mDisplay->setLcdDayBrightness(aNewBrightness);
-          }, 0, 255)),
+            mSaveRequired = true;
+          },
+          0, 255)),
       mLcdNightSlider(AddNewElement<Widget::Slider>(
           [this](auto aNewBrightness) {
             mDisplay->setLcdNightBrightness(aNewBrightness);
-          },0, 255)),
+            mSaveRequired = true;
+          },
+          0, 255)),
       mKbdDaySlider(AddNewElement<Widget::Slider>(
           [this](auto aNewBrightness) {
             mDisplay->setKbdDayBrightness(aNewBrightness);
-          }, 0, 255)),
+            mSaveRequired = true;
+          },
+          0, 255)),
       mKbdNightSlider(AddNewElement<Widget::Slider>(
           [this](auto aNewBrightness) {
             mDisplay->setKbdNightBrightness(aNewBrightness);
-          }, 0, 255)) {
+            mSaveRequired = true;
+          },
+          0, 255)) {
   SetBgColor(Color::GREY);
 
   auto labelHeight = 12;
@@ -57,18 +66,20 @@ DisplaySettings::DisplaySettings(std::shared_ptr<DisplayAbstract> aDisplay)
   mKbdDaySlider->SetValue(mDisplay->getKbdDayBrightness());
   mKbdNightSlider->SetValue(mDisplay->getKbdNightBrightness());
 
-  #ifndef OMOTE_KEYBRD_3661
-    mLcdNightLabel->SetVisiblity(false);
-    mLcdNightSlider->SetVisiblity(false);
-    mKbdNightLabel->SetVisiblity(false);
-    mKbdNightSlider->SetVisiblity(false);  
-  #ifndef OMOTE_HARDWARE_REV5
-    mKbdDayLabel->SetVisiblity(false);
-    mKbdDaySlider->SetVisiblity(false);
-  #endif
-  #endif
+#ifndef OMOTE_KEYBRD_3661
+  mLcdNightLabel->SetVisiblity(false);
+  mLcdNightSlider->SetVisiblity(false);
+  mKbdNightLabel->SetVisiblity(false);
+  mKbdNightSlider->SetVisiblity(false);
+#ifndef OMOTE_HARDWARE_REV5
+  mKbdDayLabel->SetVisiblity(false);
+  mKbdDaySlider->SetVisiblity(false);
+#endif
+#endif
 }
 
 DisplaySettings::~DisplaySettings() {
-  HardwareFactory::getAbstract().saveSettings();
+  if (mSaveRequired) {
+    HardwareFactory::getAbstract().saveSettings();
+  }
 }

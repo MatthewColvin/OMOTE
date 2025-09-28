@@ -42,6 +42,7 @@ public:
     WifiSettings,
     SystemSettings,
     MqttSettings,
+    NtpSettings,
     FtpSettings,
     LoggingSettings,
     IrLearner,

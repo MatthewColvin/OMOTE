@@ -3,7 +3,6 @@
 #define RAPIDJSON_HAS_STDSTRING 1
 #include <Arduino.h>
 #include <Preferences.h>
-#include <fstream>
 #include <rapidjson/document.h>
 
 #include "HardwareAbstract.hpp"
@@ -13,8 +12,12 @@
 #include "observerHandles.hpp"
 #include "omoteconfig.h"
 
-#define MQTT_RETRY 60000
+#include "esp_netif_sntp.h"
+#include "esp_sntp.h"
 #include <ESPmDNS.h>
+#include <fstream>
+
+#define MQTT_RETRY 60000
 
 std::shared_ptr<wifiHandler> wifiHandler::mInstance = nullptr;
 std::unique_ptr<LoggingInterface> mLogger = nullptr;
@@ -354,82 +357,169 @@ void wifiHandler::mqttRestoreCredentials() {
   mLogger->info("MQTT credentials restored");
   // Serial.println("MQTT credentials restored");
 }
-  void wifiHandler::ftpSync() {
-    unsigned long time = millis();
-    if (mFtpEnabled && WiFi.isConnected()) {
-      if (mFtpInitialised) {
-        ftp::sync();
-      } else {
-        // don't retry too often
-        if (((time - mOldFtpTime) > MQTT_RETRY) || mFtpForceConnect) {
-          mFtpForceConnect = false;
-          mLogger->info("Starting FTP Server");
-          MDNS.begin(mmDNSName.c_str());
-          ftp::begin(mFtpUser.c_str(), mFtpPassword.c_str());
-          mOldFtpTime = time;
-          mFtpInitialised = true;
-        }
-      }
+
+void wifiHandler::ntpSaveCredentials() {
+
+  // persist to disk
+  rapidjson::Document d;
+  d.SetObject();
+
+  // Add data to the JSON document
+  d.AddMember("enabled", mNtpEnabled, d.GetAllocator());
+  d.AddMember("displayMode", mNtpDisplayMode, d.GetAllocator());
+  d.AddMember("server", mNtpServer, d.GetAllocator());
+  d.AddMember("timezone", mNtpTimeZone, d.GetAllocator());
+
+  std::ofstream file(FS_PATH "ntp.json", std::ios::out | std::ios::trunc);
+  if (!file) {
+    mLogger->error("Could not save NTP credentials.");
+    return;
+  }
+
+  std::string jsonStr = ToString(d);
+  file << jsonStr;
+  file.close();
+
+  mLogger->info("NTP credentials saved");
+}
+
+void wifiHandler::ntpRestoreCredentials() {
+  // defaults
+  mNtpEnabled = false;
+  mNtpServer = "pool.ntp.org";
+  // see https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
+  mNtpTimeZone = "GMT0BST,M3.5.0/1,M10.5.0";
+  mNtpDisplayMode = ntpDisplayMode::constant;
+
+  // restore from disk
+  std::ifstream file(FS_PATH "ntp.json", std::ios::in);
+  if (!file) {
+    mLogger->error("Could not load NTP credentials.");
+    return;
+  }
+
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+  std::string content(buffer.str());
+
+  MemConsciousDocument d;
+  if (!d.Parse(content.c_str()).HasParseError()) {
+    if (d.HasMember("enabled") && d["enabled"].IsBool())
+      mNtpEnabled = d["enabled"].GetBool();
+    if (d.HasMember("displayMode") && d["displayMode"].IsInt())
+      mNtpDisplayMode = d["displayMode"].GetInt();
+    if (d.HasMember("server") && d["server"].IsString())
+      mNtpServer = d["server"].GetString();
+    if (d.HasMember("timezone") && d["timezone"].IsString())
+      mNtpTimeZone = d["timezone"].GetString();
+    mLogger->info("NTP credentials restored");
+    mLogger->debug(mNtpEnabled ? "NTP enabled" : "NTP disabled");
+    mLogger->debug(mNtpServer);
+    mLogger->debug(mNtpTimeZone);
+  } else
+    mLogger->info("NTP defaults used");
+}
+
+void wifiHandler::setupNtp() {
+  // May need to re-init following light sleep, not sure whether the re-init of wifi will bother things
+  // Not implemented yet as could spam NTP server on frequent sleeps
+  // See what accuracy is like without for now
+  setenv("TZ", mNtpTimeZone.c_str(), 1);
+  tzset();
+  esp_netif_sntp_deinit();
+  mNtpInitialised = false;
+}
+
+void wifiHandler::nptSync() {
+  // All this has to do is start the NTP service once the WiFi is up and running on a cold boot
+  // Fairly nasty way of doing it, should really use a wifi connect callback but this is quick and easy to test
+  if (!mNtpInitialised && mNtpEnabled && WiFi.isConnected()) {
+    mLogger->info("Starting NTP");
+    mNtpInitialised = true;
+
+    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG_MULTIPLE(1, {mNtpServer.c_str()});
+
+    esp_netif_sntp_init(&config);
+  }
+}
+
+void wifiHandler::ftpSync() {
+  unsigned long time = millis();
+  if (mFtpEnabled && WiFi.isConnected()) {
+    if (mFtpInitialised) {
+      ftp::sync();
     } else {
-      if (mFtpInitialised) {
-        mLogger->info("Stopping FTP Server");
-        MDNS.end();
-        ftp::end();
-        mFtpInitialised = false;
+      // don't retry too often
+      if (((time - mOldFtpTime) > MQTT_RETRY) || mFtpForceConnect) {
+        mFtpForceConnect = false;
+        mLogger->info("Starting FTP Server");
+        MDNS.begin(mmDNSName.c_str());
+        ftp::begin(mFtpUser.c_str(), mFtpPassword.c_str());
+        mOldFtpTime = time;
+        mFtpInitialised = true;
       }
     }
-  }
-
-  void wifiHandler::ftpSaveCredentials() {
-
-    // persist to disk
-    rapidjson::Document d;
-    d.SetObject();
-
-    // Add data to the JSON document
-    d.AddMember("enabled", mFtpEnabled, d.GetAllocator());
-    d.AddMember("mDnsName", mmDNSName, d.GetAllocator());
-    d.AddMember("user", mFtpUser, d.GetAllocator());
-    d.AddMember("password", mFtpPassword, d.GetAllocator());
-
-    std::ofstream file(FS_PATH "ftp.json", std::ios::out | std::ios::trunc);
-    if (!file) {
-      mLogger->error("Could not save FTP credentials.");
-      return;
+  } else {
+    if (mFtpInitialised) {
+      mLogger->info("Stopping FTP Server");
+      MDNS.end();
+      ftp::end();
+      mFtpInitialised = false;
     }
+  }
+}
 
-    std::string jsonStr = ToString(d);
-    file << jsonStr;
-    file.close();
+void wifiHandler::ftpSaveCredentials() {
 
-    mLogger->info("FTP credentials saved");
+  // persist to disk
+  rapidjson::Document d;
+  d.SetObject();
+
+  // Add data to the JSON document
+  d.AddMember("enabled", mFtpEnabled, d.GetAllocator());
+  d.AddMember("mDnsName", mmDNSName, d.GetAllocator());
+  d.AddMember("user", mFtpUser, d.GetAllocator());
+  d.AddMember("password", mFtpPassword, d.GetAllocator());
+
+  std::ofstream file(FS_PATH "ftp.json", std::ios::out | std::ios::trunc);
+  if (!file) {
+    mLogger->error("Could not save FTP credentials.");
+    return;
   }
 
-  void wifiHandler::ftpRestoreCredentials() {
-    // restore from disk
-    std::ifstream file(FS_PATH "ftp.json", std::ios::in);
-    if (!file) {
-      mLogger->error("Could not load FTP credentials.");
-      return;
-    }
+  std::string jsonStr = ToString(d);
+  file << jsonStr;
+  file.close();
 
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    file.close();
-    std::string content(buffer.str());
+  mLogger->info("FTP credentials saved");
+}
 
-    MemConsciousDocument d;
-    if (!d.Parse(content.c_str()).HasParseError()) {
-      if (d.HasMember("enabled") && d["enabled"].IsBool())
-        mFtpEnabled = d["enabled"].GetBool();
-      if (d.HasMember("mDnsName") && d["mDnsName"].IsString())
-        mmDNSName = d["mDnsName"].GetString();
-      if (d.HasMember("user") && d["user"].IsString())
-        mFtpUser = d["user"].GetString();
-      if (d.HasMember("password") && d["password"].IsString())
-        mFtpPassword = d["password"].GetString();
-      mLogger->info("FTP credentials restored");
-      mLogger->debug("mDNS: " + mmDNSName + ", FTP: " + mFtpUser + (mFtpEnabled ? ", FTP enabled" : ", FTP disabled"));
-    } else
-      mLogger->info("FTP defaults used");
+void wifiHandler::ftpRestoreCredentials() {
+  // restore from disk
+  std::ifstream file(FS_PATH "ftp.json", std::ios::in);
+  if (!file) {
+    mLogger->error("Could not load FTP credentials.");
+    return;
   }
+
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+  std::string content(buffer.str());
+
+  MemConsciousDocument d;
+  if (!d.Parse(content.c_str()).HasParseError()) {
+    if (d.HasMember("enabled") && d["enabled"].IsBool())
+      mFtpEnabled = d["enabled"].GetBool();
+    if (d.HasMember("mDnsName") && d["mDnsName"].IsString())
+      mmDNSName = d["mDnsName"].GetString();
+    if (d.HasMember("user") && d["user"].IsString())
+      mFtpUser = d["user"].GetString();
+    if (d.HasMember("password") && d["password"].IsString())
+      mFtpPassword = d["password"].GetString();
+    mLogger->info("FTP credentials restored");
+    mLogger->debug("mDNS: " + mmDNSName + ", FTP: " + mFtpUser + (mFtpEnabled ? ", FTP enabled" : ", FTP disabled"));
+  } else
+    mLogger->info("FTP defaults used");
+}

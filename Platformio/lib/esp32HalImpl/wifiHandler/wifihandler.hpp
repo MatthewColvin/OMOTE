@@ -41,6 +41,21 @@ public:
   void mqttSaveCredentials();
   void mqttRestoreCredentials();
 
+  // TODO: look into moving this to its own interface
+  // NTP Interface
+  void enableNtp(bool enabled) override { mNtpEnabled = enabled; };
+  void nptSync();
+  bool isNtpEnabled(void) override { return mNtpEnabled; };
+  std::string ntpGetServer() override { return mNtpServer; };
+  std::string ntpGetTimeZone() override { return mNtpTimeZone; };
+  int ntpGetDisplayMode() override { return mNtpDisplayMode; };
+  void ntpSetServer(std::string server) override { mNtpServer = server; };
+  void ntpSetTimeZone(std::string timezone) override { mNtpTimeZone = timezone; };
+  void ntpSetDisplayMode(int mode) override { mNtpDisplayMode = mode; };
+  void ntpSaveCredentials() override;
+  void ntpRestoreCredentials();
+  void setupNtp() override;
+
   // FTP interface
   void enableFtp(bool enabled) override {
     mFtpEnabled = enabled;
@@ -112,6 +127,16 @@ private:
   unsigned long mOldTime = 0;
   bool mMqttEnabled = false;
   bool mForceReconnect = false;
+
+  /**
+   * @brief NTP variables
+   */
+  bool mNtpEnabled = false;
+  bool mNtpInitialised = false;
+  std::string mNtpServer = "pool.ntp.org";
+  // see https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv
+  std::string mNtpTimeZone = "GMT0BST,M3.5.0/1,M10.5.0";
+  int mNtpDisplayMode = ntpDisplayMode::constant;
 
   std::string mFtpUser = "OMOTE";
   std::string mFtpPassword = "OMOTE";

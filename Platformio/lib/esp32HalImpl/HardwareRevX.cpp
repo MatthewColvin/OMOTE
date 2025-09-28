@@ -383,8 +383,6 @@ void HardwareRevX::loopHandler() {
 
   mWifiHandler->nptSync();
 
-  mWifiHandler->ftpSync();
-
   mIr->loopHandleRx();
 
   mStandbyTimer < 2000 ? mDisplay->sleep() : mDisplay->wake();

@@ -60,6 +60,17 @@ public:
 
   bool mMqttConnected = false;
 
+  void enableNtp(bool enabled) override { mNtpEnabled = enabled; };
+  bool isNtpEnabled(void) override { return mNtpEnabled; };
+  std::string ntpGetServer() override { return mNtpServer; };
+  std::string ntpGetTimeZone() override { return mNtpTimeZone; };
+  int ntpGetDisplayMode() override { return mNtpDisplayMode; };
+  void ntpSetServer(std::string server) override { mNtpServer = server; };
+  void ntpSetTimeZone(std::string timezone) override { mNtpTimeZone = timezone; };
+  void ntpSetDisplayMode(int mode) override { mNtpDisplayMode = mode; };
+  void ntpSaveCredentials() override {};
+  void setupNtp() override {};
+
 private:
   void init_mqtt();
   void stop_mqtt();
@@ -76,6 +87,12 @@ private:
   std::string mMqttClientName = "OMOTESIM";
   bool mMqttSaveOnConnect = false;
   bool mMqttEnabled = false;
+
+  bool mNtpEnabled = false;
+  std::string mNtpServer = "pool.ntp.org";
+  std::string mNtpTimeZone = "GMT0BST,M3.5.0/1,M10.5.0";
+  int mNtpDisplayMode = ntpDisplayMode::constant;
+
   std::string mFtpUser = "OMOTE";
   std::string mFtpPassword = "OMOTE";
   std::string mmDNSName = "omote";

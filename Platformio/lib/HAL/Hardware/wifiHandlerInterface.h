@@ -5,6 +5,10 @@
 
 #include "Notification.hpp"
 
+enum ntpDisplayMode { constant,
+                      alternates,
+                      first5sec };
+
 class wifiHandlerInterface {
 public:
   wifiHandlerInterface() = default;
@@ -83,6 +87,18 @@ public:
   virtual std::string ftpGetPassword() = 0;
   virtual std::string mDNSGetName() = 0;
   virtual void ftpSaveCredentials() = 0;
+
+  virtual void enableNtp(bool enabled) = 0;
+  virtual bool isNtpEnabled(void) = 0;
+  virtual std::string ntpGetServer() = 0;
+  virtual std::string ntpGetTimeZone() = 0;
+  virtual int ntpGetDisplayMode() = 0;
+  virtual void ntpSetServer(std::string server) = 0;
+  virtual void ntpSetTimeZone(std::string timezone) = 0;
+  virtual void ntpSetDisplayMode(int mode) = 0;
+  virtual void ntpSaveCredentials() = 0;
+  virtual void setupNtp() = 0;
+
 protected:
   std::shared_ptr<ScanNotificationTy> mScanNotification =
       std::make_shared<ScanNotificationTy>();

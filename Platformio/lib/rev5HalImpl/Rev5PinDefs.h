@@ -91,11 +91,11 @@
 
 #define ADC_BAT -1 // not usde, needed to keep common battery constructor
 
-#define BUTTON_PIN_BITMASK ((0x01 << TCA_INT) | (0x01 << ACC_INT))
+#define BUTTON_PIN_BITMASK ((0x01ULL << TCA_INT) | (0x01ULL << ACC_INT))
 #define KEYPAD_ROWS_BITMASK      \
-  ((0x01 << (KEYPAD_ROWS + 1)) | \
-   ((0x01 << (KEYPAD_ROWS + 1)) - 1)) // num rows plus PWR button
+  ((0x01 << (KEYPAD_ROWS)) | \
+   ((0x01 << (KEYPAD_ROWS)) - 1)) // num rows plus PWR button
 #define KEYPAD_COLS_BITMASK \
-  ((0x01 << KEYPAD_COLS) |  \
-   ((0x01 << KEYPAD_COLS) - 1)) // num cols only, no interrupt for USB_3V3
+  ((0x01 << KEYPAD_COLS - 1) |  \
+   ((0x01 << KEYPAD_COLS - 1) - 1)) // num cols only, no interrupt for USB_3V3
 #define LEDC_SPEED_MODE LEDC_LOW_SPEED_MODE

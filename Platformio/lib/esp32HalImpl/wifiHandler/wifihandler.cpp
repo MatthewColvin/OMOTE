@@ -15,11 +15,15 @@
 #define MQTT_RETRY 60000
 
 std::shared_ptr<wifiHandler> wifiHandler::mInstance = nullptr;
+std::unique_ptr<LoggingInterface> mLogger = nullptr;
+
 std::shared_ptr<wifiHandler> wifiHandler::getInstance() {
   if (mInstance) {
     return mInstance;
   }
   mInstance = std::shared_ptr<wifiHandler>(new wifiHandler());
+  mLogger = std::make_unique<LoggingInterface>();
+  mLogger->setLogModule(LogModule::WiFi);
   return mInstance;
 };
 
@@ -47,24 +51,31 @@ void wifiHandler::WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t aEventInfo) {
     UpdateStatus();
     break;
   case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+  case ARDUINO_EVENT_WIFI_STA_STOP:
   case ARDUINO_EVENT_WIFI_STA_GOT_IP:
   case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
   case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-  case ARDUINO_EVENT_WIFI_STA_STOP:
     UpdateStatus();
     break;
   default:
     break;
   }
   if (WiFi.status() == WL_CONNECT_FAILED) {
-    Serial.println("connection failed.");
+    mLogger->error("connection failed.");
+    // Serial.println("connection failed.");
     WiFi.disconnect();
   }
-  Serial.println(WiFi.status());
+  if (mLogger->isPrintWanted(LogLevel::Debug)) {
+    std::stringstream ss;
+    ss << "Status: " << WiFi.status();
+    mLogger->log(LogLevel::Debug, ss);
+  }
+  // Serial.println(WiFi.status());
 }
 
 void wifiHandler::UpdateStatus() {
-  Serial.println("update_status");
+  // mLogger->debug("update_status");
+  //  Serial.println("update_status");
 
   IPAddress ip = WiFi.localIP();
   String ip_str = ip.toString();
@@ -72,6 +83,13 @@ void wifiHandler::UpdateStatus() {
   mCurrentStatus.isConnected = WiFi.isConnected();
   mCurrentStatus.IP = std::string(ip_str.c_str());
   mCurrentStatus.ssid = WiFi.SSID().c_str();
+
+  if (mLogger->isPrintWanted(LogLevel::Debug)) {
+    std::stringstream ss("Status-Not Connected");
+    if (mCurrentStatus.isConnected)
+      ss << "Status-Connected to:" << mCurrentStatus.ssid << ", IP:" << mCurrentStatus.IP;
+    mLogger->log(LogLevel::Debug, ss);
+  }
 
   mStatusUpdate->notify(mCurrentStatus);
 }
@@ -96,7 +114,8 @@ void wifiHandler::StoreCredentials() {
 }
 
 void wifiHandler::scan() {
-  Serial.println("scan called");
+  mLogger->debug("scan called");
+  // Serial.println("scan called");
   WiFi.setAutoReconnect(false);
   WiFi.scanNetworks(true);
 }
@@ -118,7 +137,8 @@ void wifiHandler::begin() {
   if (!ssid.isEmpty()) {
     connect(ssid.c_str(), password.c_str());
   } else {
-    Serial.println("no SSID or password stored");
+    mLogger->error("no SSID or password stored");
+    // Serial.println("no SSID or password stored");
     WiFi.disconnect();
   }
 
@@ -126,7 +146,13 @@ void wifiHandler::begin() {
 }
 
 void wifiHandler::connect(std::string ssid, std::string password) {
-  Serial.printf("Attempting Wifi Connection To %s \n", ssid.c_str());
+  if (mLogger->isPrintWanted(LogLevel::Debug)) {
+    std::stringstream ss;
+    ss << "Attempting Wifi Connection To " << ssid;
+    mLogger->log(LogLevel::Debug, ss);
+  }
+  // Serial.printf("Attempting Wifi Connection To %s \n", ssid.c_str());
+
   mConnectionAttemptPassword = password;
   mConnectionAttemptSSID = ssid;
   auto status = WiFi.begin(mConnectionAttemptSSID.c_str(),
@@ -135,7 +161,8 @@ void wifiHandler::connect(std::string ssid, std::string password) {
 
 void wifiHandler::mqttSend(std::string aTopic, std::string aMessage) {
   if (!mMqttClient.publish(aTopic.c_str(), aMessage.c_str()))
-    Serial.println("Failed to Send MQTT due to Connection Failure");
+    mLogger->error("Failed to Send MQTT due to Connection Failure");
+  // Serial.println("Failed to Send MQTT due to Connection Failure");
 }
 
 struct fieldIdStruct {
@@ -148,7 +175,12 @@ std::multimap<std::string, fieldIdStruct> Subscriptions;
 void wifiHandler::mqttBindTextEvent(uint32_t bindId, std::string topic, std::string field) {
   mMqttClient.subscribe(topic.c_str());
   Subscriptions.insert({topic, {field, bindId}});
-  Serial.printf("Subscribing to topic: %s, field: %s\r\n", topic.c_str(), field.c_str());
+  if (mLogger->isPrintWanted(LogLevel::Debug)) {
+    std::stringstream ss;
+    ss << "Subscribing to topic: " << topic << ", field: " << field;
+    mLogger->log(LogLevel::Debug, ss);
+  }
+  // Serial.printf("Subscribing to topic: %s, field: %s\r\n", topic.c_str(), field.c_str());
 }
 
 void wifiHandler::mqttUnBindTextEvent(uint32_t unBindId) {
@@ -166,7 +198,12 @@ void publish_cb(char *aTopic, byte *aPayload, unsigned int length) {
   // handle message arrived
   std::string topic(aTopic);
   std::string payload(reinterpret_cast<const char *>(aPayload), length);
-  Serial.printf("MQTT: received topic %s with payload %s\r\n", topic.c_str(), payload.c_str());
+  if (mLogger->isPrintWanted(LogLevel::Debug)) {
+    std::stringstream ss;
+    ss << "MQTT: received topic " << topic << " with payload " << payload;
+    mLogger->log(LogLevel::Debug, ss);
+  }
+  // Serial.printf("MQTT: received topic %s with payload %s\r\n", topic.c_str(), payload.c_str());
 
   auto range = Subscriptions.equal_range(topic);
   if (range.first != Subscriptions.end()) {
@@ -195,7 +232,12 @@ void wifiHandler::setupMqttBroker() {
   mMqttClient.setBufferSize(512);
 
   uint16_t port = 1883; // std::stoi(mMqttPort);
-  Serial.printf("Setting up Mqtt Connection to: %s, port: %d, %s \r\n", mMqttBroker.c_str(), port, mMqttPort.c_str());
+  if (mLogger->isPrintWanted(LogLevel::Debug)) {
+    std::stringstream ss;
+    ss << "Setting up Mqtt Connection to: " << mMqttBroker << ", port: " << port << ", " << mMqttPort;
+    mLogger->log(LogLevel::Debug, ss);
+  }
+  // Serial.printf("Setting up Mqtt Connection to: %s, port: %d, %s \r\n", mMqttBroker.c_str(), port, mMqttPort.c_str());
   mMqttClient.setServer(mMqttBroker.c_str(), port);
   mMqttClient.setCallback(publish_cb);
   // connect handled by mqqtSync once wifi comes up
@@ -216,9 +258,15 @@ void wifiHandler::mqttSync() {
   if ((((time - mOldTime) > MQTT_RETRY) || mForceReconnect) && mMqttInitDone && WiFi.isConnected() && !mMqttClient.connected() && mMqttEnabled) {
     mForceReconnect = false;
     mOldTime = time;
-    Serial.printf("Attempting Mqtt Connect, client: %s, user: %s \r\n", mMqttClientName.c_str(), mMqttUser.c_str());
+    if (mLogger->isPrintWanted(LogLevel::Debug)) {
+      std::stringstream ss;
+      ss << "Attempting Mqtt Connect, client: " << mMqttClientName << ",, user: " << mMqttUser;
+      mLogger->log(LogLevel::Debug, ss);
+    }
+    // Serial.printf("Attempting Mqtt Connect, client: %s, user: %s \r\n", mMqttClientName.c_str(), mMqttUser.c_str());
     if (mMqttClient.connect(mMqttClientName.c_str(), mMqttUser.c_str(), mMqttPassword.c_str())) {
-      Serial.println("MQTT Connected");
+      mLogger->info("MQTT Connected");
+      // Serial.println("MQTT Connected");
       if (mMqttSaveOnConnect)
         mqttSaveCredentials();
       // now need to resubmit any subscriptions to make sure they are current
@@ -245,15 +293,16 @@ void wifiHandler::mqttSaveCredentials() {
   d.AddMember("client", mMqttClientName, d.GetAllocator());
 
   std::ofstream file(FS_PATH "mqtt.json", std::ios::out | std::ios::trunc);
-  // TODO: add in a logging patch for wifi handler
-  // if (!file) {
-  //   mLogger->error("Could not save MQTT credentials.");
-  //   return;
-  // }
+  if (!file) {
+    mLogger->error("Could not save MQTT credentials.");
+    return;
+  }
 
   std::string jsonStr = ToString(d);
   file << jsonStr;
   file.close();
+
+  mLogger->info("MQTT credentials saved");
 
   mMqttSaveOnConnect = false;
 }
@@ -271,11 +320,10 @@ void wifiHandler::enableMqtt(bool enabled) {
 void wifiHandler::mqttRestoreCredentials() {
   // restore from disk
   std::ifstream file(FS_PATH "mqtt.json", std::ios::in);
-  // TODO: add in a logging patch for wifi handler
-  // if (!file) {
-  //   mLogger->error("Could not load MQTT credentials.");
-  //   return;
-  // }
+  if (!file) {
+    mLogger->error("Could not load MQTT credentials.");
+    return;
+  }
 
   std::stringstream buffer;
   buffer << file.rdbuf();
@@ -301,5 +349,6 @@ void wifiHandler::mqttRestoreCredentials() {
   preferences.begin("MqttSettings", false);
   mMqttEnabled = preferences.getBool("enabled", false);
   preferences.end();
+  mLogger->info("MQTT credentials restored");
   // Serial.println("MQTT credentials restored");
 }

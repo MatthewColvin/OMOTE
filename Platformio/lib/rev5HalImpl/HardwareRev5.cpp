@@ -1,19 +1,24 @@
 #include "HardwareRev5.hpp"
-#include "Rev5LittleFs.hpp"
-
 #include <Adafruit_TCA8418.h>
+#include <LittleFS.h>
 
 HardwareRev5::HardwareRev5() : mLogger(std::make_unique<LoggingInterface>()) {
   mLogger->setLogModule(LogModule::General);
 }
 
 void HardwareRev5::init() {
-  mLittleFs = Rev5LittleFs::getInstance();
   mLogger->setLogModule(LogModule::LittleFs);
-  if (mLittleFs->mount()) {
-    if (mLogger->isPrintWanted(LogLevel::Info)) mLogger->log(LogLevel::Info, "Mounted OK");}
-  else {
-    if (mLogger->isPrintWanted(LogLevel::Info)) mLogger->log(LogLevel::Info, "Mounted Failed");}
+
+  Serial.begin(115200);
+
+  if (LittleFS.begin(true)) {
+    // listDir(LittleFS, "/", 3);
+    if (mLogger->isPrintWanted(LogLevel::Info))
+      mLogger->log(LogLevel::Info, "Mounted OK");
+  } else {
+    if (mLogger->isPrintWanted(LogLevel::Error))
+      mLogger->log(LogLevel::Error, "Mounted Failed");
+  }
   LoggingInterface::restoreSettings();
   HardwareRevX::init();
 
@@ -22,14 +27,16 @@ void HardwareRev5::init() {
   mKeys = std::make_shared<Keys>();
   setupKeyboard();
 
-  #ifdef OMOTE_KEYBRD_3661
+#ifdef OMOTE_KEYBRD_3661
   setupLightSensor();
-  #endif
+#endif
 
   mLogger->setLogModule(LogModule::General);
   if (mLogger->isPrintWanted(LogLevel::Info)) {
     std::stringstream ss;
-    ss << "Finished Rev5 Hardware Setup in :" <<  millis() << "ms"; mLogger->log(LogLevel::Info, ss);}
+    ss << "Finished Rev5 Hardware Setup in :" << millis() << "ms";
+    mLogger->log(LogLevel::Info, ss);
+  }
 }
 
 void HardwareRev5::initIO() {
@@ -41,7 +48,8 @@ void HardwareRev5::initIO() {
 void HardwareRev5::setupKeyboard() {
   if (!keypad.begin(TCA8418_DEFAULT_ADDR, &Wire)) {
     mLogger->setLogModule(LogModule::Keys);
-    if (mLogger->isPrintWanted(LogLevel::Error)) mLogger->log(LogLevel::Error, "Keypad TCA8418 not found!");
+    if (mLogger->isPrintWanted(LogLevel::Error))
+      mLogger->log(LogLevel::Error, "Keypad TCA8418 not found!");
   }
   keypad.matrix(KEYPAD_ROWS, KEYPAD_COLS);
   keypad.pinMode(5, INPUT_PULLUP); // SW_PWR
@@ -68,7 +76,8 @@ void HardwareRev5::setupLightSensor() {
     mlightSensorInitSuccessful = true;
   } else {
     mLogger->setLogModule(LogModule::Display);
-    if (mLogger->isPrintWanted(LogLevel::Error)) mLogger->log(LogLevel::Error, "Couldn't find LTR-303 sensor!");
+    if (mLogger->isPrintWanted(LogLevel::Error))
+      mLogger->log(LogLevel::Error, "Couldn't find LTR-303 sensor!");
   }
 }
 
@@ -156,9 +165,10 @@ bool HardwareRev5::keyboardScan() {
     mLogger->setLogModule(LogModule::Keys);
     if (mLogger->isPrintWanted(LogLevel::Info)) {
       std::stringstream ss;
-      ss << "Row:" << (uint16_t)row << ", Col:" << (uint16_t)col << ", Index:" << (uint16_t)keyIndex; 
-      mLogger->log(LogLevel::Info, ss);}
-    
+      ss << "Row:" << (uint16_t)row << ", Col:" << (uint16_t)col << ", Index:" << (uint16_t)keyIndex;
+      mLogger->log(LogLevel::Info, ss);
+    }
+
     //  clear the EVENT IRQ flag
     keypad.writeRegister(TCA8418_REG_INT_STAT, 1);
 

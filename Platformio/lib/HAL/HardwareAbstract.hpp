@@ -8,7 +8,6 @@
 #include "Hardware/DisplayAbstract.h"
 #include "Hardware/IRInterface.h"
 #include "Hardware/KeyPressAbstract.hpp"
-#include "Hardware/Littlefs/LittleFsInterface.hpp"
 #include "Hardware/LoggingInterface.hpp"
 #include "Hardware/SystemStatsInterface.h"
 #include "Hardware/websockets/webSocketInterface.hpp"
@@ -37,7 +36,6 @@ public:
   virtual std::shared_ptr<IRInterface> ir() = 0;
   virtual std::shared_ptr<SystemStatsInterface> stats() = 0;
   virtual std::shared_ptr<webSocketInterface> webSocket() = 0;
-  virtual std::shared_ptr<LittleFsInterface> littleFs() = 0;
 
   virtual std::chrono::milliseconds execTime() = 0;
 

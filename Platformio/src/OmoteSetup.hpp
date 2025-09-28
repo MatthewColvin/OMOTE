@@ -17,26 +17,24 @@ void createUI() {
 }
 
 void setup() {
-  #ifdef OMOTE_HARDWARE_REV5
+#ifdef OMOTE_HARDWARE_REV5
   // Safety check to make sure hardware matches software build and protect IR LED
   // GPIO3 is not connected on Rev5 and pulled up on Rev5_3661
   // If level is wrong go into deep sleep
   pinMode(3, INPUT_PULLDOWN);
   delay(5);
-  #ifdef OMOTE_KEYBRD_3661
-  if(LOW == digitalRead(3))
+#ifdef OMOTE_KEYBRD_3661
+  if (LOW == digitalRead(3))
     esp_deep_sleep_start();
-  #else
-  if(HIGH == digitalRead(3))
+#else
+  if (HIGH == digitalRead(3))
     esp_deep_sleep_start();
-  #endif
-  #endif
-
+#endif
+#endif
 
   lv_init();
 
   HardwareFactory::Init();
-  lv_littlefs_set_handler(HardwareFactory::getAbstract().littleFs()->get());
   HardwareFactory::getAbstract().wifi()->begin();
 
   createUI();

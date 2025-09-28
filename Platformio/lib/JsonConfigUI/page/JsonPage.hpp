@@ -23,6 +23,7 @@ public:
   void getKeyOverrides(const MemConciousValue &value, std::multimap<Command::KeyIds, Command::KeyStruct> &aKeyHandlers);
 
 private:
+  void addTitle(const std::string &aCommandPrefix, const MemConciousValue &value, std::string aPageName);
   void addLabel(const std::string &aCommandPrefix, const MemConciousValue &value);
   void addButton(const std::string &aCommandPrefix, const MemConciousValue &value);
   void addImage(const MemConciousValue &value);

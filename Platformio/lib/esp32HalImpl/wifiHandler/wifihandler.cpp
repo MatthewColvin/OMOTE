@@ -3,6 +3,7 @@
 #define RAPIDJSON_HAS_STDSTRING 1
 #include <Arduino.h>
 #include <Preferences.h>
+#include <fstream>
 #include <rapidjson/document.h>
 
 #include "HardwareAbstract.hpp"
@@ -243,15 +244,16 @@ void wifiHandler::mqttSaveCredentials() {
   d.AddMember("password", mMqttPassword, d.GetAllocator());
   d.AddMember("client", mMqttClientName, d.GetAllocator());
 
-  File file = HardwareFactory::getAbstract().littleFs()->open("/mqtt.json", LFS_O_WRONLY | LFS_O_CREAT);
-
-  if (!file)
-    return;
+  std::ofstream file(FS_PATH "mqtt.json", std::ios::out | std::ios::trunc);
+  // TODO: add in a logging patch for wifi handler
+  // if (!file) {
+  //   mLogger->error("Could not save MQTT credentials.");
+  //   return;
+  // }
 
   std::string jsonStr = ToString(d);
-  file.write(jsonStr);
-  file ? file.truncate(jsonStr.length()) : []() { return -1; }();
-  // Serial.println("MQTT credentials saved");
+  file << jsonStr;
+  file.close();
 
   mMqttSaveOnConnect = false;
 }
@@ -268,13 +270,18 @@ void wifiHandler::enableMqtt(bool enabled) {
 
 void wifiHandler::mqttRestoreCredentials() {
   // restore from disk
-  File fp = HardwareFactory::getAbstract().littleFs()->open("/mqtt.json", LFS_O_RDONLY);
+  std::ifstream file(FS_PATH "mqtt.json", std::ios::in);
+  // TODO: add in a logging patch for wifi handler
+  // if (!file) {
+  //   mLogger->error("Could not load MQTT credentials.");
+  //   return;
+  // }
 
-  if (!fp)
-    return;
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+  std::string content(buffer.str());
 
-  std::string content = fp.read(1000);
-  
   MemConsciousDocument d;
   if (!d.Parse(content.c_str()).HasParseError()) {
     if (d.HasMember("broker") && d["broker"].IsString())

@@ -9,6 +9,9 @@
 #include "ScreenManager.hpp"
 #include "SettingsPage.hpp"
 #include "observerHandles.hpp"
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 
 using namespace UI::Screen;
 
@@ -25,13 +28,11 @@ JsonTabView::JsonTabView(DeviceFactory &aFactory, std::string aFileName)
   mTabView->SetHeight(ContentHeight);
   mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
 
-  File fp = HardwareFactory::getAbstract().littleFs()->open(aFileName, LFS_O_RDONLY);
-  if (!fp)
-    return;
-  std::string content = fp.read(10000);
+  std::ofstream fp(FS_PATH + std::string(aFileName), std::ios::in);
+  std::stringstream contentSs;
 
   MemConsciousDocument d;
-  d.Parse(content.c_str());
+  d.Parse(contentSs.str().c_str());
 
   if (d.HasMember("Pages")) {
     for (rapidjson::SizeType i = 0; i < d["Pages"].Size(); i++) {

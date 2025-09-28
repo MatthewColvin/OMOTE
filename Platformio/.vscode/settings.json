@@ -1,6 +1,7 @@
 {
     "cmake.configureOnOpen": false,
     "files.associations": {
+        "*.dbclient-js": "javascript",
         "*.json": "jsonc",
         "random": "cpp",
         "array": "cpp",
@@ -90,7 +91,8 @@
         "csignal": "cpp",
         "coroutine": "cpp",
         "ranges": "cpp",
-        "lv_sdl_private.h": "c"
+        "lv_sdl_private.h": "c",
+        "*.inc": "cpp"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/.pio/libdeps/esp32/Adafruit BusIO",
     "editor.formatOnSave": true,

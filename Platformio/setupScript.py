@@ -91,4 +91,5 @@ PrintInfo()
 EnsureSubmoduleCheckout()
 verifyDependencies()
 
-removeLittleFSArduinoLib()
+# TODO: evaluate if this is still needed if not delete
+# removeLittleFSArduinoLib()

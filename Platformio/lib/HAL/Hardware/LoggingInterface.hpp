@@ -19,6 +19,7 @@ enum class LogLevel {
 enum class LogModule : uint8_t {
   General = 0,
   Memory,
+  WiFi,
   WebSocket,
   Display,
   Battery,
@@ -99,7 +100,6 @@ private:
 
   // Check level and module to see if we want to print the log
   static bool isPrintWanted(LogModule aModule, LogLevel aLevelToCheck);
-  // Default to first value in LogLevel enum
   static inline std::array<LogLevel, NumLogModules> mCurrentLogLevels{};
 };
 
@@ -138,7 +138,7 @@ inline bool LoggingInterface::isPrintWanted(LogModule aModule, LogLevel aLevelTo
   return static_cast<int>(aLevelToCheck) >= static_cast<int>(currentLevel);
 }
 
-//alternate, functions for review, if ok could replace other functions
+// alternate, functions for review, if ok could replace other functions
 //(avoid mods if Loglevels change and simplify call)
 inline bool LoggingInterface::isPrintWanted(LogLevel aLevelToCheck) {
   auto moduleIndex = static_cast<uint8_t>(mModule);
@@ -157,7 +157,7 @@ inline void LoggingInterface::log(LogLevel aLogLevel, std::stringstream &aMessag
   log(aLogLevel, mModule, aMessageStream.str().c_str());
   aMessageStream.str(std::string());
 }
-//end of alternate
+// end of alternate
 
 inline bool LoggingInterface::debug(std::string_view aMessage) {
   if (isPrintWanted(mModule, LogLevel::Debug)) {

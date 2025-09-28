@@ -50,7 +50,6 @@ public:
   virtual std::shared_ptr<IRInterface> ir() override;
   virtual std::shared_ptr<SystemStatsInterface> stats() override;
   virtual std::shared_ptr<webSocketInterface> webSocket() override;
-  virtual std::shared_ptr<LittleFsInterface> littleFs() override;
 
   virtual std::chrono::milliseconds execTime() override;
 
@@ -96,7 +95,6 @@ protected:
   std::shared_ptr<Battery> mBattery;
   std::shared_ptr<Keys> mKeys;
   std::shared_ptr<Display> mDisplay;
-  std::shared_ptr<LittleFsInterface> mLittleFs;
 
 private:
   std::shared_ptr<wifiHandler> mWifiHandler;
@@ -114,7 +112,7 @@ private:
   int mSleepTimeout = SLEEP_TIMEOUT;
   int mMotion = 0;
   WakeReason mWakeupReason;
-  //ESP32Logger mLogger;
+  // ESP32Logger mLogger;
 
   bool mWakeupByIMUEnabled = true;
   byte mCurrentDevice = 1; // Current Device to control (allows switching
@@ -122,7 +120,7 @@ private:
 
   Handler<Display::TouchPointType> mTouchHandler;
 
-  //std::unique_ptr<LoggingInterface> mLogger;
+  // std::unique_ptr<LoggingInterface> mLogger;
   std::unique_ptr<LoggingInterface> mLogger = nullptr;
   mutable std::stringstream mLogStream;
 };

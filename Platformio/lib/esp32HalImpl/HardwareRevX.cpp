@@ -137,10 +137,6 @@ std::shared_ptr<webSocketInterface> HardwareRevX::webSocket() {
   return nullptr;
 }
 
-std::shared_ptr<LittleFsInterface> HardwareRevX::littleFs() {
-  return mLittleFs;
-};
-
 std::chrono::milliseconds HardwareRevX::execTime() {
   return std::chrono::milliseconds(millis());
 }

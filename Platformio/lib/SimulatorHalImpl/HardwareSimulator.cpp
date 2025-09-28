@@ -1,11 +1,9 @@
 #include "HardwareSimulator.hpp"
-#include "littlefs/LittlefsSim.hpp"
-
+#include <filesystem>
 #include <sstream>
 
 HardwareSimulator::HardwareSimulator()
     : HardwareAbstract(),
-      mLittleFsSim(LittlefsSim::getInstance()),
       mBattery(std::make_shared<BatterySimulator>()),
       mDisplay(SDLDisplay::getInstance()),
       mWifiHandler(std::make_shared<wifiHandlerSim>()),
@@ -36,17 +34,12 @@ HardwareSimulator::HardwareSimulator()
       std::this_thread::sleep_for(std::chrono::seconds(2));
     }
   });
-  mLittleFsSim->mount();
-#ifdef INIT_LITTLEFS_FROM_DATA
-  mLittleFsSim->initFolderContents("./data");
+#ifdef INIT_SIM_DATA_FROM_DATA
+  initDirectory("./sim_data", "./data");
 #endif
 
   mSDLEventHandler.SetNotification(mKeys->getSDLEventNotification());
   mSDLEventHandler = [this](SDL_Event *aEvent) { handleExtraSDLEvents(aEvent); };
-}
-
-std::shared_ptr<LittleFsInterface> HardwareSimulator::littleFs() {
-  return mLittleFsSim;
 }
 
 void HardwareSimulator::init() {
@@ -120,9 +113,20 @@ void HardwareSimulator::handleExtraSDLEvents(SDL_Event *aEvent) {
   if (aEvent->type == SDL_KEYDOWN) {
     const auto SDLK_key = aEvent->key.keysym.sym;
     if (SDLK_key == SDLK_F1) {
-      mLittleFsSim->dumpContentsToFolder("./data_backup");
+      dumpDirectory("./sim_data", "./data_backup");
     } else if (SDLK_key == SDLK_F2) {
-      mLittleFsSim->initFolderContents("./data");
+      initDirectory("./sim_data", "./data");
     }
   }
+}
+
+bool HardwareSimulator::dumpDirectory(const char *path, const std::string &outputPath) {
+  std::filesystem::copy(path, outputPath, std::filesystem::copy_options::recursive);
+  return true;
+}
+
+bool HardwareSimulator::initDirectory(const char *path, const std::string &inputPath) {
+  std::filesystem::remove_all(path);
+  std::filesystem::copy(inputPath, path, std::filesystem::copy_options::recursive);
+  return true;
 }

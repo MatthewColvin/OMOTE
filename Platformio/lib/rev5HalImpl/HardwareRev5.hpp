@@ -1,12 +1,15 @@
 #pragma once
 
 #include "HardwareRevX.hpp"
+#include "BatteryRev5.hpp"
 #include "Hardware/LoggingInterface.hpp"
 
 class HardwareRev5 : public HardwareRevX {
 public:
   HardwareRev5();
   virtual ~HardwareRev5() = default;
+
+  std::shared_ptr<BatteryInterface> battery() override { return mBattery; };
 
 protected:
   void init() override;
@@ -38,6 +41,8 @@ private:
   //QueueHandle_t mKeysQueueHandle;
 
   bool mlightSensorInitSuccessful = false;
+
+  std::shared_ptr<BatteryRev5> mBattery;
 
   std::unique_ptr<LoggingInterface> mLogger = nullptr;
 

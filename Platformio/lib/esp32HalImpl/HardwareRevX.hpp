@@ -12,7 +12,6 @@
 #include "HardwareAbstract.hpp"
 #include "IRTransceiver.hpp"
 #include "SparkFunLIS3DH.h"
-#include "battery.hpp"
 #include "display.hpp"
 #include "keys.hpp"
 #include "lvgl.h"
@@ -43,7 +42,7 @@ public:
   virtual void debugPrint(const char *fmt, ...) override;
 
   virtual std::unique_ptr<LoggingInterface> logger() override;
-  virtual std::shared_ptr<BatteryInterface> battery() override;
+  virtual std::shared_ptr<BatteryInterface> battery() override = 0;
   virtual std::shared_ptr<DisplayAbstract> display() override;
   virtual std::shared_ptr<wifiHandlerInterface> wifi() override;
   virtual std::shared_ptr<KeyPressAbstract> keys() override;
@@ -92,7 +91,6 @@ protected:
 
   // Maybe TODO: make not protected?
 protected:
-  std::shared_ptr<Battery> mBattery;
   std::shared_ptr<Keys> mKeys;
   std::shared_ptr<Display> mDisplay;
 

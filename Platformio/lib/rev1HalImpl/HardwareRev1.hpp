@@ -1,12 +1,15 @@
 #pragma once
 
 #include "HardwareRevX.hpp"
+#include "BatteryRev1.hpp"
 #include <Keypad.h> // modified for inverted logic
 
 class HardwareRev1 : public HardwareRevX {
 public:
   HardwareRev1() = default;
   virtual ~HardwareRev1() = default;
+
+  std::shared_ptr<BatteryInterface> battery() override { return mBattery; };
 
   void init() override;
 
@@ -16,6 +19,8 @@ private:
   void sleepDisplayPins() override;
   void configPinsForSleepInterrupts() override;
   bool keyboardScan() override;
+
+  std::shared_ptr<BatteryRev1> mBattery;
 
   // Keypad declarations
   static const byte ROWS = KEYPAD_ROWS; // 5;  // four rows

@@ -9,6 +9,7 @@ void HardwareRev1::init() {
   LittleFS.begin(true);
   LoggingInterface::restoreSettings();
   HardwareRevX::init();
+  mBattery = std::make_shared<BatteryRev1>(ADC_BAT, CRG_STAT);
   mKeys = std::make_shared<Keys>();
 }
 

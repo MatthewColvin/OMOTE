@@ -22,6 +22,8 @@ void HardwareRev5::init() {
   LoggingInterface::restoreSettings();
   HardwareRevX::init();
 
+  mBattery = std::make_shared<BatteryRev5>(ADC_BAT, CRG_STAT);
+
   static constexpr auto MaxQueueableKeyPresses = 5;
 
   mKeys = std::make_shared<Keys>();

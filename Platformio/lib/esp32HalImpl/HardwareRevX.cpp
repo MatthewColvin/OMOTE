@@ -81,7 +81,8 @@ void HardwareRevX::init() {
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>(logger());
 
-  mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
+  // mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
+  //  mBattery->writeCustomModel();
 
   restorePreferences();
   mStandbyTimer = getSleepTimeout();
@@ -123,8 +124,6 @@ std::unique_ptr<LoggingInterface> HardwareRevX::logger() {
 std::shared_ptr<wifiHandlerInterface> HardwareRevX::wifi() {
   return mWifiHandler;
 }
-
-std::shared_ptr<BatteryInterface> HardwareRevX::battery() { return mBattery; }
 
 std::shared_ptr<DisplayAbstract> HardwareRevX::display() { return mDisplay; }
 
@@ -426,27 +425,6 @@ void HardwareRevX::loopHandler() {
         mLogStream.precision(2);
         mLogStream << "Heap:" << (100.0f * ESP.getFreeHeap()) / ESP.getHeapSize() << "% free of " << ESP.getHeapSize() / 1024 << "kB, Pram:" << (100.0f * ESP.getFreePsram()) / ESP.getPsramSize() << "% free of " << ESP.getPsramSize() / 1024 << "kB, Stack min free: " << uxTaskGetStackHighWaterMark(nullptr) << "w";
         mLogger->log(LogLevel::Info, mLogStream);
-      }
-
-      secCount = 0;
-      int32_t iSoc = mBattery->getPercentage();
-      if (iSoc > 99)
-        iSoc = 99;
-      UI::observerHandles::setInt(SOC_STATUS, iSoc);
-
-      if (mBattery->isConnected())
-        UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_USB);
-      else {
-        if (iSoc < 13)
-          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_EMPTY);
-        else if (iSoc < 38)
-          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_1);
-        else if (iSoc < 63)
-          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_2);
-        else if (iSoc < 88)
-          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_3);
-        else
-          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_FULL);
       }
 
       wifiHandlerInterface::wifiStatus wifiStatus = mWifiHandler->GetStatus();

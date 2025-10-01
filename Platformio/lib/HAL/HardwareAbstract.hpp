@@ -13,8 +13,20 @@
 #include "Hardware/websockets/webSocketInterface.hpp"
 #include "Hardware/wifiHandlerInterface.h"
 #include "Notification.hpp"
+
 class HardwareAbstract {
 public:
+  enum class WakeReason { RESET,
+                          TIMER,
+                          CHARGER,
+                          IMU,
+                          KEYPAD };
+
+  enum class SleepMode { LIGHT_SLEEP_WAKE_ON_CHG,   // light then continue
+                         LIGHT_SLEEP_WAKE_ON_NOCHG, // light then continue
+                         LIGHT_DEEP_SLEEP,          // light then deep
+                         DEEP_SLEEP };
+
   HardwareAbstract() = default;
   virtual ~HardwareAbstract() = default;
 
@@ -49,4 +61,7 @@ public:
   virtual void setSleepTimeout(uint32_t sleepTimeout) = 0;
 
   virtual void saveSettings() = 0;
+  virtual void enterSleep(SleepMode mode, uint32_t duration) = 0;
+  virtual WakeReason getWakeUpReason() = 0;
+  virtual unsigned long getMillis() = 0;
 };

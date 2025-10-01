@@ -58,6 +58,15 @@ void HardwareSimulator::loopHandler() {
   }
 }
 
+unsigned long HardwareSimulator::getMillis() {
+  static auto oldTime = std::chrono::high_resolution_clock::now();
+
+  auto now = std::chrono::high_resolution_clock::now();
+  auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(now - oldTime);
+
+  return msec.count();
+}
+
 std::unique_ptr<LoggingInterface> HardwareSimulator::logger() {
   return std::make_unique<SimLogger>();
 }

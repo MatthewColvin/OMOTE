@@ -31,10 +31,6 @@
 
 class HardwareRevX : public HardwareAbstract {
 public:
-  enum class WakeReason { RESET,
-                          IMU,
-                          KEYPAD };
-
   HardwareRevX();
 
   // HardwareAbstract
@@ -66,6 +62,9 @@ public:
   /// @brief To be ran in loop out in main
   void loopHandler() override;
 
+  virtual void enterSleep(SleepMode mode = SleepMode::LIGHT_DEEP_SLEEP, uint32_t duration = 0) override;
+  WakeReason getWakeUpReason() override { return mWakeupReason; };
+  inline unsigned long getMillis() override { return millis(); };
 protected:
   // Init Functions to setup hardware
   virtual void initIO();
@@ -79,7 +78,7 @@ protected:
   virtual void updateBacklightMode(uint16_t lightLevel) {};
 
   bool activityDetection();
-  void enterSleep();
+  // void enterSleep(SleepMode mode);
   void configIMUInterrupts();
   virtual void configIMUInterruptPolarity();
   virtual void enableWakeupByPin();

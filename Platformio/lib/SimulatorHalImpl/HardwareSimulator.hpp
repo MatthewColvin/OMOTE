@@ -48,6 +48,9 @@ public:
 
   void saveSettings() override {};
 
+  void enterSleep(SleepMode mode, uint32_t duration) override {};
+  WakeReason getWakeUpReason() override { return HardwareAbstract::WakeReason::TIMER; };
+  unsigned long getMillis() override;
 protected:
   void handleExtraSDLEvents(SDL_Event *aEvent);
   bool initDirectory(const char *path, const std::string &inputPath);

@@ -223,7 +223,7 @@ void HardwareRevX::saveSettings() {
     mLogger->log(LogLevel::Info, "Settings Saved");
 }
 
-void HardwareRevX::enterSleep() {
+void HardwareRevX::enterSleep(SleepMode mode, uint32_t duration) {
   // Configure IMU
   uint8_t intDataRead;
   mIMU.readRegister(&intDataRead, LIS3DH_INT1_SRC); // clear interrupt

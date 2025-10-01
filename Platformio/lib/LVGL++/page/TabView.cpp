@@ -14,13 +14,13 @@ Tab::Tab(lv_obj_t *aTab, Base::Ptr aContent)
 
 TabView::TabView(ID aId)
     : Base(lv_tabview_create(Screen::BackgroundScreen::getLvInstance()), aId) {
-  lv_tabview_set_tab_bar_size(LvglSelf(), 0);
+  lv_tabview_set_tab_bar_size(LvglSelf(), lv_pct(10));
+  lv_tabview_set_tab_bar_position(LvglSelf(), LV_DIR_BOTTOM);
 }
 
 void TabView::AddTab(Page::Base::Ptr aPage) {
-  auto tab = std::make_unique<Tab>(
-      lv_tabview_add_tab(LvglSelf(), aPage->GetTitle().c_str()),
-      std::move(aPage));
+  auto lTab = lv_tabview_add_tab(LvglSelf(), aPage->GetTitle().c_str());
+  auto tab = std::make_unique<Tab>(lTab, std::move(aPage));
 
   mTabs.push_back(std::move(tab));
 }
@@ -53,7 +53,7 @@ bool TabView::KeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   if (OnKeyEvent(aKeyEvent)) {
     return true;
   }
-  if (auto *current = GetCurrentTab(); current ) {
+  if (auto *current = GetCurrentTab(); current) {
     return current->KeyEvent(aKeyEvent);
   }
   return false;

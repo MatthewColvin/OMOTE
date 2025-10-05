@@ -17,6 +17,7 @@ public:
   static constexpr lv_opa_t Transparency = LV_OPA_20;
 
   StatusBar(DeviceFactory &factory);
+  ~StatusBar() override;
 
   void AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem);
   void SetTopButtonLabel(std::string aLabel);
@@ -26,6 +27,7 @@ public:
 private:
   void SettingsPress();
   void ActiveListPress();
+  static void onTimer(_lv_timer_t *aTimer);
 
   DeviceFactory &mFactory;
 
@@ -34,10 +36,12 @@ private:
   std::vector<UI::Page::SettingsPage::InjectedItem>
       mExtraSettingsItems;
 
+  lv_timer_t *mTimer = nullptr;
+
   Widget::Button *mTopBarSettingsButton;
   Widget::Button *mTopBarActiveListButton;
   Widget::Label *mTopBarWiFiLabel;
-  Widget::Label *mTopBarSOCLabel;
+  Widget::Label *mTopBarGeneralLabel;
   Widget::Label *mTopBarBatteryLabel;
   Widget::Label *mTopBarActiveListLabel;
 };

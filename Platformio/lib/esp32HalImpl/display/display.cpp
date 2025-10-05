@@ -8,11 +8,7 @@ LGFX::LGFX(void) {
   {
     auto cfg = _bus_instance.config();
 #if defined(OMOTE_HARDWARE_REV5)
-#ifdef OMOTE_KEYBRD_3661
-    cfg.freq_write = 20000000;
-#else
     cfg.freq_write = SPI_FREQUENCY;
-#endif
     cfg.pin_wr = LCD_WR;
     cfg.pin_rd = LCD_RD;
     cfg.pin_rs = LCD_DC;
@@ -87,6 +83,15 @@ std::shared_ptr<Display> Display::getInstance() {
 Display::Display(int backlight_pin, int enable_pin)
     : DisplayAbstract(), mBacklightPin(backlight_pin), mEnablePin(enable_pin) {
 
+  pinMode(mEnablePin, OUTPUT);
+  digitalWrite(mEnablePin, HIGH);
+#if defined(OMOTE_KEYBRD_3661)
+  digitalWrite(mBacklightPin, LOW);
+#else
+  digitalWrite(mBacklightPin, HIGH);
+#endif
+  pinMode(mBacklightPin, OUTPUT);
+
   bufA = (uint8_t *)malloc(DRAW_BUF_SIZE);
   bufB = (uint8_t *)malloc(DRAW_BUF_SIZE);
 
@@ -113,16 +118,7 @@ Display::Display(int backlight_pin, int enable_pin)
     getInstance()->screenInput(aIndev, aData);
   });
 
-  pinMode(mEnablePin, OUTPUT);
-  digitalWrite(mEnablePin, HIGH);
-  pinMode(mBacklightPin, OUTPUT);
-#if defined(OMOTE_KEYBRD_3661)
-  digitalWrite(mBacklightPin, LOW);
-#else
-  digitalWrite(mBacklightPin, HIGH);
-#endif
-
-  setupBacklight(); // This eliminates the flash of the backlight
+  setupBacklight();
 
 #if not defined(OMOTE_HARDWARE_REV5)
   // Slowly charge the VSW voltage to prevent a brownout
@@ -145,6 +141,41 @@ Display::Display(int backlight_pin, int enable_pin)
   xSemaphoreGive(mFadeKbdTaskMutex);
 }
 
+void Display::reInit() {
+
+  mIsAsleep = false;
+  mLcdBrightness = 0;
+  mKbdBrightness = 0;
+
+  pinMode(mEnablePin, OUTPUT);
+  digitalWrite(mEnablePin, HIGH);
+#if defined(OMOTE_KEYBRD_3661)
+  digitalWrite(mBacklightPin, LOW);
+#else
+  digitalWrite(mBacklightPin, HIGH);
+#endif
+  pinMode(mBacklightPin, OUTPUT);
+
+  setupBacklight();
+
+#if not defined(OMOTE_HARDWARE_REV5)
+  // Slowly charge the VSW voltage to prevent a brownout
+  // Workaround for hardware rev 1!
+  for (int i = 0; i < 100; i++) {
+    digitalWrite(this->mEnablePin, HIGH); // LCD Logic off
+    delayMicroseconds(1);
+    digitalWrite(this->mEnablePin, LOW); // LCD Logic on
+  }
+#else
+  digitalWrite(this->mEnablePin, LOW); // LCD Logic on
+#endif
+
+  tft.init();
+  lv_obj_invalidate(lv_scr_act());
+
+  startFade(50); // allow time for LCD init to complete before bringing up backlight
+}
+
 void Display::wake() {
   if (mIsAsleep) {
     mIsAsleep = false;
@@ -162,7 +193,9 @@ void Display::sleep() {
 }
 
 void Display::setDayMode(bool isDay) {
-  if (isDay != mIsDay) {
+  //done this way so doesn't get stuck if isDay changes faster than fade can complete
+  bool update = isDay ? mLcdBrightness != mLcdDayBrightness : mLcdBrightness != mLcdNightBrightness;
+  if (update) {
     mIsDay = isDay;
     startLcdFade();
     startKbdFade();
@@ -170,14 +203,14 @@ void Display::setDayMode(bool isDay) {
 }
 
 void Display::setupBacklight() {
-  ledcSetClockSource(LEDC_USE_APB_CLK); //set to APB as default of XCLK doesn't seem to work
+  ledcSetClockSource(LEDC_USE_APB_CLK); // set to APB as default of XCLK doesn't seem to work
 
   // Configure the backlight PWM
   ledcAttachChannel((gpio_num_t)mBacklightPin, 640, LEDC_TIMER_8_BIT, LCD_BACKLIGHT_LEDC_CHANNEL);
-  #ifndef OMOTE_KEYBRD_3661
+#ifndef OMOTE_KEYBRD_3661
   ledcOutputInvert((gpio_num_t)mBacklightPin, true);
-  #endif
-  ledcWrite((gpio_num_t)mBacklightPin, 0);  
+#endif
+  ledcWrite((gpio_num_t)mBacklightPin, 0);
 
 #ifdef OMOTE_HARDWARE_REV5
   // keyboard
@@ -188,7 +221,7 @@ void Display::setupBacklight() {
 
 void Display::setupTFT() {
   delay(100);
-  Serial.println("Initialising TFT:");
+  // Serial.println("Initialising TFT:");
   tft.init();
   tft.initDMA();
   tft.setRotation(0);
@@ -196,32 +229,32 @@ void Display::setupTFT() {
   tft.setSwapBytes(true);
 }
 
-void Display::setLcdDayBrightness(uint8_t brightness) {
+void Display::setLcdDayBrightness(uint8_t brightness, bool instant) {
   mLcdDayBrightness = brightness;
-  startLcdFade();
+  startLcdFade(instant);
 }
 #ifdef OMOTE_HARDWARE_REV5
-void Display::setKbdDayBrightness(uint8_t brightness) {
+void Display::setKbdDayBrightness(uint8_t brightness, bool instant) {
   mKbdDayBrightness = brightness;
-  startKbdFade();
+  startKbdFade(instant);
 }
 #ifdef OMOTE_KEYBRD_3661
-void Display::setLcdNightBrightness(uint8_t brightness) {
+void Display::setLcdNightBrightness(uint8_t brightness, bool instant) {
   mLcdNightBrightness = brightness;
-  startLcdFade();
+  startLcdFade(instant);
 }
-void Display::setKbdNightBrightness(uint8_t brightness) {
+void Display::setKbdNightBrightness(uint8_t brightness, bool instant) {
   mKbdNightBrightness = brightness;
-  startKbdFade();
+  startKbdFade(instant);
 }
 #else
-void Display::setLcdNightBrightness(uint8_t brightness) {}
-void Display::setKbdNightBrightness(uint8_t brightness) {}
+void Display::setLcdNightBrightness(uint8_t brightness, bool instant) {}
+void Display::setKbdNightBrightness(uint8_t brightness, bool instant) {}
 #endif
 #else
-void Display::setKbdDayBrightness(uint8_t brightness) {}
-void Display::setLcdNightBrightness(uint8_t brightness) {}
-void Display::setKbdNightBrightness(uint8_t brightness) {}
+void Display::setKbdDayBrightness(uint8_t brightness, bool instant) {}
+void Display::setLcdNightBrightness(uint8_t brightness, bool instant) {}
+void Display::setKbdNightBrightness(uint8_t brightness, bool instant) {}
 #endif
 
 uint8_t Display::getLcdDayBrightness() { return mLcdDayBrightness; }
@@ -284,108 +317,125 @@ void Display::screenInput(lv_indev_t *indev, lv_indev_data_t *data) {
   }
 }
 
-void Display::fadeLcdImpl(void *) {
-  bool fadeDone = false;
-  while (!fadeDone) {
-    fadeDone = getInstance()->fadeLcd();
-    vTaskDelay(3 / portTICK_PERIOD_MS); // 3 miliseconds between steps
-    // 0 - 255 will take about .75 seconds to fade up.
+void Display::startLcdFade(bool instant, uint16_t delay) {
+  if(xSemaphoreTake(mFadeLcdTaskMutex, 0)) {
+    // Only Create Task if it is needed
+    if (mDisplayLcdFadeTask == nullptr) {
+      uint8_t targetBrightness;
+      if (mIsAsleep)
+        targetBrightness = 0;
+      else {
+        if (mIsDay)
+          targetBrightness = mLcdDayBrightness;
+        else
+          targetBrightness = mLcdNightBrightness;
+      }
+
+      if (mLcdBrightness != targetBrightness) {
+        // calculate delta needed to give consistent 300ms (30 step) fade
+        float startBrightness = mLcdBrightness;
+        float delta = (targetBrightness - mLcdBrightness);
+        if (!instant)
+          delta /= 30.0f;
+        mLcdArgs = {delta, startBrightness, targetBrightness, delay};
+        //Serial.printf("Start LCD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", startBrightness, targetBrightness, delta, delay);
+        xTaskCreate(&Display::fadeLcdImpl, "Display Fade Task", 1024, &mLcdArgs, 5, // stack needs to be 2048 for printf use
+                      &mDisplayLcdFadeTask);
+        }
+      }
+    xSemaphoreGive(mFadeLcdTaskMutex);
   }
+}
+
+void Display::fadeLcdImpl(void *passedArgs) {
+  thread_args args = *(thread_args *)passedArgs;
+  float brightness = args.startBrightness;
+  uint8_t targetBrightness = args.targetBrightness;
+  float delta = args.delta;
+  uint16_t delay = args.delay;
+  //Serial.printf("Impl LCD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", brightness, targetBrightness, delta, delay);
+  vTaskDelay(delay / portTICK_PERIOD_MS); 
+
+  do {
+    brightness += delta;
+    bool overRange = (delta > 0) ? (brightness > targetBrightness) : (brightness < targetBrightness);
+    if (overRange)
+      getInstance()->setCurrentLcdBrightness(targetBrightness);
+    else
+      getInstance()->setCurrentLcdBrightness((uint8_t)brightness);
+    //Serial.printf("%f\r\n", brightness);
+    vTaskDelay(10 / portTICK_PERIOD_MS); // 10 miliseconds between steps
+  } while (getInstance()->mLcdBrightness != targetBrightness);
+  // Serial.println("Finished LCD fade");
 
   xSemaphoreTake(getInstance()->mFadeLcdTaskMutex, portMAX_DELAY);
   getInstance()->mDisplayLcdFadeTask = nullptr;
   xSemaphoreGive(getInstance()->mFadeLcdTaskMutex);
-
+  // Serial.println("Deleting fade task");
   vTaskDelete(nullptr); // Delete Fade Task
 }
 
-bool Display::fadeLcd() {
-  // Early return no fade needed.
-  uint8_t targetBrightness;
-  if (mIsDay)
-    targetBrightness = mLcdDayBrightness;
-  else
-    targetBrightness = mLcdNightBrightness;
-
-  if (mLcdBrightness == targetBrightness || mIsAsleep && mLcdBrightness == 0) {
-    return true;
-  }
-
-  bool fadeDown = mIsAsleep || mLcdBrightness > targetBrightness;
-  if (fadeDown) {
-    setCurrentLcdBrightness(mLcdBrightness - 1);
-    auto setPoint = mIsAsleep ? 0 : targetBrightness;
-    return mLcdBrightness == setPoint;
-  } else {
-    setCurrentLcdBrightness(mLcdBrightness + 1);
-    return mLcdBrightness == targetBrightness;
-  }
-}
-
-void Display::startLcdFade() {
-  xSemaphoreTake(mFadeLcdTaskMutex, portMAX_DELAY);
-  // Only Create Task if it is needed
-  if (mDisplayLcdFadeTask == nullptr) {
-    xTaskCreate(&Display::fadeLcdImpl, "Display Fade Task", 1024, nullptr, 5,
-                &mDisplayLcdFadeTask);
-  }
-  xSemaphoreGive(mFadeLcdTaskMutex);
-}
-
 #ifdef OMOTE_HARDWARE_REV5
-void Display::fadeKbdImpl(void *) {
-  bool fadeDone = false;
-  while (!fadeDone) {
-    fadeDone = getInstance()->fadeKbd();
-    vTaskDelay(3 / portTICK_PERIOD_MS); // 3 miliseconds between steps
-    // 0 - 255 will take about .75 seconds to fade up.
+void Display::startKbdFade(bool instant, uint16_t delay) {
+  if(xSemaphoreTake(mFadeKbdTaskMutex, 0)) {
+   // Only Create Task if it is needed
+    if (mDisplayKbdFadeTask == nullptr) {
+      uint8_t targetBrightness;
+      if (mIsAsleep)
+        targetBrightness = 0;
+      else {
+        if (mIsDay)
+          targetBrightness = mKbdDayBrightness;
+        else
+          targetBrightness = mKbdNightBrightness;
+      }
+      
+      if (mKbdBrightness != targetBrightness) {
+        // calculate delta needed to give consistent 300ms (30 step) fade
+        float startBrightness = mKbdBrightness;
+        float delta = (targetBrightness - mKbdBrightness);
+        if (!instant)
+          delta /= 30.0f;
+        mKbdArgs = {delta, startBrightness, targetBrightness, delay};
+        //Serial.printf("Start KBD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", startBrightness, targetBrightness, delta, delay);
+        xTaskCreate(&Display::fadeKbdImpl, "Keyboard Fade Task", 1024, &mKbdArgs, 5, // stack needs to be 2048 for printf use
+                      &mDisplayKbdFadeTask);
+        }
+    }
+    xSemaphoreGive(mFadeKbdTaskMutex);
   }
+}
+
+void Display::fadeKbdImpl(void *passedArgs) {
+  thread_args args = *(thread_args *)passedArgs;
+  float brightness = args.startBrightness;
+  uint8_t targetBrightness = args.targetBrightness;
+  float delta = args.delta;
+  uint16_t delay = args.delay;
+  //Serial.printf("Impl KBD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", brightness, targetBrightness, delta, delay);
+  vTaskDelay(delay / portTICK_PERIOD_MS);
+
+  do {
+    brightness += delta;
+    bool overRange = (delta > 0) ? (brightness > targetBrightness) : (brightness < targetBrightness);
+    if (overRange)
+      getInstance()->setCurrentKbdBrightness(targetBrightness);
+    else
+      getInstance()->setCurrentKbdBrightness((uint8_t)brightness);
+    //Serial.printf("%f\r\n", brightness);
+    vTaskDelay(10 / portTICK_PERIOD_MS); // 10 miliseconds between steps
+  } while (getInstance()->mKbdBrightness != targetBrightness);
+  //Serial.println("Finished KBD fade");
 
   xSemaphoreTake(getInstance()->mFadeKbdTaskMutex, portMAX_DELAY);
   getInstance()->mDisplayKbdFadeTask = nullptr;
   xSemaphoreGive(getInstance()->mFadeKbdTaskMutex);
-
+  // Serial.println("Deleting fade task");
   vTaskDelete(nullptr); // Delete Fade Task
-}
-
-bool Display::fadeKbd() {
-  // Early return no fade needed.
-  uint8_t targetBrightness;
-  if (mIsDay)
-    targetBrightness = mKbdDayBrightness;
-  else
-    targetBrightness = mKbdNightBrightness;
-
-  if (mKbdBrightness == targetBrightness || mIsAsleep && mKbdBrightness == 0) {
-    return true;
-  }
-
-  bool fadeDown = mIsAsleep || mKbdBrightness > targetBrightness;
-  if (fadeDown) {
-    setCurrentKbdBrightness(mKbdBrightness - 1);
-    auto setPoint = mIsAsleep ? 0 : targetBrightness;
-    return mKbdBrightness == setPoint;
-  } else {
-    setCurrentKbdBrightness(mKbdBrightness + 1);
-    return mKbdBrightness == targetBrightness;
-  }
-}
-
-void Display::startKbdFade() {
-  xSemaphoreTake(mFadeKbdTaskMutex, portMAX_DELAY);
-  // Only Create Task if it is needed
-  if (mDisplayKbdFadeTask == nullptr) {
-    xTaskCreate(&Display::fadeKbdImpl, "Keypad Fade Task", 1024, nullptr, 5,
-                &mDisplayKbdFadeTask);
-  }
-  xSemaphoreGive(mFadeKbdTaskMutex);
 }
 #else
 void Display::fadeKbdImpl(void *) {}
-bool Display::fadeKbd() {
-  return false;
-}
-void Display::startKbdFade() {}
+void Display::startKbdFade(bool instant, uint16_t delay) {}
 #endif
 
 void Display::flushDisplay(lv_disp_t *disp, const lv_area_t *area,

@@ -262,6 +262,18 @@ uint8_t Display::getKbdDayBrightness() { return mKbdDayBrightness; }
 uint8_t Display::getLcdNightBrightness() { return mLcdNightBrightness; }
 uint8_t Display::getKbdNightBrightness() { return mKbdNightBrightness; }
 
+void Display::initBrightnessLevels(uint8_t lcdDay, uint8_t lcdNight, uint8_t kbdDay, uint8_t kbdNight) {
+  mLcdDayBrightness = lcdDay;
+  mLcdNightBrightness = lcdNight;
+  mKbdDayBrightness = kbdDay;
+  mKbdNightBrightness = kbdNight;
+}
+
+void Display::startFade(uint16_t delay) {
+  startLcdFade(false, delay);
+  startKbdFade(false, delay);
+}
+
 void Display::setCurrentLcdBrightness(uint8_t brightness) {
   mLcdBrightness = brightness;
   auto duty = static_cast<int>(mLcdBrightness);

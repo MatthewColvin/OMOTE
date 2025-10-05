@@ -83,9 +83,9 @@ public:
   virtual uint8_t getLcdNightBrightness() override;
   virtual uint8_t getKbdDayBrightness() override;
   virtual uint8_t getKbdNightBrightness() override;
-  virtual void initBrightnessLevels (uint8_t lcdDay, uint8_t lcdNight, uint8_t kbdDay, uint8_t kbdNight) override 
-      {mLcdDayBrightness = lcdDay; mLcdNightBrightness = lcdNight; mKbdDayBrightness = kbdDay; mKbdNightBrightness = kbdNight;};
-  virtual void startFade(uint16_t delay) override {startLcdFade(false, delay); startKbdFade(false, delay);};
+  virtual void initBrightnessLevels(uint8_t lcdDay, uint8_t lcdNight, uint8_t kbdDay, uint8_t kbdNight) override;
+
+  void startFade(uint16_t delay);
 
   virtual void turnOff() override;
   virtual void setDayMode(bool isDay) override;

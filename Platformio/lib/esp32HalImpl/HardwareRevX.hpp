@@ -57,6 +57,12 @@ public:
   virtual uint32_t getSleepTimeout() override;
   virtual void setSleepTimeout(uint32_t sleepTimeout) override;
 
+  virtual bool getLightSleepEnabled() override;
+  virtual void setLightSleepEnabled(bool wakeupByIMUEnabled) override;
+
+  virtual uint32_t getLightSleepTimeout() override;
+  virtual void setLightSleepTimeout(uint32_t sleepTimeout) override;
+
   virtual void saveSettings() override;
 
   /// @brief To be ran in loop out in main
@@ -107,11 +113,13 @@ protected: // Maybe todo: make private?
 private:
   int mStandbyTimer = SLEEP_TIMEOUT;
   int mSleepTimeout = SLEEP_TIMEOUT;
+  uint32_t mLightSleepTimeout = LIGHT_SLEEP_TIMEOUT;
   int mMotion = 0;
   WakeReason mWakeupReason;
   // ESP32Logger mLogger;
 
   bool mWakeupByIMUEnabled = true;
+  bool mLightSleepEnabled = false;
   byte mCurrentDevice = 1; // Current Device to control (allows switching
                            // mappings between devices)
 

@@ -15,13 +15,19 @@ public:
   ~SystemSettings();
 
 protected:
-  std::string GetTitle() override { return "System Settings"; }
+  std::string GetTitle() override { return "Sleep Settings"; }
 
 private:
   Widget::Label *mTimeoutLabel;
   Widget::Label *mImuLabel;
   Widget::Switch *mImuSwitch;
   Widget::DropDown<int> *mScreenTimeOutDropDown;
+  // LS = Light Sleep ******
+  Widget::Label *mLSTimeoutLabel;
+  Widget::Label *mLSLabel;
+  Widget::Switch *mLSSwitch;
+  Widget::DropDown<int> *mLSTimeOutDropDown;
+  bool mSaveReqrd = false;
 };
 
 } // namespace UI::Page

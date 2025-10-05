@@ -46,6 +46,12 @@ public:
   uint32_t getSleepTimeout() override;
   void setSleepTimeout(uint32_t sleepTimeout) override;
 
+  bool getLightSleepEnabled() override;
+  void setLightSleepEnabled(bool LightSlpEnabled) override;
+
+  uint32_t getLightSleepTimeout() override;
+  void setLightSleepTimeout(uint32_t sleepTimeout) override;
+
   void saveSettings() override {};
 
   void enterSleep(SleepMode mode, uint32_t duration) override {};
@@ -74,4 +80,7 @@ private:
   std::chrono::system_clock::time_point mStartTime;
 
   Handler<SDL_Event *> mSDLEventHandler;
+  bool mLightSleepEn = true;
+  uint32_t mSleepTimeout = 10000;
+  uint32_t mLightSlpTimeout = 60000;
 };

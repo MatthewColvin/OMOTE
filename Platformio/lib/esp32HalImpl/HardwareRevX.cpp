@@ -201,7 +201,18 @@ uint32_t HardwareRevX::getSleepTimeout() { return mSleepTimeout; }
 
 void HardwareRevX::setSleepTimeout(uint32_t sleepTimeout) {
   this->mSleepTimeout = sleepTimeout;
-  mStandbyTimer = sleepTimeout;
+}
+
+bool HardwareRevX::getLightSleepEnabled() { return mLightSleepEnabled; }
+
+void HardwareRevX::setLightSleepEnabled(bool lightSleepEnabled) {
+  this->mLightSleepEnabled = lightSleepEnabled;
+}
+
+uint32_t HardwareRevX::getLightSleepTimeout() { return mLightSleepTimeout; }
+
+void HardwareRevX::setLightSleepTimeout(uint32_t lightSleepTimeout) {
+  this->mLightSleepTimeout = lightSleepTimeout;
 }
 
 void HardwareRevX::saveSettings() {

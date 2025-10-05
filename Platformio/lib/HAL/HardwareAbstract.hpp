@@ -60,6 +60,12 @@ public:
   virtual uint32_t getSleepTimeout() = 0;
   virtual void setSleepTimeout(uint32_t sleepTimeout) = 0;
 
+  virtual bool getLightSleepEnabled() = 0;
+  virtual void setLightSleepEnabled(bool wakeupByIMUEnabled) = 0;
+
+  virtual uint32_t getLightSleepTimeout() = 0;
+  virtual void setLightSleepTimeout(uint32_t sleepTimeout) = 0;
+
   virtual void saveSettings() = 0;
   virtual void enterSleep(SleepMode mode, uint32_t duration) = 0;
   virtual WakeReason getWakeUpReason() = 0;

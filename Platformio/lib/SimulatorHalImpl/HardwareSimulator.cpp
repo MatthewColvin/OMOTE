@@ -114,9 +114,11 @@ bool HardwareSimulator::getWakeupByIMUEnabled() { return true; }
 
 void HardwareSimulator::setWakeupByIMUEnabled(bool wakeupByIMUEnabled) {}
 
-uint32_t HardwareSimulator::getSleepTimeout() { return 20000; }
+bool HardwareSimulator::getLightSleepEnabled() { return mLightSleepEn; };
+void HardwareSimulator::setLightSleepEnabled(bool LightSlpEnabled) { mLightSleepEn = LightSlpEnabled; };
 
-void HardwareSimulator::setSleepTimeout(uint32_t sleepTimeout) {}
+uint32_t HardwareSimulator::getLightSleepTimeout() { return mLightSlpTimeout; };
+void HardwareSimulator::setLightSleepTimeout(uint32_t sleepTimeout) { mLightSlpTimeout = sleepTimeout; };
 
 void HardwareSimulator::handleExtraSDLEvents(SDL_Event *aEvent) {
   if (aEvent->type == SDL_KEYDOWN) {

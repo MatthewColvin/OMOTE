@@ -48,16 +48,6 @@ public:
   std::string mDNSGetName() override { return mmDNSName; };
   void ftpSaveCredentials() override {};
 
-  void enableFtp(bool enabled) override { mFtpEnabled = enabled; };
-  bool isFtpEnabled(void) override { return mFtpEnabled; };
-  void ftpSetUser(std::string user) override { mFtpUser = user; };
-  void ftpSetPassword(std::string password) override { mFtpPassword = password; };
-  void mDNSSetName(std::string name) override { mmDNSName = name; };
-  std::string ftpGetUser() override { return mFtpUser; };
-  std::string ftpGetPassword() override { return mFtpPassword; };
-  std::string mDNSGetName() override { return mmDNSName; };
-  void ftpSaveCredentials() override {};
-
   bool mMqttConnected = false;
 
   void enableNtp(bool enabled) override { mNtpEnabled = enabled; };

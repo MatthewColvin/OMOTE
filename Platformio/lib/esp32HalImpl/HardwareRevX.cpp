@@ -95,10 +95,6 @@ void HardwareRevX::init() {
 
   setupIMU();
 
-  UI::observerHandles::registerTextHandle(BATT_STATUS, OBSERVER_BUF_SIZE, "");
-  UI::observerHandles::registerTextHandle(WIFI_STATUS, OBSERVER_BUF_SIZE, "");
-  UI::observerHandles::registerIntHandle(SOC_STATUS, 0);
-
   mLogger->setLogModule(LogModule::General);
   if (mLogger->isPrintWanted(LogLevel::Info)) {
     mLogStream << "Finished RevX Hardware Setup in " << millis() << "ms";
@@ -437,12 +433,6 @@ void HardwareRevX::loopHandler() {
         mLogStream << "Heap:" << (100.0f * ESP.getFreeHeap()) / ESP.getHeapSize() << "% free of " << ESP.getHeapSize() / 1024 << "kB, Pram:" << (100.0f * ESP.getFreePsram()) / ESP.getPsramSize() << "% free of " << ESP.getPsramSize() / 1024 << "kB, Stack min free: " << uxTaskGetStackHighWaterMark(nullptr) << "w";
         mLogger->log(LogLevel::Info, mLogStream);
       }
-
-      wifiHandlerInterface::wifiStatus wifiStatus = mWifiHandler->GetStatus();
-      if (wifiStatus.isConnected)
-        UI::observerHandles::setText(WIFI_STATUS, LV_SYMBOL_WIFI);
-      else
-        UI::observerHandles::setText(WIFI_STATUS, "");
     }
 
     if (mStandbyTimer == 0) {

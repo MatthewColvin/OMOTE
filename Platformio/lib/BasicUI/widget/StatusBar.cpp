@@ -49,10 +49,6 @@ StatusBar::StatusBar(DeviceFactory &aFactory)
   mTopBarSOCLabel->AlignTo(mTopBarBatteryLabel, LV_ALIGN_OUT_LEFT_MID);
   mTopBarWiFiLabel->AlignTo(mTopBarSOCLabel, LV_ALIGN_OUT_LEFT_MID);
   mTopBarActiveListLabel->AlignTo(mTopBarActiveListButton, LV_ALIGN_CENTER);
-
-  mTopBarBatteryLabel->BindTextEvent(BATT_STATUS, NULL);
-  mTopBarWiFiLabel->BindTextEvent(WIFI_STATUS, NULL);
-  mTopBarSOCLabel->BindTextEvent(SOC_STATUS, "%d%%");
 }
 
 void StatusBar::AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem) {

@@ -24,8 +24,11 @@ void setup() {
   pinMode(3, INPUT_PULLDOWN);
   delay(5);
 #ifdef OMOTE_KEYBRD_3661
-  if (LOW == digitalRead(3))
+  if (LOW == digitalRead(3)) {
+    pinMode(3, INPUT); // prevent increased current due to external pull up resistor
     esp_deep_sleep_start();
+  }
+  pinMode(3, INPUT);
 #else
   if (HIGH == digitalRead(3))
     esp_deep_sleep_start();

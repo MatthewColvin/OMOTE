@@ -8,6 +8,7 @@ enum calMode { direct,
 class BatteryInterface {
 public:
   BatteryInterface() = default;
+  virtual ~BatteryInterface() = default;
   virtual int getPercentage() = 0;
   virtual uint16_t getRawSOC() = 0;
   virtual int getVoltage() = 0;

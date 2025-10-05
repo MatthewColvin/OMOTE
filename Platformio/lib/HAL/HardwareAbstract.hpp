@@ -40,6 +40,9 @@ public:
   /// @param message - Debug message
   virtual void debugPrint(const char *fmt, ...) = 0;
 
+  // TODO: Evaluate if worth having a common interface for all hardware modules
+  // so that they can easily do stuff in the main loop function or in hardware in a common way.
+  // con would be that the logic that ends up there might be cause an issue and hard to see why.
   virtual std::unique_ptr<LoggingInterface> logger() = 0;
   virtual std::shared_ptr<BatteryInterface> battery() = 0;
   virtual std::shared_ptr<DisplayAbstract> display() = 0;
@@ -67,7 +70,14 @@ public:
   virtual void setLightSleepTimeout(uint32_t sleepTimeout) = 0;
 
   virtual void saveSettings() = 0;
+
+  // TODO: Scenes are really a UI Structure
+  // Lets try to refactor this out of HAL into some sort of UI structure.
+  virtual void setInScene(bool inScene) = 0;
+
   virtual void enterSleep(SleepMode mode, uint32_t duration) = 0;
   virtual WakeReason getWakeUpReason() = 0;
   virtual unsigned long getMillis() = 0;
+  virtual bool isUsbConnected() = 0;
+  virtual unsigned long getWakeTime() = 0;
 };

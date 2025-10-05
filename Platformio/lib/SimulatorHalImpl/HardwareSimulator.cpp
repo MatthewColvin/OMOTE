@@ -67,6 +67,9 @@ unsigned long HardwareSimulator::getMillis() {
   return msec.count();
 }
 
+bool isUsbConnected() { return false; }
+unsigned long getWakeTime() { return 0; }
+
 std::unique_ptr<LoggingInterface> HardwareSimulator::logger() {
   return std::make_unique<SimLogger>();
 }
@@ -110,9 +113,13 @@ char HardwareSimulator::getCurrentDevice() { return 0; }
 
 void HardwareSimulator::setCurrentDevice(char currentDevice) {}
 
-bool HardwareSimulator::getWakeupByIMUEnabled() { return true; }
+bool HardwareSimulator::getWakeupByIMUEnabled() { return mImuWakeEn; }
 
-void HardwareSimulator::setWakeupByIMUEnabled(bool wakeupByIMUEnabled) {}
+void HardwareSimulator::setWakeupByIMUEnabled(bool wakeupByIMUEnabled) { mImuWakeEn = wakeupByIMUEnabled; }
+
+uint32_t HardwareSimulator::getSleepTimeout() { return mSleepTimeout; }
+
+void HardwareSimulator::setSleepTimeout(uint32_t sleepTimeout) { mSleepTimeout = sleepTimeout; }
 
 bool HardwareSimulator::getLightSleepEnabled() { return mLightSleepEn; };
 void HardwareSimulator::setLightSleepEnabled(bool LightSlpEnabled) { mLightSleepEn = LightSlpEnabled; };

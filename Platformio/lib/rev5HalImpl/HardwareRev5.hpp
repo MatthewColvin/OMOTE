@@ -16,11 +16,15 @@ protected:
   void initIO() override;
 
 private:
+  void lightSleepWakeReint(SleepMode mode) override;
+
   void configIMUInterruptPolarity() override;
   void enableWakeupByPin() override;
   void sleepDisplayPins() override;
 
   void setupKeyboard();
+
+  bool isUsbConnected() override;
 
   void setupLightSensor();
 

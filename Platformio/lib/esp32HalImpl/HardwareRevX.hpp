@@ -65,12 +65,17 @@ public:
 
   virtual void saveSettings() override;
 
+  virtual void setInScene(bool inScene) override;
+
   /// @brief To be ran in loop out in main
   void loopHandler() override;
 
   virtual void enterSleep(SleepMode mode = SleepMode::LIGHT_DEEP_SLEEP, uint32_t duration = 0) override;
   WakeReason getWakeUpReason() override { return mWakeupReason; };
   inline unsigned long getMillis() override { return millis(); };
+  virtual bool isUsbConnected() override { return false; };
+  unsigned long getWakeTime() override { return mWakeTime; };
+
 protected:
   // Init Functions to setup hardware
   virtual void initIO();
@@ -78,13 +83,12 @@ protected:
   void setupIMU();
 
   virtual bool keyboardScan() = 0;
-  virtual bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) {
-    return false;
-  };
-  virtual void updateBacklightMode(uint16_t lightLevel) {};
+  virtual bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel);
+  virtual void updateBacklightMode(uint16_t lightLevel);
 
   bool activityDetection();
   // void enterSleep(SleepMode mode);
+  virtual void lightSleepWakeReint(SleepMode mode);
   void configIMUInterrupts();
   virtual void configIMUInterruptPolarity();
   virtual void enableWakeupByPin();
@@ -114,9 +118,13 @@ private:
   int mStandbyTimer = SLEEP_TIMEOUT;
   int mSleepTimeout = SLEEP_TIMEOUT;
   uint32_t mLightSleepTimeout = LIGHT_SLEEP_TIMEOUT;
+  unsigned long mIMUTaskTimer = 0;
   int mMotion = 0;
   WakeReason mWakeupReason;
+  bool mInScene = false;
   // ESP32Logger mLogger;
+
+  unsigned long mWakeTime = 0;
 
   bool mWakeupByIMUEnabled = true;
   bool mLightSleepEnabled = false;

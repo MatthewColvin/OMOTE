@@ -54,9 +54,14 @@ public:
 
   void saveSettings() override {};
 
+  void setInScene(bool inScene) override {};
+
   void enterSleep(SleepMode mode, uint32_t duration) override {};
   WakeReason getWakeUpReason() override { return HardwareAbstract::WakeReason::TIMER; };
   unsigned long getMillis() override;
+  bool isUsbConnected() override { return false; };
+  unsigned long getWakeTime() override { return 0; };
+
 protected:
   void handleExtraSDLEvents(SDL_Event *aEvent);
   bool initDirectory(const char *path, const std::string &inputPath);
@@ -80,6 +85,8 @@ private:
   std::chrono::system_clock::time_point mStartTime;
 
   Handler<SDL_Event *> mSDLEventHandler;
+
+  bool mImuWakeEn = true;
   bool mLightSleepEn = true;
   uint32_t mSleepTimeout = 10000;
   uint32_t mLightSlpTimeout = 60000;

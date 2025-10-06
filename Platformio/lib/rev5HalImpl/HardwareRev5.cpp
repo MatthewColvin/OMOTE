@@ -87,14 +87,6 @@ void HardwareRev5::lightSleepWakeReint(SleepMode mode) {
 #endif
 }
 
-void HardwareRev5::lightSleepWakeReint(SleepMode mode) {
-  HardwareRevX::lightSleepWakeReint(mode);
-#ifdef OMOTE_KEYBRD_3661
-  ltr.reset();
-  setupLightSensor();
-#endif
-}
-
 void HardwareRev5::initIO() {
   HardwareRevX::initIO();
   pinMode(SD_EN, OUTPUT);

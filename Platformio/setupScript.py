@@ -68,6 +68,8 @@ def PrintInfo():
 
 def removeLittleFSArduinoLib():
     """
+    (Deprecated) Leaving this around as a reference on how to modify build files.
+    WARNING: to the future devs: This can be kinda hacky and cause weirdness in the build system
     Remove the Littlefs arduino lib out of the framework so it properly builds
     """
     applicableBuildEnvs = ["esp32_Rev1", "esp32_Rev5", "esp32Debug"]
@@ -90,6 +92,3 @@ def removeLittleFSArduinoLib():
 PrintInfo()
 EnsureSubmoduleCheckout()
 verifyDependencies()
-
-# TODO: evaluate if this is still needed if not delete
-# removeLittleFSArduinoLib()

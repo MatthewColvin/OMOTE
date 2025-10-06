@@ -11,6 +11,7 @@
 #include "EspStats.hpp"
 #include "HardwareAbstract.hpp"
 #include "IRTransceiver.hpp"
+#include "LIS3DH_IMU.hpp"
 #include "SparkFunLIS3DH.h"
 #include "display.hpp"
 #include "keys.hpp"
@@ -45,6 +46,7 @@ public:
   virtual std::shared_ptr<IRInterface> ir() override;
   virtual std::shared_ptr<SystemStatsInterface> stats() override;
   virtual std::shared_ptr<webSocketInterface> webSocket() override;
+  virtual std::shared_ptr<LIS3DH_IMU> imu();
 
   virtual std::chrono::milliseconds execTime() override;
 
@@ -80,17 +82,13 @@ protected:
   // Init Functions to setup hardware
   virtual void initIO();
   void restorePreferences();
-  void setupIMU();
 
   virtual bool keyboardScan() = 0;
   virtual bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel);
   virtual void updateBacklightMode(uint16_t lightLevel);
 
-  bool activityDetection();
   // void enterSleep(SleepMode mode);
   virtual void lightSleepWakeReint(SleepMode mode);
-  void configIMUInterrupts();
-  virtual void configIMUInterruptPolarity();
   virtual void enableWakeupByPin();
   virtual void sleepDisplayPins() = 0;
   virtual void configPinsForSleepInterrupts() {};
@@ -112,6 +110,7 @@ protected: // Maybe todo: make private?
   // IMU Motion Detection
   LIS3DH mIMU =
       LIS3DH(I2C_MODE, 0x19); // Default constructor is I2C, addr 0x19.
+  std::shared_ptr<LIS3DH_IMU> mIMU_new = nullptr;
   Preferences mPreferences;
 
 private:

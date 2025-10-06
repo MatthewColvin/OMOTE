@@ -231,14 +231,12 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
     // Serial.printf("Restoring tab: %d\r\n", RtcLastState.tabIdx);
     mTabView->SetCurrentTabIdx(RtcLastState.tabIdx, LV_ANIM_OFF);
     // needed when waking from deep sleep but then enabling light sleep
-    // TODO: restore this when we have the API available
-    // HardwareFactory::getAbstract().setInScene(true);
+    HardwareFactory::getAbstract().setInScene(true);
   } else {
     RtcLastState.signature = RTC_SIG;
     strncpy(RtcLastState.currentScene, aFileName.c_str(), RTC_STR_SIZE);
     RtcLastState.tabIdx = 0;
-    // TODO: restore this when we have the API available
-    // HardwareFactory::getAbstract().setInScene(true);
+    HardwareFactory::getAbstract().setInScene(true);
     //  Serial.printf("Restore scene set to: %s\r\n",RtcLastState.currentScene);
   }
 
@@ -268,8 +266,7 @@ bool JsonHomeScreen::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
       mLastScene.clear();
       mLastStartSeq.clear();
       RtcLastState.signature = 0; // invalidate non volatile RAM sig to prevent restoring  closed scene on power up
-      // TODO: restore this when we have the API available
-      // HardwareFactory::getAbstract().setInScene(false);
+      HardwareFactory::getAbstract().setInScene(false);
       mStatusBar->SetTopButtonLabel("Select Scene");
       GoToSceneSelection("");
       return true;

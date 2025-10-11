@@ -40,13 +40,13 @@ void LoggingInterface::restoreSettings() {
 
 void LoggingInterface::saveSettings() {
 
-  rapidjson::Document d;
+  MemConsciousDocument d;
   d.SetObject();
 
   // Add data to the JSON document
   for (auto module : magic_enum::enum_values<LogModule>()) {
-    rapidjson::Value key(std::string(magic_enum::enum_name(module)), d.GetAllocator());
-    rapidjson::Value val(std::string(magic_enum::enum_name(getLogLevel(module))), d.GetAllocator());
+    MemConciousValue key(std::string(magic_enum::enum_name(module)), d.GetAllocator());
+    MemConciousValue val(std::string(magic_enum::enum_name(getLogLevel(module))), d.GetAllocator());
     d.AddMember(key, val, d.GetAllocator());
   }
 

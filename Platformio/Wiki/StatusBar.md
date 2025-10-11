@@ -19,7 +19,13 @@ The settings menu allows the OMOTE to be configured, there are sub-menus for eac
   <img src="images/BacklightMenu.png">
 </div
 
-This menu will vary dependant on the OMOTE hardware revision the code has been built. For Rev1 hardware it will just show a single slider that allows the LCD backlight brightness to be set.  For Rev5 hardware there will be two sliders which allow the LCD and keypad brightness to be independently set.  For Rev5_3661 hardware there will be an additional two sliders so that the brightness can be set for both day and night modes (OMOTE then automatically switches between these based on ambient light levels).
+This menu will vary dependant on the OMOTE hardware revision the code that has been built. 
+
+For **Rev1** hardware it will just show a pair of sliders that allow the LCD backlight brightness to be set for day and night modes.  A switch allows selection of the current mode.  
+
+For **Rev5** hardware variants there will be four sliders which allow the LCD and keypad brightness to be independently set plus the switch to select the mode.  
+
+For **Rev5_3661** hardware, which has a light sensor, the mode switch is removed.  Instead the OMOTE automatically switches mode based on ambient light levels.
 
 ### Sleep Settings
 <div align="center">

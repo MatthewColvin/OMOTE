@@ -23,6 +23,6 @@ Three main architectures are supported for the development of OMOTE applications
 2. Home Assistant Web Socket Framework (TBA)
 3. Configuration via JSON files ([JSON configuration](./JsonConfig.md "OMOTE GUI and command configuration via JSON files"))
 
-There is also a status bar along the top os the screen that displays current OMOTE status and allows access to the OMOTE settings menu ([Status Bar](./StatusBar.md "OMOTE Status Bar and Setup Menu"))
+There is also a status bar along the top of the screen that displays current OMOTE status and allows access to the OMOTE settings menu ([Status Bar](./StatusBar.md "OMOTE Status Bar and Setup Menu"))
 
 Note: Most testing to date has been on Rev1 and Rev5_3661 hardware.  To use on other hardware revisions some firmware changes will likely be required.  In particular a PlatformIO build will need to be created, source code changes may also be required.  Assistance with this process should be available on the OMOTE discord.

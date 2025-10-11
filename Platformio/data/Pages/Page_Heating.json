@@ -3,11 +3,16 @@
   "Widgets": 
   [
     {
+      "Type":"Title",
+      "HeightPct":10,
+      "AlignTo":0
+    },
+    {
       "Type":"Label",
       "Text":"--",
       "Command":"CURRENT",
       "HeightPct":8,
-      "AlignTo":0,
+      "AlignTo":1,
       "AlignMode":"LV_ALIGN_OUT_BOTTOM_MID"
     },
     {
@@ -15,7 +20,7 @@
       "Text":"--",
       "Command":"SETPOINT",
       "HeightPct":8,
-      "AlignTo":1,
+      "AlignTo":2,
       "AlignMode":"LV_ALIGN_OUT_BOTTOM_MID"
     },
     {

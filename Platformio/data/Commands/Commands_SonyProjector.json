@@ -1,0 +1,20 @@
+{
+  "Manufacturer":"Sony",
+  "DeviceClass":"Projector",
+  "Commands": [
+    {"Command":"LEFT",         "Mode":"IR", "Protocol":"SONY15", "Data":["0x162A"]},
+    {"Command":"RIGHT",        "Mode":"IR", "Protocol":"SONY15", "Data":["0x662A"]},
+    {"Command":"UP",           "Mode":"IR", "Protocol":"SONY15", "Data":["0x562A"]},
+    {"Command":"DOWN",         "Mode":"IR", "Protocol":"SONY15", "Data":["0x362A"]},
+    {"Command":"SELECT",       "Mode":"IR", "Protocol":"SONY15", "Data":["0x2D2A"]},
+    {"Command":"MENU",         "Mode":"IR", "Protocol":"SONY15", "Data":["0x4A2A"]},
+    {"Command":"BRIGHTNESS+",  "Mode":"IR", "Protocol":"SONY15", "Data":["0x3C2A"]},
+    {"Command":"BRIGHTNESS-",  "Mode":"IR", "Protocol":"SONY15", "Data":["0x7C2A"]},
+    {"Command":"CONTRAST+",    "Mode":"IR", "Protocol":"SONY15", "Data":["0x0C2A"]},
+    {"Command":"CONTRAST-",    "Mode":"IR", "Protocol":"SONY15", "Data":["0x4C2A"]},
+    {"Command":"PWR_TOGGLE",   "Mode":"IR", "Protocol":"SONY15", "Data":["0x542A"]},
+    {"Command":"PWR_ON",       "Mode":"IR", "Protocol":"SONY15", "Data":["0x3A2A"]},
+    {"Command":"PWR_OFF",      "Mode":"IR", "Protocol":"SONY15", "Data":["0x7A2A"]},
+    {"Command":"DELAY","Mode":"IR", "Protocol":"DELAY","Data":["200"]}
+  ]
+}

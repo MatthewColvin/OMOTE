@@ -209,13 +209,17 @@ def removeLittleFSArduinoLib():
         print(littleFsArduinoLibDir,"Already Removed")
     
 PrintInfo()
-#PrintEnv()
+PrintEnv()
 EnsureSubmoduleCheckout()
+
+# Remove the ASIO src folder when building SimulatorHalImpl to avoide trying to build 
+# the asio source files. 
+if("sim" in buildEnv["PIOENV"]):
+    remove_asio_sources_on_dep_build()
 
 if(buildEnv["PLATFORM"] != "win32"):
     verifyLinuxDependencies()
 else:
     # TODO: Add back when we can check for dependencies to ensure script does not hang
     # verifyWindowsDependencies()
-    remove_asio_sources_on_dep_build()
     pass

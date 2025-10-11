@@ -144,7 +144,7 @@ def msys2InstallDependencies(msys2_install_path):
             "python3-pip"]
     install_msys2_packages(msys2_install_path,deps)
 
-def getMsys64InstallPath() -> str | None:
+def getMsys64InstallPath() -> str:
     drivesToCheck = ['C', 'D', 'E', 'F']
     for drive in drivesToCheck:
         possibleMsys2InstallPath = f"{drive}:/msys64"

@@ -193,7 +193,7 @@ void Display::sleep() {
 }
 
 void Display::setDayMode(bool isDay) {
-  //done this way so doesn't get stuck if isDay changes faster than fade can complete
+  // done this way so doesn't get stuck if isDay changes faster than fade can complete
   bool update = isDay ? mLcdBrightness != mLcdDayBrightness : mLcdBrightness != mLcdNightBrightness;
   if (update) {
     mIsDay = isDay;
@@ -330,7 +330,7 @@ void Display::screenInput(lv_indev_t *indev, lv_indev_data_t *data) {
 }
 
 void Display::startLcdFade(bool instant, uint16_t delay) {
-  if(xSemaphoreTake(mFadeLcdTaskMutex, 0)) {
+  if (xSemaphoreTake(mFadeLcdTaskMutex, 0)) {
     // Only Create Task if it is needed
     if (mDisplayLcdFadeTask == nullptr) {
       uint8_t targetBrightness;
@@ -350,11 +350,11 @@ void Display::startLcdFade(bool instant, uint16_t delay) {
         if (!instant)
           delta /= 30.0f;
         mLcdArgs = {delta, startBrightness, targetBrightness, delay};
-        //Serial.printf("Start LCD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", startBrightness, targetBrightness, delta, delay);
+        // Serial.printf("Start LCD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", startBrightness, targetBrightness, delta, delay);
         xTaskCreate(&Display::fadeLcdImpl, "Display Fade Task", 1024, &mLcdArgs, 5, // stack needs to be 2048 for printf use
-                      &mDisplayLcdFadeTask);
-        }
+                    &mDisplayLcdFadeTask);
       }
+    }
     xSemaphoreGive(mFadeLcdTaskMutex);
   }
 }
@@ -365,8 +365,8 @@ void Display::fadeLcdImpl(void *passedArgs) {
   uint8_t targetBrightness = args.targetBrightness;
   float delta = args.delta;
   uint16_t delay = args.delay;
-  //Serial.printf("Impl LCD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", brightness, targetBrightness, delta, delay);
-  vTaskDelay(delay / portTICK_PERIOD_MS); 
+  // Serial.printf("Impl LCD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", brightness, targetBrightness, delta, delay);
+  vTaskDelay(delay / portTICK_PERIOD_MS);
 
   do {
     brightness += delta;
@@ -375,7 +375,7 @@ void Display::fadeLcdImpl(void *passedArgs) {
       getInstance()->setCurrentLcdBrightness(targetBrightness);
     else
       getInstance()->setCurrentLcdBrightness((uint8_t)brightness);
-    //Serial.printf("%f\r\n", brightness);
+    // Serial.printf("%f\r\n", brightness);
     vTaskDelay(10 / portTICK_PERIOD_MS); // 10 miliseconds between steps
   } while (getInstance()->mLcdBrightness != targetBrightness);
   // Serial.println("Finished LCD fade");
@@ -389,8 +389,8 @@ void Display::fadeLcdImpl(void *passedArgs) {
 
 #ifdef OMOTE_HARDWARE_REV5
 void Display::startKbdFade(bool instant, uint16_t delay) {
-  if(xSemaphoreTake(mFadeKbdTaskMutex, 0)) {
-   // Only Create Task if it is needed
+  if (xSemaphoreTake(mFadeKbdTaskMutex, 0)) {
+    // Only Create Task if it is needed
     if (mDisplayKbdFadeTask == nullptr) {
       uint8_t targetBrightness;
       if (mIsAsleep)
@@ -401,7 +401,7 @@ void Display::startKbdFade(bool instant, uint16_t delay) {
         else
           targetBrightness = mKbdNightBrightness;
       }
-      
+
       if (mKbdBrightness != targetBrightness) {
         // calculate delta needed to give consistent 300ms (30 step) fade
         float startBrightness = mKbdBrightness;
@@ -409,10 +409,10 @@ void Display::startKbdFade(bool instant, uint16_t delay) {
         if (!instant)
           delta /= 30.0f;
         mKbdArgs = {delta, startBrightness, targetBrightness, delay};
-        //Serial.printf("Start KBD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", startBrightness, targetBrightness, delta, delay);
+        // Serial.printf("Start KBD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", startBrightness, targetBrightness, delta, delay);
         xTaskCreate(&Display::fadeKbdImpl, "Keyboard Fade Task", 1024, &mKbdArgs, 5, // stack needs to be 2048 for printf use
-                      &mDisplayKbdFadeTask);
-        }
+                    &mDisplayKbdFadeTask);
+      }
     }
     xSemaphoreGive(mFadeKbdTaskMutex);
   }
@@ -424,7 +424,7 @@ void Display::fadeKbdImpl(void *passedArgs) {
   uint8_t targetBrightness = args.targetBrightness;
   float delta = args.delta;
   uint16_t delay = args.delay;
-  //Serial.printf("Impl KBD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", brightness, targetBrightness, delta, delay);
+  // Serial.printf("Impl KBD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", brightness, targetBrightness, delta, delay);
   vTaskDelay(delay / portTICK_PERIOD_MS);
 
   do {
@@ -434,10 +434,10 @@ void Display::fadeKbdImpl(void *passedArgs) {
       getInstance()->setCurrentKbdBrightness(targetBrightness);
     else
       getInstance()->setCurrentKbdBrightness((uint8_t)brightness);
-    //Serial.printf("%f\r\n", brightness);
+    // Serial.printf("%f\r\n", brightness);
     vTaskDelay(10 / portTICK_PERIOD_MS); // 10 miliseconds between steps
   } while (getInstance()->mKbdBrightness != targetBrightness);
-  //Serial.println("Finished KBD fade");
+  // Serial.println("Finished KBD fade");
 
   xSemaphoreTake(getInstance()->mFadeKbdTaskMutex, portMAX_DELAY);
   getInstance()->mDisplayKbdFadeTask = nullptr;

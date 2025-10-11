@@ -23,6 +23,7 @@ public:
     mKbdDayBrightness = kbdDay;
     mKbdNightBrightness = kbdNight;
   };
+  virtual void startFade(uint16_t delay) override {};
 
   virtual void turnOff() override;
   virtual void setDayMode(bool isDay) override;

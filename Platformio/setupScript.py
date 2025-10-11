@@ -209,7 +209,7 @@ def removeLittleFSArduinoLib():
         print(littleFsArduinoLibDir,"Already Removed")
     
 PrintInfo()
-PrintEnv()
+# PrintEnv()
 EnsureSubmoduleCheckout()
 
 # Remove the ASIO src folder when building SimulatorHalImpl to avoide trying to build 

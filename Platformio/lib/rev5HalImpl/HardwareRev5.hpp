@@ -1,8 +1,8 @@
 #pragma once
 
-#include "HardwareRevX.hpp"
 #include "BatteryRev5.hpp"
 #include "Hardware/LoggingInterface.hpp"
+#include "HardwareRevX.hpp"
 
 class HardwareRev5 : public HardwareRevX {
 public:
@@ -18,7 +18,6 @@ protected:
 private:
   void lightSleepWakeReint(SleepMode mode) override;
 
-  void configIMUInterruptPolarity() override;
   void enableWakeupByPin() override;
   void sleepDisplayPins() override;
 
@@ -29,9 +28,9 @@ private:
   void setupLightSensor();
 
   bool keyboardScan() override;
-  #ifdef OMOTE_KEYBRD_3661
+#ifdef OMOTE_KEYBRD_3661
   bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) override;
-  #endif
+#endif
   void updateBacklightMode(uint16_t lightLevel) override;
 
   // keypad scanning
@@ -42,7 +41,7 @@ private:
   Adafruit_LTR303 ltr = Adafruit_LTR303();
 #endif
 
-  //QueueHandle_t mKeysQueueHandle;
+  // QueueHandle_t mKeysQueueHandle;
 
   bool mlightSensorInitSuccessful = false;
 

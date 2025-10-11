@@ -5,7 +5,6 @@
 LIS3DH_IMU::LIS3DH_IMU(LIS3DH &aIMU) : mIMU(aIMU), mLogger(std::make_unique<LoggingInterface>(LogModule::IMU)) {
 }
 
-// void HardwareRevX::setupIMU()  direct replacement
 void LIS3DH_IMU::setup() {
   // Setup hal
   // Hz.  Can be: 0,1,10,25,50,100,200,400,1600,5000 Hz
@@ -116,5 +115,9 @@ void LIS3DH_IMU::configIMUInterrupts(bool aWakeupByIMUEnabled) {
 }
 
 void LIS3DH_IMU::configIMUInterruptPolarity() {
+#if defined(OMOTE_HARDWARE_) || defined(OMOTE_HARDWARE_REV6)
+  mIMU.writeRegister(LIS3DH_CTRL_REG6, 0x02); // For active-low interrupt
+#else
   mIMU.writeRegister(LIS3DH_CTRL_REG6, 0x00); // For active-high interrupt
+#endif
 }

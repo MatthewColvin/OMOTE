@@ -98,7 +98,11 @@ void StatusBar::onTimer(_lv_timer_t *aTimer) {
   if (HardwareFactory::getAbstract().wifi()->isNtpEnabled()) {
     uint32_t secSinceWake = (HardwareFactory::getAbstract().getMillis() - HardwareFactory::getAbstract().getWakeTime()) / 1000;
     time_t tNow = time(NULL);
+#ifdef _WIN32
+    localtime_s(&timeinfo, &tNow);
+#else
     localtime_r(&tNow, &timeinfo);
+#endif
 
     switch (HardwareFactory::getAbstract().wifi()->ntpGetDisplayMode()) {
     case ntpDisplayMode::constant:

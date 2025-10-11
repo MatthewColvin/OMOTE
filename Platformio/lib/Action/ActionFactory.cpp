@@ -34,7 +34,7 @@ std::unique_ptr<IAction> ActionFactory::createAction(const std::string &aActionN
   for (auto const &dir_entry : std::filesystem::directory_iterator{ActionsDirectory}) {
     if (dir_entry.is_regular_file()) {
       std::string fullPath(FS_PATH);
-      fullPath += dir_entry.path();
+      fullPath += dir_entry.path().string();
       std::ifstream file(fullPath, std::ios::in);
       if (file) {
         MemConsciousDocument actionDoc;
@@ -58,7 +58,7 @@ std::vector<std::unique_ptr<IAction>> ActionFactory::getAllActions() {
   for (auto const &dir_entry : std::filesystem::directory_iterator{ActionsDirectory}) {
     if (dir_entry.is_regular_file()) {
       std::string fullPath(FS_PATH);
-      fullPath += dir_entry.path();
+      fullPath += dir_entry.path().string();
       std::ifstream file(fullPath, std::ios::in);
       if (file) {
         MemConsciousDocument actionDoc;

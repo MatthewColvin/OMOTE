@@ -25,6 +25,10 @@ jobs:
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
 
+      - name: Prepare PlatformIO environments
+        working-directory: ./Platformio
+        run: pio pkg install
+
       - name: Build Rev_1 Hardware
         working-directory: ./Platformio
         run: pio run --environment esp32_Rev1

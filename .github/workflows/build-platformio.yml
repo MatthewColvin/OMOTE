@@ -25,6 +25,10 @@ jobs:
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
 
+      - name: Fix ESP-IDF pydantic dependencies
+        run: |
+          pip install "pydantic>=2.0,<2.10" "pydantic-settings>=2.0,<2.6" "pydantic-core>=2.0,<2.24" --upgrade
+
       - name: Build Rev_1 Hardware
         working-directory: ./Platformio
         run: pio run --environment esp32_Rev1

@@ -92,7 +92,9 @@
         "coroutine": "cpp",
         "ranges": "cpp",
         "lv_sdl_private.h": "c",
-        "*.inc": "cpp"
+        "*.inc": "cpp",
+        "netfwd": "cpp",
+        "filesystem": "cpp"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/.pio/libdeps/esp32/Adafruit BusIO",
     "editor.formatOnSave": true,
@@ -103,5 +105,15 @@
         ".vscode",
         ".git",
         "lib/Keypad"
-    ]
+    ],
+    // Add Enviroment Variables for ESP-IDF constraints to ensure proper development environment setup
+    "terminal.integrated.env.linux": {
+        "PIP_CONSTRAINT": "${workspaceFolder}/Platformio/esp-idf-constraints.txt"
+    },
+    "terminal.integrated.env.osx": {
+        "PIP_CONSTRAINT": "${workspaceFolder}/Platformio/esp-idf-constraints.txt"
+    },
+    "terminal.integrated.env.windows": {
+        "PIP_CONSTRAINT": "${workspaceFolder}\\Platformio\\esp-idf-constraints.txt"
+    }
 }

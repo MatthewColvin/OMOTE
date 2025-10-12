@@ -23,6 +23,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Set pip constraints for ESP-IDF
+        shell: bash
         run: echo "PIP_CONSTRAINT=${{ github.workspace }}/Platformio/esp-idf-constraints.txt" >> $GITHUB_ENV
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio

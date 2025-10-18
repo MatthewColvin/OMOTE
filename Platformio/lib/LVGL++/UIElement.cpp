@@ -245,12 +245,12 @@ TextStyle UIElement::GetTextStyle(lv_style_selector_t aStyle) {
 void UIElement::AddStyle(lv_style_t *aStyle,
                          lv_style_selector_t aStyleSelector) {
   LvglResourceManager::GetInstance().AttemptNow(
-      [=] { lv_obj_add_style(mLvglSelf, aStyle, aStyleSelector); });
+      [this, aStyle, aStyleSelector] { lv_obj_add_style(mLvglSelf, aStyle, aStyleSelector); });
 }
 
 void UIElement::AlignTo(UIElement *anElementToAlignTo, lv_align_t anAlignment,
                         lv_coord_t aXoffset, lv_coord_t aYOffset) {
-  LvglResourceManager::GetInstance().AttemptNow([=] {
+  LvglResourceManager::GetInstance().AttemptNow([this, anElementToAlignTo, anAlignment, aXoffset, aYOffset] {
     lv_obj_align_to(mLvglSelf, anElementToAlignTo->mLvglSelf, anAlignment,
                     aXoffset, aYOffset);
   });
@@ -280,7 +280,7 @@ void UIElement::SetBgOpacity(lv_opa_t aOpacity, lv_style_selector_t aStyle) {
 }
 
 void UIElement::SetDisabled(bool aDisable) {
-  if(aDisable)
+  if (aDisable)
     lv_obj_add_state(mLvglSelf, LV_STATE_DISABLED);
   else
     lv_obj_remove_state(mLvglSelf, LV_STATE_DISABLED);

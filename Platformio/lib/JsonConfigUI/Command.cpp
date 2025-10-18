@@ -1,14 +1,19 @@
 #include "Command.hpp"
 #include "HardwareFactory.hpp"
+#include <fstream>
 
 using namespace Command;
 
 CommandMode Commands::getCommand(const std::string &aCommandFIle, const std::string &aCommandPrefix, const std::string &aCommand, CommandStruct &aCommandStruct) {
 
-  File fp = HardwareFactory::getAbstract().littleFs()->open(aCommandFIle, LFS_O_RDONLY);
-  if (!fp)
+  std::ifstream file(FS_PATH + aCommandFIle, std::ios::in);
+  if (!file)
     return NONE;
-  std::string content = fp.read(10000);
+
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+  std::string content(buffer.str());
 
   MemConsciousDocument d;
   if (d.Parse(content.c_str()).HasParseError())

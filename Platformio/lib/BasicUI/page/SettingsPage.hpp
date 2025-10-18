@@ -31,8 +31,11 @@ public:
   void PushSystemSettings();
   void PushWifiSettings();
   void PushMqttSettings();
+  void PushNtpSettings();
+  void PushFtpSettings();
   void PushIrReader();
   void PushLoggingSettings();
+  void PushLearnBattery();
 
 protected:
   void OnShow() override {};
@@ -40,5 +43,6 @@ protected:
 
   Widget::Button *mButton;
   Widget::List *mSettingsList;
+  const lv_coord_t mHeight = 30;
 };
 } // namespace UI::Page

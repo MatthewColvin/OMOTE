@@ -7,10 +7,8 @@
 
 namespace UI {
 
-#define BATT_STATUS 0
-#define SOC_STATUS 1
-#define WIFI_STATUS 2
-#define DYNAMIC_START 3
+#define GENERAL_STATUS 0
+#define DYNAMIC_START 1
 
 enum obsType { None,
                String,

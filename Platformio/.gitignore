@@ -3,6 +3,7 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+sim_data/**
 managed_components
 data/mqtt.json
 flash.bin

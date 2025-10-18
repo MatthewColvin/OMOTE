@@ -1,0 +1,58 @@
+{
+  "CommandFile":"Commands/Commands_SonyProjector.json",
+  "Widgets": 
+  [
+    {
+      "Type":"Button",
+      "Text":"Brightness +",
+      "Command":"BRIGHTNESS+",
+      "HeightPct":10,
+      "AlignTo":0
+    },
+    {
+      "Type":"Button",
+      "Text":"Brightness -",
+      "Command":"BRIGHTNESS-",
+      "HeightPct":10,
+      "AlignTo":1
+    },
+    {
+      "Type":"Button",
+      "Text":"Contrast +",
+      "Command":"CONTRAST+",
+      "HeightPct":10,
+      "AlignTo":2
+    },
+    {
+      "Type":"Button",
+      "Text":"Contrast -",
+      "Command":"CONTRAST-",
+      "HeightPct":10,
+      "AlignTo":3
+    },
+    {
+      "Type":"Button",
+      "Text":"Power On",
+      "Command":"PWR_ON",
+      "HeightPct":10,
+      "AlignTo":4
+    },
+    {
+      "Type":"Button",
+      "Text":"Power Off",
+      "Command":"PWR_OFF",
+      "HeightPct":10,
+      "AlignTo":5
+    }
+  ],
+  "ButtonMaps":
+  {
+    "Power":{"Press":"PWR_TOGGLE"},
+    "Up":{"Press":"UP"},
+    "Down":{"Press":"DOWN"},
+    "Left":{"Press":"LEFT"},
+    "Right":{"Press":"RIGHT"},
+    "Center":{"Press":"SELECT"},
+    "Menu":{"Press":"MENU"}
+  }
+}

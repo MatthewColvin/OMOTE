@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ windows-latest, ubuntu-latest ]
+        os: [windows-latest, ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v3
@@ -21,9 +21,16 @@ jobs:
           key: ${{ runner.os }}-pio
       - uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: "3.13"
+      - name: Set pip constraints for ESP-IDF
+        shell: bash
+        run: echo "PIP_CONSTRAINT=${{ github.workspace }}/Platformio/esp-idf-constraints.txt" >> $GITHUB_ENV
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
+
+      - name: Prepare PlatformIO environments
+        working-directory: ./Platformio
+        run: pio pkg install
 
       - name: Build Rev_1 Hardware
         working-directory: ./Platformio
@@ -32,7 +39,7 @@ jobs:
       - name: Build Rev_5 Hardware
         working-directory: ./Platformio
         run: pio run --environment esp32_Rev5
-      
+
       - name: Build Rev_5_3661 Hardware
         working-directory: ./Platformio
         run: pio run --environment esp32_Rev5_3661

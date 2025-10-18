@@ -7,6 +7,7 @@
 #include "NumberPad.hpp"
 #include "magic_enum.hpp"
 #include "observerHandles.hpp"
+#include <fstream>
 
 using namespace UI::Page;
 using namespace Command;
@@ -14,15 +15,14 @@ using namespace Command;
 JsonPage::JsonPage(std::string aFileName, std::string aPageName, std::string aCommandPrefix)
     : Base(ID::Pages::JsonPage) {
 
-  auto title = std::make_unique<Widget::Label>(aPageName);
-  title->SetHeight(lv_pct(10));
-  title->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
-  mWidgets.push_back(AddElement(std::move(title)));
-
-  File fp = HardwareFactory::getAbstract().littleFs()->open(aFileName, LFS_O_RDONLY);
-  if (!fp)
+  std::ifstream file(FS_PATH + aFileName, std::ios::in);
+  if (!file)
     return;
-  std::string content = fp.read(10000);
+
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+  std::string content(buffer.str());
 
   MemConsciousDocument d;
   if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
@@ -37,7 +37,9 @@ JsonPage::JsonPage(std::string aFileName, std::string aPageName, std::string aCo
       if (d["Widgets"][i].HasMember("Type") && d["Widgets"][i]["Type"].IsString()) {
         std::string type = d["Widgets"][i]["Type"].GetString();
 
-        if (type == "Label") {
+        if (type == "Title") {
+          addTitle(aCommandPrefix, d["Widgets"][i].GetObject(), aPageName);
+        } else if (type == "Label") {
           addLabel(aCommandPrefix, d["Widgets"][i].GetObject());
         } else if (type == "Button") {
           addButton(aCommandPrefix, d["Widgets"][i].GetObject());
@@ -90,6 +92,21 @@ JsonPage::~JsonPage() {
   }
 }
 
+void JsonPage::addTitle(const std::string &aCommandPrefix, const MemConciousValue &value, std::string aPageName) {
+  auto title = std::make_unique<Widget::Label>(aPageName);
+  if (value.HasMember("HeightPct") && value["HeightPct"].IsUint())
+    title->SetHeight(lv_pct(value["HeightPct"].GetUint()));
+  if (value.HasMember("AlignTo") && value["AlignTo"].IsUint()) {
+    unsigned int index = value["AlignTo"].GetUint();
+    if (index == 0)
+      title->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
+    else if (index < mWidgets.size())
+      title->AlignTo(mWidgets[index], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+  }
+
+  mWidgets.push_back(AddElement(std::move(title)));
+}
+
 void JsonPage::addLabel(const std::string &aCommandPrefix, const MemConciousValue &value) {
   auto label = std::make_unique<Widget::Label>("");
   if (value.HasMember("Text") && value["Text"].IsString())
@@ -98,8 +115,10 @@ void JsonPage::addLabel(const std::string &aCommandPrefix, const MemConciousValu
     label->SetHeight(lv_pct(value["HeightPct"].GetUint()));
   if (value.HasMember("AlignTo") && value["AlignTo"].IsUint()) {
     unsigned int index = value["AlignTo"].GetUint();
-    if (index < mWidgets.size())
-      label->AlignTo(mWidgets[index], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+    if (index == 0)
+      label->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
+    else if (index <= mWidgets.size())
+      label->AlignTo(mWidgets[index - 1], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
   }
 
   if (value.HasMember("Command") && value["Command"].IsString() && !mCommandFile.empty()) {
@@ -137,8 +156,10 @@ void JsonPage::addButton(const std::string &aCommandPrefix, const MemConciousVal
           button->SetSize(lv_pct(value["SizeXY"][0].GetUint()), lv_pct(value["SizeXY"][1].GetUint()));
       if (value.HasMember("AlignTo") && value["AlignTo"].IsUint()) {
         unsigned int index = value["AlignTo"].GetUint();
-        if (index < mWidgets.size())
-          button->AlignTo(mWidgets[index], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+        if (index == 0)
+          button->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
+        else if (index <= mWidgets.size())
+          button->AlignTo(mWidgets[index - 1], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
       }
       // set position after align so can adjust
       if (value.HasMember("PosX") && value["PosX"].IsUint())
@@ -159,8 +180,10 @@ void JsonPage::addImage(const MemConciousValue &value) {
         image->SetSize(value["SizeXYinPixels"][0].GetUint(), value["SizeXYinPixels"][1].GetUint());
     if (value.HasMember("AlignTo") && value["AlignTo"].IsUint()) {
       unsigned int index = value["AlignTo"].GetUint();
-      if (index < mWidgets.size())
-        image->AlignTo(mWidgets[index], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+      if (index == 0)
+        image->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
+      else if (index <= mWidgets.size())
+        image->AlignTo(mWidgets[index - 1], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
     }
     // set position after align so can adjust
     if (value.HasMember("PosX") && value["PosX"].IsUint())
@@ -186,8 +209,10 @@ void JsonPage::addColorButtons(const std::string &aCommandPrefix, const MemConci
     auto colorButton = std::make_unique<Widget::ColorButtons>(commandStructs);
     if (value.HasMember("AlignTo") && value["AlignTo"].IsUint()) {
       unsigned int index = value["AlignTo"].GetUint();
-      if (index < mWidgets.size())
-        colorButton->AlignTo(mWidgets[index], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+      if (index == 0)
+        colorButton->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
+      else if (index <= mWidgets.size())
+        colorButton->AlignTo(mWidgets[index - 1], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
     }
     mWidgets.push_back(AddElement(std::move(colorButton)));
   }
@@ -208,8 +233,10 @@ void JsonPage::addNumberPad(const std::string &aCommandPrefix, const MemConcious
     auto numberPad = std::make_unique<Widget::NumberPad>(commandStructs);
     if (value.HasMember("AlignTo") && value["AlignTo"].IsUint()) {
       unsigned int index = value["AlignTo"].GetUint();
-      if (index < mWidgets.size())
-        numberPad->AlignTo(mWidgets[index], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+      if (index == 0)
+        numberPad->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
+      else if (index <= mWidgets.size())
+        numberPad->AlignTo(mWidgets[index - 1], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
     }
     mWidgets.push_back(AddElement(std::move(numberPad)));
   }

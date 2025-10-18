@@ -3,10 +3,10 @@
 #include "HardwareFactory.hpp"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include <fstream>
 
-ActiveDeviceConfig::ActiveDeviceConfig(std::shared_ptr<LittleFsInterface> fs, DeviceFactory &factory)
-    : mFs(fs),
-      mFactory(factory),
+ActiveDeviceConfig::ActiveDeviceConfig(DeviceFactory &factory)
+    : mFactory(factory),
       mSaveOnChangeHandler(mFactory.getActiveDevices().getListUpdateNotification()) {
   mSaveOnChangeHandler = [this](auto) {
     auto devices = mFactory.getActiveDevices().getDevices();
@@ -35,28 +35,31 @@ bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
   }
 
   std::string jsonStr = ToString(doc);
-  auto file = mFs->open(ACTIVE_DEVICES_CONFIG_FILE, LFS_O_WRONLY | LFS_O_CREAT);
+  std::ofstream file(FS_PATH + std::string(ACTIVE_DEVICES_CONFIG_FILE), std::ios::out | std::ios::trunc);
   if (!file)
     return false;
 
   HardwareFactory::getAbstract().debugPrint("DeviceSaveJSON:  %s", jsonStr.c_str());
 
-  file.write(jsonStr);
+  file << jsonStr;
 
-  file ? file.truncate(jsonStr.length()) : []() { return -1; }();
+  file.close();
 
-  return file;
+  return true;
 }
 
 std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
   std::vector<IDevice::Ptr> devices;
 
-  auto file = mFs->open(ACTIVE_DEVICES_CONFIG_FILE, LFS_O_RDONLY);
+  std::ifstream file(FS_PATH + std::string(ACTIVE_DEVICES_CONFIG_FILE), std::ios::in);
   if (!file)
     return devices;
 
   // Todo consider max read size api
-  std::string content = file.read(1000);
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+  std::string content(buffer.str());
   HardwareFactory::getAbstract().debugPrint("Loaded JSON %s", content.c_str());
 
   if (content.empty())

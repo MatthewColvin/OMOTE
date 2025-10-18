@@ -1,23 +1,32 @@
 #include "JsonDevices/JsonDevice.hpp"
 #include "magic_enum.hpp"
+#include <fstream>
+#include <sstream>
 
 namespace Json {
 
-JsonDevice::JsonDevice(File &aDeviceJsonFile) {
+JsonDevice::JsonDevice(std::filesystem::path aDeviceJsonFilePath) {
   constexpr auto maxDeviceFileSize = 5000;
-  if (aDeviceJsonFile.size() > maxDeviceFileSize) {
+
+  if (std::filesystem::file_size(aDeviceJsonFilePath) > maxDeviceFileSize) {
+    mParseResult = ParseResult::FileError;
+    return;
+  }
+  std::ifstream deviceJsonStream(aDeviceJsonFilePath);
+  if (!deviceJsonStream.is_open()) {
     mParseResult = ParseResult::FileError;
     return;
   }
 
-  auto deviceJsonStr = aDeviceJsonFile.read(maxDeviceFileSize);
+  std::stringstream deviceSS;
+  deviceSS << deviceJsonStream.rdbuf();
+  auto deviceJsonStr = deviceSS.str();
   MemConsciousDocument deviceJson;
   deviceJson.Parse(deviceJsonStr.c_str());
-
   mParseResult = parse(deviceJson);
 
   if (mParseResult == ParseResult::Success) {
-    mFilePath = aDeviceJsonFile.GetPath();
+    mFilePath = aDeviceJsonFilePath;
   }
 }
 

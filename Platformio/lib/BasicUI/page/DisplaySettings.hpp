@@ -14,17 +14,18 @@ public:
   DisplaySettings(std::shared_ptr<DisplayAbstract> aDisplay);
   ~DisplaySettings();
 
-  std::string GetTitle() override { return "Display Settings"; };
+  std::string GetTitle() override { return "Backlight Settings"; };
 
 private:
   std::shared_ptr<DisplayAbstract> mDisplay;
-  Widget::Label  *mLcdDayLabel;
+  Widget::Label *mLcdDayLabel;
   Widget::Slider *mLcdDaySlider;
-  Widget::Label  *mLcdNightLabel;
+  Widget::Label *mLcdNightLabel;
   Widget::Slider *mLcdNightSlider;
-  Widget::Label  *mKbdDayLabel;
+  Widget::Label *mKbdDayLabel;
   Widget::Slider *mKbdDaySlider;
-  Widget::Label  *mKbdNightLabel;
+  Widget::Label *mKbdNightLabel;
   Widget::Slider *mKbdNightSlider;
+  bool mSaveRequired = false;
 };
 } // namespace UI::Page

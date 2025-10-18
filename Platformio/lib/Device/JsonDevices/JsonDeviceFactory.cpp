@@ -4,31 +4,22 @@
 
 namespace Json {
 
-JsonDeviceFactory::JsonDeviceFactory() : mFs(HardwareFactory::getAbstract().littleFs()) {}
-
-IDevice::Ptr JsonDeviceFactory::Create(const std::string &aFilePathToDevice) {
-  auto deviceFile = mFs->open(aFilePathToDevice);
-  return Create(deviceFile);
-}
-
-IDevice::Ptr JsonDeviceFactory::Create(File &aDeviceFile) {
+IDevice::Ptr JsonDeviceFactory::Create(const std::filesystem::path &aDeviceFile) {
   auto device = std::make_shared<JsonDevice>(aDeviceFile);
   return device->isValid() ? device : nullptr;
 }
 
-std::vector<std::shared_ptr<IDevice>> JsonDeviceFactory::getDevices(const std::string &aDirectory) {
-  if (!mFs->isDir(aDirectory)) {
+std::vector<std::shared_ptr<IDevice>> JsonDeviceFactory::getDevices(const std::filesystem::path &aDevicesDirectory) {
+  if (!std::filesystem::is_directory(aDevicesDirectory)) {
     return {};
   }
 
   std::vector<std::shared_ptr<IDevice>> devices;
-  for (auto &file : mFs->FilesIn(aDirectory)) {
-    auto device = Create(file);
-    if (device) {
+  for (auto &entry : std::filesystem::directory_iterator(aDevicesDirectory)) {
+    if (auto device = Create(entry.path()); device) {
       devices.push_back(device);
     }
   }
-
   return devices;
 }
 

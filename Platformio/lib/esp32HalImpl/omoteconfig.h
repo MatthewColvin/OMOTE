@@ -8,6 +8,9 @@
 // time until device enters sleep mode in milliseconds
 #define SLEEP_TIMEOUT 20000
 
+// time until device remains in light sleep in milliseconds
+#define LIGHT_SLEEP_TIMEOUT (1 * 60 * 1000)
+
 // motion above threshold keeps device awake
 #define MOTION_THRESHOLD 50
 

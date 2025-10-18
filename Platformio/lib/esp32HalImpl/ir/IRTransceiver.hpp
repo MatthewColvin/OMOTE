@@ -26,7 +26,7 @@ public:
     maxOutTaskPriority();
     auto calibrationOffset = IRsend::calibrate();
     restoreTaskPriority();
-    Serial.printf("Calibration Offset: %i", calibrationOffset);
+    Serial.printf("Calibration Offset: %i\r\n", calibrationOffset);
     return calibrationOffset;
   };
 

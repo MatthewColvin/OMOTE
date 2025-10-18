@@ -12,9 +12,8 @@ using namespace UI::Page;
 MqttSettings::MqttSettings(std::shared_ptr<wifiHandlerInterface> aWifi)
     : Base(ID::Pages::MqttSettings), mWifi(aWifi),
       mEnLabel(AddNewElement<Widget::Label>("Enable")),
-      mEnSwitch(AddNewElement<Widget::Switch>([this](auto aNewState) {
-        HardwareFactory::getAbstract().wifi()->enableMqtt(aNewState);}, 
-        HardwareFactory::getAbstract().wifi()->isMqttEnabled())),
+      mEnSwitch(AddNewElement<Widget::Switch>([this](auto aNewState) { mWifi->enableMqtt(aNewState); },
+                                              mWifi->isMqttEnabled())),
       mList(AddNewElement<Widget::List>()), mPasswordGetter(nullptr),
       mButton(AddNewElement<Widget::Button>([this] { Reconnect(); })) {
 
@@ -28,7 +27,8 @@ MqttSettings::MqttSettings(std::shared_ptr<wifiHandlerInterface> aWifi)
   mList->AddItem("Port", NULL, [this] { OpenPasswordKeyboard(port, mWifi->mqttGetPort()); });
   mList->AddItem("User", NULL, [this] { OpenPasswordKeyboard(user, mWifi->mqttGetUser()); });
   mList->AddItem("Password", NULL, [this] { OpenPasswordKeyboard(password, mWifi->mqttGetPassword()); });
-  mList->SetHeight(lv_pct(50));
+  mList->AddItem("ClientID", NULL, [this] { OpenPasswordKeyboard(clientid, mWifi->mqttGetClientID()); });
+  mList->SetHeight(lv_pct(48));
   mList->AlignTo(mEnLabel, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 25);
   mButton->SetText("Connect/Save");
   mButton->SetHeight(lv_pct(10));
@@ -56,6 +56,9 @@ void MqttSettings::OpenPasswordKeyboard(field aField, std::string aText) {
             break;
           case password:
             mWifi->mqttSetPassword(aEnteredText);
+            break;
+          case clientid:
+            mWifi->mqttSetClientID(aEnteredText);
             break;
           default:
             break;

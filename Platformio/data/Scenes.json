@@ -1,8 +1,9 @@
 {
   "Scenes":[
     {"SceneName":"Watch TV", "FileName":"Scenes/Scene_WatchTV.json","BindToKey":"TV","PressType":"Press"},
-    {"SceneName":"Audio", "FileName":"Scenes/Scene_Audio.json","BindToKey":"Audio","PressType":"Press"},
-    {"SceneName":"Watch BluRay on TV", "FileName":"Scenes/Scene_WatchBluRayOnTV.json", "BindToKey":"BluRay", "PressType":"Short"},
-    {"SceneName":"Watch BluRay on Projector", "FileName":"Scenes/Scene_WatchBluRayOnProj.json", "BindToKey":"BluRay", "PressType":"Long"}
+    {"SceneName":"Image Test", "FileName":"Scenes/Scene_ImageTest.json"},
+    {"SceneName":"Watch Roku on Proj", "FileName":"Scenes/Scene_WatchRokuOnProj.json", "BindToKey":"Stream", "PressType":"Long"},
+    {"SceneName":"Watch BluRay on Proj", "FileName":"Scenes/Scene_WatchBluRayOnProj.json", "BindToKey":"BluRay", "PressType":"Long"},
+    {"SceneName":"Heating", "FileName":"Scenes/Scene_Heating.json"}
   ]
 } 

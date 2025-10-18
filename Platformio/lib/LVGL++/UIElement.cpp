@@ -279,6 +279,13 @@ void UIElement::SetBgOpacity(lv_opa_t aOpacity, lv_style_selector_t aStyle) {
   });
 }
 
+void UIElement::SetDisabled(bool aDisable) {
+  if(aDisable)
+    lv_obj_add_state(mLvglSelf, LV_STATE_DISABLED);
+  else
+    lv_obj_remove_state(mLvglSelf, LV_STATE_DISABLED);
+}
+
 void UIElement::StartLvglEventHandler() {
   if (mIsHandlingLvglEvents) {
     return;

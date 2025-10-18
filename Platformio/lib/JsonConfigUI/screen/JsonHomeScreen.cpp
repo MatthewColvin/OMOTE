@@ -6,6 +6,8 @@
 #include "JsonPage.hpp"
 #include "ScreenManager.hpp"
 #include "SettingsPage.hpp"
+#include <filesystem>
+#include <fstream>
 
 using namespace UI::Screen;
 
@@ -26,6 +28,10 @@ RTC_DATA_ATTR static struct {
 } RtcLastState;
 #endif
 
+// NOTE : entry and exit sequence code is a little messy, this is because we have scenes
+// that have them and scenes which don't (which therefore aren't really scenes).  Should really
+// restructure to better handle this, and also give better status bar info, but this will do for now
+
 JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
     : Base(UI::ID::Screens::Home),
       mFactory(aFactory),
@@ -36,7 +42,9 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   UI::Screen::Manager::getInstance().setAllScreenProcessKeys(true);
 
   SetBgColor(UI::Color::BLACK);
-  SetPushAnimation(LV_SCR_LOAD_ANIM_FADE_IN);
+  // Bring up immediately as main screen, backlight fade in provides equivalent to fade animation
+  // otherwise combined fade in and backlight fade can cause odd effect at some brightensses
+  SetPushAnimation(LV_SCR_LOAD_ANIM_NONE);
   // Init Factory to allow building of Json devices
   aFactory.InitJsonFactory();
 
@@ -53,10 +61,14 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
   mTabView->SetVisiblity(false);
 
-  File fp = HardwareFactory::getAbstract().littleFs()->open("Scenes.json", LFS_O_RDONLY);
-  if (!fp)
+  std::ifstream file(FS_PATH "Scenes.json", std::ios::in);
+  if (!file)
     return;
-  std::string content = fp.read(1000);
+
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+  std::string content(buffer.str());
 
   MemConsciousDocument d;
   if (d.Parse(content.c_str()).HasParseError())
@@ -73,7 +85,7 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
         else
           sceneName = fileName;
 
-        auto symbol = checkSceneForEntryExit(fileName) ? LV_SYMBOL_EYE_OPEN : LV_SYMBOL_EYE_CLOSE;
+        auto symbol = checkSceneForEntryExit(fileName) ? LV_SYMBOL_WIFI : LV_SYMBOL_MINUS;
         mList->AddItem(sceneName, symbol, [this, fileName] { displayScenePage(fileName, false); });
 
         if (scene.HasMember("BindToKey") && scene["BindToKey"].IsString()) {
@@ -104,10 +116,14 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
 }
 
 bool JsonHomeScreen::checkSceneForEntryExit(const std::string &aFileName) {
-  File fp = HardwareFactory::getAbstract().littleFs()->open(aFileName, LFS_O_RDONLY);
-  if (!fp)
-    return false; // no file, nothing to do
-  std::string content = fp.read(10000);
+  std::ifstream file(FS_PATH + aFileName, std::ios::in);
+  if (!file)
+    return false;
+
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+  std::string content(buffer.str());
 
   MemConsciousDocument d;
   if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
@@ -125,14 +141,17 @@ void JsonHomeScreen::clearScene() {
   mTabView->SetVisiblity(false);
   mTabView->OnTabChangeEvent([this](uint16_t idx) { RtcLastState.tabIdx = mTabView->GetCurrentTabIdx(); });
   mOverrideKeyHandlers.clear();
-  mExitCommands.clear();
 }
 
 void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restoreScene) {
-  File fp = HardwareFactory::getAbstract().littleFs()->open(aFileName, LFS_O_RDONLY);
-  if (!fp)
-    return; // no file, nothing to do
-  std::string content = fp.read(10000);
+  std::ifstream file(FS_PATH + aFileName, std::ios::in);
+  if (!file)
+    return;
+
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+  std::string content(buffer.str());
 
   MemConsciousDocument d;
   if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
@@ -145,10 +164,9 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
     return; // no scene change, just bring existing tabview back up
   }
 
-  if (!mLastScene.empty() && (mLastScene != aFileName)) {
-    // send last exit sequence only if changing scene ot first scene
-    for (auto i : mExitCommands)
-      Command::Commands::sendCommand(i);
+  if (!mExitCommands.empty() && (mSavedExitSeq != aFileName) && checkSceneForEntryExit(aFileName)) {
+    // if we have an exit sequence to use, which isn't for the new scene, and the new scene uses entry or exit sequences then send it
+    sendExitSequence();
     // Serial.println("Sending Exit commands");
   }
 
@@ -166,10 +184,13 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
       if (d["Pages"][i].HasMember("FileName") && d["Pages"][i]["FileName"].IsString()) {
         std::string fileName = d["Pages"][i]["FileName"].GetString();
         std::string pageName;
+        std::string shortName;
         if (d["Pages"][i].HasMember("PageName") && d["Pages"][i]["PageName"].IsString())
           pageName = d["Pages"][i]["PageName"].GetString();
         else
           pageName = fileName;
+        if (d["Pages"][i].HasMember("ShortName") && d["Pages"][i]["ShortName"].IsString())
+          shortName = d["Pages"][i]["ShortName"].GetString();
         std::string commandPrefix;
         if (d["Pages"][i].HasMember("CommandPrefix") && d["Pages"][i]["CommandPrefix"].IsString())
           commandPrefix = d["Pages"][i]["CommandPrefix"].GetString();
@@ -181,6 +202,7 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
           page->getKeyOverrides(array, keyHandlers);
           mOverrideKeyHandlers.insert(keyHandlers.begin(), keyHandlers.end());
         }
+        page->SetTitle(shortName);
         mTabView->AddTab(std::move(page));
       }
     }
@@ -201,7 +223,7 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
     }
   }
 
-  if (d.HasMember("ExitCommandSequence") && d["ExitCommandSequence"].IsArray()) {
+  if (mExitCommands.empty() && d.HasMember("ExitCommandSequence") && d["ExitCommandSequence"].IsArray()) { // don't add if reloading
     for (rapidjson::SizeType i = 0; i < d["ExitCommandSequence"].Size(); i++) {
       if (d["ExitCommandSequence"][i].HasMember("CommandFile") && d["ExitCommandSequence"][i]["CommandFile"].IsString()) {
         if (d["ExitCommandSequence"][i].HasMember("Command") && d["ExitCommandSequence"][i]["Command"].IsString()) {
@@ -209,6 +231,7 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
           if (Command::NONE != Command::Commands::getCommand(d["ExitCommandSequence"][i]["CommandFile"].GetString(), "",
                                                              d["ExitCommandSequence"][i]["Command"].GetString(), aCommand)) {
             mExitCommands.push_back(aCommand);
+            mSavedExitSeq = aFileName;
           }
         }
       }
@@ -220,11 +243,14 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
   if (restoreScene) {
     // Serial.printf("Restoring tab: %d\r\n", RtcLastState.tabIdx);
     mTabView->SetCurrentTabIdx(RtcLastState.tabIdx, LV_ANIM_OFF);
+    // needed when waking from deep sleep but then enabling light sleep
+    HardwareFactory::getAbstract().setInScene(true);
   } else {
     RtcLastState.signature = RTC_SIG;
     strncpy(RtcLastState.currentScene, aFileName.c_str(), RTC_STR_SIZE);
     RtcLastState.tabIdx = 0;
-    // Serial.printf("Restore scene set to: %s\r\n",RtcLastState.currentScene);
+    HardwareFactory::getAbstract().setInScene(true);
+    //  Serial.printf("Restore scene set to: %s\r\n",RtcLastState.currentScene);
   }
 
   mTabView->SetVisiblity(true);
@@ -245,32 +271,25 @@ bool JsonHomeScreen::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   // handle exit sequence first
   if ((aKeyEvent.mId == KeyPressAbstract::KeyId::Power)) {
     if (aKeyEvent.mType == Command::KeyPressTypes::Press) {
-      if (!mExitCommands.empty())
-        return true; // prevent page from responding to press event
-    } else if (aKeyEvent.mType == Command::KeyPressTypes::Short) {
-      // short press, if we have exit sequence send and and return to home screen
-      // otherwise let page deal with it (can lways use long press to force exit)
-      if (!mExitCommands.empty()) {
-        for (auto &i : mExitCommands)
-          Command::Commands::sendCommand(i);
-        clearScene();
-        mLastScene.clear();
-        mLastStartSeq.clear();
-        mStatusBar->SetTopButtonLabel("Select Scene");
-        GoToSceneSelection("");
-        return true;
-      }
+      return true; // prevent page from responding to press event
     } else if (aKeyEvent.mType == Command::KeyPressTypes::Long) {
-      // return to home screen without sending sequence
+      // long press - send exit sequence and return to home screen
+      sendExitSequence();
       clearScene();
       mLastScene.clear();
       mLastStartSeq.clear();
+      RtcLastState.signature = 0; // invalidate non volatile RAM sig to prevent restoring  closed scene on power up
+      HardwareFactory::getAbstract().setInScene(false);
       mStatusBar->SetTopButtonLabel("Select Scene");
+      GoToSceneSelection("");
+      return true;
+    } else if (aKeyEvent.mType == Command::KeyPressTypes::Short) {
+      // return to home screen without sending sequence or cancelling last scene
       GoToSceneSelection("");
       return true;
     }
   }
-  // scene slection keys forst
+  // scene slection keys first
   {
     auto range = mSceneKeyHandlers.equal_range(aKeyEvent.mId);
     if (range.first != mSceneKeyHandlers.end()) {
@@ -298,6 +317,13 @@ bool JsonHomeScreen::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
 
   return false;
 };
+
+void JsonHomeScreen::sendExitSequence() {
+  for (auto &i : mExitCommands)
+    Command::Commands::sendCommand(i);
+  mExitCommands.clear();
+  mSavedExitSeq.clear();
+}
 
 void JsonHomeScreen::GoToSceneSelection(const std::string &aNewScene) {
   // Can't get clickable to work, assume it only sets parent not children

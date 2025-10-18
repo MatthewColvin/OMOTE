@@ -1,0 +1,24 @@
+{
+  "Type":"List",
+  // Name to display at top of screen
+  "ScreenName":"Heating",
+  // List of pages to populate tabview
+  "Pages": [
+    {
+      "PageName":"Heating (Lounge)",
+      "ShortName":"Lounge",
+      "FileName":"Pages/Page_Heating.json",
+      // Include a command prefix to allow generic page
+      // to control specific room
+      "CommandPrefix":"LOUNGE_"
+    },
+    {
+      "PageName":"Heating (Kitchen)",
+      "ShortName":"Kitchen",
+      "FileName":"Pages/Page_Heating.json",
+      // Include a command prefix to allow generic page
+      // to control specific room
+      "CommandPrefix":"KITCHEN_"
+    }
+  ]
+}

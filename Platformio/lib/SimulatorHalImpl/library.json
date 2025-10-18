@@ -14,6 +14,7 @@
         "HAL": "HAL",
         "SDL2": "https://github.com/libsdl-org/SDL/releases/download/release-3.2.8/SDL3-3.2.8-win32-x64.zip",
         "websocketpp": "https://github.com/MatthewColvin/websocketpp.git#0.8.2WithPIOLibJson",
+        "asio": "https://github.com/chriskohlhoff/asio.git#asio-1-24-0",
         "mqtt": "https://github.com/MatthewColvin/MQTT-C.git#1.1.6WithPIOLibJson"
     },
     "build": {

@@ -17,6 +17,7 @@ public:
   static constexpr lv_opa_t Transparency = LV_OPA_20;
 
   StatusBar(DeviceFactory &factory);
+  ~StatusBar() override;
 
   void AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem);
   void AddDebugSettingItem(UI::Page::SettingsPage::InjectedItem aItem);
@@ -28,18 +29,24 @@ public:
 private:
   void PushSettingsList(bool aWithDebug = false);
   void PushActiveDeviceList();
+  static void onTimer(_lv_timer_t *aTimer);
 
   DeviceFactory &mFactory;
 
   Notification<std::string>::Ptr mSceneChange;
 
-  std::vector<UI::Page::SettingsPage::InjectedItem> mExtraSettingsItems;
-  std::vector<UI::Page::SettingsPage::InjectedItem> mDebugSettingsItems;
+  std::vector<UI::Page::SettingsPage::InjectedItem>
+      mExtraSettingsItems;
+
+  std::vector<UI::Page::SettingsPage::InjectedItem>
+      mDebugSettingsItems;
+
+  lv_timer_t *mTimer = nullptr;
 
   Widget::Button *mTopBarSettingsButton;
   Widget::Button *mTopBarActiveListButton;
   Widget::Label *mTopBarWiFiLabel;
-  Widget::Label *mTopBarSOCLabel;
+  Widget::Label *mTopBarGeneralLabel;
   Widget::Label *mTopBarBatteryLabel;
   Widget::Label *mTopBarActiveListLabel;
 };

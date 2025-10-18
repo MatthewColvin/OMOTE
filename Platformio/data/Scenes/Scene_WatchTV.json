@@ -4,20 +4,24 @@
   "Pages": [
     {
       "PageName":"TV",
+      "ShortName":"TV",
       "FileName":"Pages/Page_TV.json",
       "OverrideKeys":["VolUp", "VolDown", "Mute"]
     },
     {
       "PageName":"Image Test",
+      "ShortName":"Image",
       "FileName":"Pages/Page_ImageTest.json"
     },
     {
       "PageName":"Heating (Kitchen)",
+      "ShortName":"H_Kit",
       "FileName":"Pages/Page_Heating.json",
       "CommandPrefix":"KITCHEN_"
     },
     { 
       "PageName":"Heating (Lounge)",
+      "ShortName":"H_Lng",
       "FileName":"Pages/Page_Heating.json",
       "CommandPrefix":"LOUNGE_"
     }

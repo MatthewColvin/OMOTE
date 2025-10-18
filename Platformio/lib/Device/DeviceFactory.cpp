@@ -5,7 +5,7 @@
 #include <cctype>
 
 DeviceFactory::DeviceFactory() {
-  mDeviceConfig = std::make_unique<ActiveDeviceConfig>(HardwareFactory::getAbstract().littleFs(), *this);
+  mDeviceConfig = std::make_unique<ActiveDeviceConfig>(*this);
 }
 
 IDevice::Ptr DeviceFactory::Create(DeviceId id) {

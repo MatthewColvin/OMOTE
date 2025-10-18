@@ -1,0 +1,22 @@
+{
+  "Manufacturer":"Roku",
+  "DeviceClass":"Streaming",
+  "Commands": [
+    {"Command":"LEFT",      "Mode":"IR", "Protocol":"NEC", "Data":["0x57437887"]},
+    {"Command":"RIGHT",     "Mode":"IR", "Protocol":"NEC", "Data":["0x5743B44B"]},
+    {"Command":"UP",        "Mode":"IR", "Protocol":"NEC", "Data":["0x57439867"]},
+    {"Command":"DOWN",      "Mode":"IR", "Protocol":"NEC", "Data":["0x5743CC33"]},
+    {"Command":"SELECT",    "Mode":"IR", "Protocol":"NEC", "Data":["0x574354AB"]},
+    {"Command":"HOME",      "Mode":"IR", "Protocol":"NEC", "Data":["0x5743C03F"]},
+    {"Command":"BACK",      "Mode":"IR", "Protocol":"NEC", "Data":["0x57436699"]},
+    {"Command":"INFO",      "Mode":"IR", "Protocol":"NEC", "Data":["0x57438679"]},
+    {"Command":"MENU",      "Mode":"IR", "Protocol":"NEC", "Data":["0x5743C03F"]},
+    {"Command":"PLAY_PAUSE","Mode":"IR", "Protocol":"NEC", "Data":["0x574332CD"]},
+    {"Command":"FORWARD",   "Mode":"IR", "Protocol":"NEC", "Data":["0x5743AA55"]},
+    {"Command":"REVERSE",   "Mode":"IR", "Protocol":"NEC", "Data":["0x57432CD3"]},
+    {"Command":"STORE",     "Mode":"IR", "Protocol":"NEC", "Data":["0x5743E817"]},
+    {"Command":"NETFLIX",   "Mode":"IR", "Protocol":"NEC", "Data":["0x5743D22D"]},
+    {"Command":"PRIME",     "Mode":"IR", "Protocol":"NEC", "Data":["0x574308F7"]},
+    {"Command":"YOUTUBE",   "Mode":"IR", "Protocol":"NEC", "Data":["0x574342BD"]}
+  ]
+}

@@ -17,6 +17,8 @@ public:
 
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) override;
 
+  std::string GetTitle() override { return "IR Receiver"; };
+
 private:
   void EnableRx();
   void DisableRx();

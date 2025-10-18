@@ -1,9 +1,10 @@
 #pragma once
 
-#include "Hardware/Littlefs/File.hpp"
 #include "IDevice.hpp"
 #include "JsonDevices/KeyAction.hpp"
 #include "RapidJsonUtilty.hpp"
+
+#include <filesystem>
 
 namespace Json {
 
@@ -17,7 +18,7 @@ public:
     Invalid
   };
 
-  explicit JsonDevice(File &aDeviceJsonFile);
+  explicit JsonDevice(std::filesystem::path aDeviceJsonFilePath);
   virtual ~JsonDevice() = default;
 
   // Core device information
@@ -45,7 +46,7 @@ protected:
 
 private:
   std::string mName;
-  std::string mFilePath;
+  std::filesystem::path mFilePath;
   std::map<KeyPressAbstract::KeyId, std::unique_ptr<KeyAction>> mKeyActions;
 
   DeviceId mId;

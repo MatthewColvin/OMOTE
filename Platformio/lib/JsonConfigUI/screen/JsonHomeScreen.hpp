@@ -48,6 +48,8 @@ protected:
 
   void clearScene();
 
+  void sendExitSequence();
+
 private:
   DeviceFactory &mFactory;
 
@@ -61,6 +63,7 @@ private:
   std::vector<Command::CommandStruct> mExitCommands;
   std::string mLastScene;
   std::string mLastStartSeq;
+  std::string mSavedExitSeq;
   std::multimap<KeyIds, ScreensStruct> mSceneKeyHandlers;
   std::multimap<Command::KeyIds, Command::KeyStruct> mOverrideKeyHandlers;
   std::string mScreenToLoad;

@@ -1,30 +1,36 @@
 #pragma once
 
-#include "HardwareRevX.hpp"
+#include "BatteryRev5.hpp"
 #include "Hardware/LoggingInterface.hpp"
+#include "HardwareRevX.hpp"
 
 class HardwareRev5 : public HardwareRevX {
 public:
   HardwareRev5();
   virtual ~HardwareRev5() = default;
 
+  std::shared_ptr<BatteryInterface> battery() override { return mBattery; };
+
 protected:
   void init() override;
   void initIO() override;
 
 private:
-  void configIMUInterruptPolarity() override;
+  void lightSleepWakeReint(SleepMode mode) override;
+
   void enableWakeupByPin() override;
   void sleepDisplayPins() override;
 
   void setupKeyboard();
 
+  bool isUsbConnected() override;
+
   void setupLightSensor();
 
   bool keyboardScan() override;
-  #ifdef OMOTE_KEYBRD_3661
+#ifdef OMOTE_KEYBRD_3661
   bool lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) override;
-  #endif
+#endif
   void updateBacklightMode(uint16_t lightLevel) override;
 
   // keypad scanning
@@ -35,9 +41,11 @@ private:
   Adafruit_LTR303 ltr = Adafruit_LTR303();
 #endif
 
-  //QueueHandle_t mKeysQueueHandle;
+  // QueueHandle_t mKeysQueueHandle;
 
   bool mlightSensorInitSuccessful = false;
+
+  std::shared_ptr<BatteryRev5> mBattery;
 
   std::unique_ptr<LoggingInterface> mLogger = nullptr;
 

@@ -25,12 +25,15 @@ public:
   virtual ~Base() = default;
 
   // Override to have a title associated with your page.
-  virtual std::string GetTitle() { return ""; };
+  virtual std::string GetTitle() { return mTitle; };
+  // Set before pushing page to set the title of the page.
+  virtual void SetTitle(std::string title) { mTitle = title; };
 
 protected:
   bool OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) { return false; };
 
 private:
+  std::string mTitle;
 };
 
 } // namespace UI::Page

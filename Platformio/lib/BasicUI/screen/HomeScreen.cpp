@@ -35,7 +35,7 @@ void HomeScreen::AddPage(Page::Base::Ptr aPage) {
   mTabView->AddTab(std::move(aPage));
 }
 
-void HomeScreen::SetBgColor(lv_color_t value, lv_style_selector_t selector) {
+void HomeScreen::SetBgColor(lv_color_t value, lv_part_t selector) {
   mTabView->SetBgColor(value, selector);
   UI::UIElement::SetBgColor(value, selector);
 }

@@ -20,10 +20,10 @@ public:
   virtual ~UIElement();
 
   virtual void SetBgColor(lv_color_t value,
-                          lv_style_selector_t selector = LV_PART_MAIN);
+                          lv_part_t selector = LV_PART_MAIN);
 
   virtual void SetBgOpacity(lv_opa_t aOpacity,
-                            lv_style_selector_t aStyle = LV_PART_MAIN);
+                            lv_part_t aStyle = LV_PART_MAIN);
 
   virtual void SetDisabled(bool aDisable);
 
@@ -56,24 +56,24 @@ public:
                lv_coord_t aXoffset = 0, lv_coord_t aYOffset = 0);
 
   virtual void SetBorder(Border aNewBorder,
-                         lv_style_selector_t aStyle = LV_PART_MAIN);
-  Border GetBorder(lv_style_selector_t aStyle = LV_PART_MAIN);
+                         lv_part_t aStyle = LV_PART_MAIN);
+  Border GetBorder(lv_part_t aPart = LV_PART_MAIN);
 
   virtual void SetOutline(Outline aNewOutline,
-                          lv_style_selector_t aStyle = LV_PART_MAIN);
-  Outline GetOutline(lv_style_selector_t aStyle = LV_PART_MAIN);
+                          lv_part_t aStyle = LV_PART_MAIN);
+  Outline GetOutline(lv_part_t aStyle = LV_PART_MAIN);
 
   virtual void SetPadding(Padding aNewPadding,
-                          lv_style_selector_t aStyle = LV_PART_MAIN);
+                          lv_part_t aStyle = LV_PART_MAIN);
   virtual void SetAllPadding(lv_coord_t aNewPadding,
-                             lv_style_selector_t aStyle = LV_PART_MAIN);
-  Padding GetPadding(lv_style_selector_t aStyle = LV_PART_MAIN);
+                             lv_part_t aStyle = LV_PART_MAIN);
+  Padding GetPadding(lv_part_t aStyle = LV_PART_MAIN);
 
   virtual void SetTextStyle(TextStyle aNewStyle,
-                            lv_style_selector_t aStyle = LV_PART_MAIN);
-  TextStyle GetTextStyle(lv_style_selector_t aStyle = LV_PART_MAIN);
+                            lv_part_t aStyle = LV_PART_MAIN);
+  TextStyle GetTextStyle(lv_part_t aStyle = LV_PART_MAIN);
 
-  virtual void AddStyle(lv_style_t *aStyle, lv_style_selector_t aStyleSelector);
+  virtual void AddStyle(lv_style_t *aStyle, lv_part_t aStyleSelector);
 
   template <class UIElemTy>
   UIElemTy *AddElement(std::unique_ptr<UIElemTy> aWidget);

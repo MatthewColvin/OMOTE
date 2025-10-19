@@ -18,7 +18,7 @@ void Button::OnLvglEvent(lv_event_t *anEvent) {
   }
 };
 
-void Button::SetTextStyle(TextStyle aNewStyle, lv_style_selector_t aStyle) {
+void Button::SetTextStyle(TextStyle aNewStyle, lv_part_t aStyle) {
   if (mText) {
     mText->SetTextStyle(aNewStyle, aStyle);
   }

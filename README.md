@@ -6,27 +6,18 @@ This is an alternative branch containing code for the OMOTE. This branch
 * Using dependency injection of a HAL interface to accomplish shared UI Code between Sim and Esp32 target
 * Check the Software section for more info on the architecture
 
-
-In terms of features it is currently behind the main branch:
-* no scenes
-* simplified key handling (e.g. no long press)
-* is using different lvgl guis compared to main
-
-
 # Whats next? 
-My(Matthew Colvin) primary goal with this branch is to being support for Homeassist based UI population.
+Primary goal with this branch is to make sure the code can continue to scale. We have a pretty solid foundation to build JSON persistent UI and also the start of interactions with homeassist via websocket. This branch is very open to any contrbutions please feel free to messages in the object oriented software channel on the discord or even just thrown an idea issue in the back log for consideration.
 
-You can track the progress of what I am doing by checking out [issues](https://github.com/MatthewColvin/OMOTE/issues).
-
-I have support for websocket connection to a home assist server but the actual usage of this connection is minimal. 
+You can track the progress of whats going on by checking out [issues](https://github.com/OMOTE-Community/OMOTE-Firmware-object-oriented/issues).
 
 # OMOTE - Open Universal Remote
 
 ![](P1030424_small.jpg)
 
-[![ESP32 Build](https://github.com/CoretechR/OMOTE/actions/workflows/build-platformio.yml/badge.svg)](https://github.com/CoretechR/OMOTE/actions/workflows/build-platformio.yml)
-[![Ubuntu Simulator Build](https://github.com/CoretechR/OMOTE/actions/workflows/build-simulator.yml/badge.svg)](https://github.com/CoretechR/OMOTE/actions/workflows/build-simulator.yml)
-[![Windows Simulator Build](https://github.com/CoretechR/OMOTE/actions/workflows/build-simulator-windows.yml/badge.svg)](https://github.com/CoretechR/OMOTE/actions/workflows/build-simulator-windows.yml)
+[![ESP32 Build](https://github.com/OMOTE-Community/OMOTE-Firmware-object-oriented/actions/workflows/build-simulator.yml/badge.svg)](https://github.com/OMOTE-Community/OMOTE-Firmware-object-oriented/actions/workflows/build-simulator.yml)
+[![Ubuntu Simulator Build](https://github.com/OMOTE-Community/OMOTE-Firmware-object-oriented/actions/workflows/build-simulator.yml/badge.svg)](https://github.com/OMOTE-Community/OMOTE-Firmware-object-oriented/actions/workflows/build-simulator.yml)
+[![Windows Simulator Build](https://github.com/OMOTE-Community/OMOTE-Firmware-object-oriented/actions/workflows/build-simulator-windows.yml/badge.svg)](https://github.com/OMOTE-Community/OMOTE-Firmware-object-oriented/actions/workflows/build-simulator-windows.yml)
 
 ## Overview
 

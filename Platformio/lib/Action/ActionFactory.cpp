@@ -1,5 +1,7 @@
 #include "ActionFactory.hpp"
 #include "HardwareFactory.hpp"
+#include <filesystem>
+#include <fstream>
 
 std::unique_ptr<IAction> ActionFactory::createAction(const MemConciousValue &value) {
   if (!value.HasMember("type") || !value.HasMember("name") || !value.HasMember("data"))
@@ -29,31 +31,48 @@ std::unique_ptr<IRAction> ActionFactory::createIRAction(const std::string &aName
 }
 
 std::unique_ptr<IAction> ActionFactory::createAction(const std::string &aActionName) {
-  auto fs = HardwareFactory::getAbstract().littleFs();
-
-  for (auto &file : fs->FilesIn(ActionsDirectory)) {
-    MemConsciousDocument actionDoc;
-    auto actionJsonStr = file.read(MaxActionFileLength);
-    actionDoc.Parse(actionJsonStr.c_str());
-    if (actionDoc.HasMember("name") && actionDoc.IsString()) {
-      return createAction(actionDoc);
+  for (auto const &dir_entry : std::filesystem::directory_iterator{ActionsDirectory}) {
+    if (dir_entry.is_regular_file()) {
+      std::string fullPath(FS_PATH);
+      fullPath += dir_entry.path().string();
+      std::ifstream file(fullPath, std::ios::in);
+      if (file) {
+        MemConsciousDocument actionDoc;
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        file.close();
+        std::string actionJsonStr(buffer.str());
+        actionDoc.Parse(actionJsonStr.c_str());
+        if (actionDoc.HasMember("name") && actionDoc.IsString()) {
+          return createAction(actionDoc);
+        }
+      }
     }
   }
   return nullptr;
 }
 
 std::vector<std::unique_ptr<IAction>> ActionFactory::getAllActions() {
-  auto fs = HardwareFactory::getAbstract().littleFs();
-
   std::vector<std::unique_ptr<IAction>> actions;
-  for (auto &file : fs->FilesIn(ActionsDirectory)) {
-    MemConsciousDocument actionDoc;
-    auto actionJsonStr = file.read(MaxActionFileLength);
-    actionDoc.Parse(actionJsonStr.c_str());
-    if (actionDoc.HasMember("name") && actionDoc["name"].IsString()) {
-      auto action = createAction(actionDoc);
-      if (action) {
-        actions.push_back(std::move(action));
+
+  for (auto const &dir_entry : std::filesystem::directory_iterator{ActionsDirectory}) {
+    if (dir_entry.is_regular_file()) {
+      std::string fullPath(FS_PATH);
+      fullPath += dir_entry.path().string();
+      std::ifstream file(fullPath, std::ios::in);
+      if (file) {
+        MemConsciousDocument actionDoc;
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        file.close();
+        std::string actionJsonStr(buffer.str());
+        actionDoc.Parse(actionJsonStr.c_str());
+        if (actionDoc.HasMember("name") && actionDoc["name"].IsString()) {
+          auto action = createAction(actionDoc);
+          if (action) {
+            actions.push_back(std::move(action));
+          }
+        }
       }
     }
   }

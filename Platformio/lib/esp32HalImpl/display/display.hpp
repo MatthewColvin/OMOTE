@@ -1,6 +1,7 @@
 #pragma once
 
 #include <LovyanGFX.hpp>
+#include <atomic>
 #include <memory>
 
 #include "Hardware/DisplayAbstract.h"
@@ -51,6 +52,13 @@ private:
 
 class Display : public DisplayAbstract {
 public:
+  typedef struct {
+    float delta;
+    float startBrightness;
+    uint8_t targetBrightness;
+    uint16_t delay;
+  } thread_args;
+
 #if defined(OMOTE_HARDWARE_REV5)
   // have PSRAM so use full screen buffers
   static constexpr auto DRAW_BUF_SIZE =
@@ -67,14 +75,17 @@ public:
   /// @brief Set brightness setting and fade to it
   /// @param brightness
 
-  virtual void setLcdDayBrightness(uint8_t brightness) override;
-  virtual void setLcdNightBrightness(uint8_t brightness) override;
-  virtual void setKbdDayBrightness(uint8_t brightness) override;
-  virtual void setKbdNightBrightness(uint8_t brightness) override;
+  virtual void setLcdDayBrightness(uint8_t brightness, bool instant = false) override;
+  virtual void setLcdNightBrightness(uint8_t brightness, bool instant = false) override;
+  virtual void setKbdDayBrightness(uint8_t brightness, bool instant = false) override;
+  virtual void setKbdNightBrightness(uint8_t brightness, bool instant = false) override;
   virtual uint8_t getLcdDayBrightness() override;
   virtual uint8_t getLcdNightBrightness() override;
   virtual uint8_t getKbdDayBrightness() override;
   virtual uint8_t getKbdNightBrightness() override;
+  virtual void initBrightnessLevels(uint8_t lcdDay, uint8_t lcdNight, uint8_t kbdDay, uint8_t kbdNight) override;
+
+  virtual void startFade(uint16_t delay) override;
 
   virtual void turnOff() override;
   virtual void setDayMode(bool isDay) override;
@@ -87,19 +98,19 @@ public:
   void wake();
   void sleep();
 
+  void reInit();
+
 protected:
   void flushDisplay(lv_disp_t *disp, const lv_area_t *area, uint8_t *pixelMap);
 
   void screenInput(lv_indev_t *indev, lv_indev_data_t *data);
 
   /// @brief Fade toward brightness based on isAwake
-  /// @return True - Fade complete
-  ///         False - Fade set point not reached
-  bool fadeLcd();
-  bool fadeKbd();
+  /// @param instant - instant transition if true, gradual transition id false
+  /// @param delay - delay till start of transition
   /// @brief Start the Fade task
-  void startLcdFade();
-  void startKbdFade();
+  void startLcdFade(bool instant = false, uint16_t delay = 0);
+  void startKbdFade(bool instant = false, uint16_t delay = 0);
 
   /// @brief Set the actual display brightness right now
   /// @param brightness
@@ -133,17 +144,21 @@ private:
   static void fadeKbdImpl(void *aBrightness);
 
   // not all used for all hardware but simplest to have them all here than #defs
-  uint8_t mLcdBrightness = 0;      // Current display brightness
-  uint8_t mKbdBrightness = 0;      // Current keyboard brightness
-  uint8_t mLcdDayBrightness = 0;   // Current setting for brightness when day mode
-  uint8_t mKbdDayBrightness = 0;   // Current keyboard for brightness when day mode
-  uint8_t mLcdNightBrightness = 0; // Current display for brightness when night mode
-  uint8_t mKbdNightBrightness = 0; // Current keyboard for brightness when night mode
+  // atomic not needed as 8-bit types but included for clarity
+  std::atomic<uint8_t> mLcdBrightness = 0; // Current display brightness
+  std::atomic<uint8_t> mKbdBrightness = 0; // Current keyboard brightness
+  uint8_t mLcdDayBrightness = 0;           // Current setting for brightness when day mode
+  uint8_t mKbdDayBrightness = 0;           // Current keyboard for brightness when day mode
+  uint8_t mLcdNightBrightness = 0;         // Current display for brightness when night mode
+  uint8_t mKbdNightBrightness = 0;         // Current keyboard for brightness when night mode
 
-  bool mIsAsleep = false;
-  bool mIsDay = true;
+  uint8_t mIsAsleep = false;
+  uint8_t mIsDay = true;
 
   bool mHaveTouch = false;
   uint16_t mTouchX = 0;
   uint16_t mTouchY = 0;
+
+  thread_args mLcdArgs = {0, 0, 0, 0};
+  thread_args mKbdArgs = {0, 0, 0, 0};
 };

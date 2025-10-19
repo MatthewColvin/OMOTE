@@ -1,0 +1,47 @@
+{
+  "Type":"Scene",
+  // Name to display at top of screen
+  "ScreenName":"Roku on Projector",
+  // List of pages to populate tabview
+  "Pages": [
+    {
+      "PageName":"Roku Player",
+      "ShortName":"Roku",
+      "FileName":"Pages/Page_Roku.json",
+      // keys defined here from this page will overide all other pages within this scene
+      "OverrideKeys":["Stop", "Rewind", "Play","FastForward", "Pause"]
+    },
+    {
+      "PageName":"AV Receiver",
+      "ShortName":"Amp",
+      "FileName":"Pages/Page_AVReceiver.json",
+      "OverrideKeys":["VolUp", "VolDown", "Mute"]
+    },
+    { 
+      "PageName":"Projector",
+      "ShortName":"Proj",
+      "FileName":"Pages/Page_Projector.json"
+    },
+    {
+      "PageName":"Heating (Lounge)",
+      "ShortName":"Heat",
+      "FileName":"Pages/Page_Heating.json",
+      // Include a command prefix to allow generic page
+      // to control specific room
+      "CommandPrefix":"LOUNGE_"
+    }
+  ],
+  "StartCommandSequence":[
+    {"CommandFile":"Commands/Commands_SonyProjector.json",   "Command":"PWR_ON"},
+    {"CommandFile":"Commands/Commands_SonyProjector.json",   "Command":"PWR_ON"},
+    {"CommandFile":"Commands/Commands_SonyProjector.json",   "Command":"PWR_ON"},
+    {"CommandFile":"Commands/Commands_YamahaAmpMain.json",   "Command":"TV"}
+  ],
+  // Sequence of actions that will be executed on leaving this scene
+  // Note: leaving means pressing Power button or switching to another scene that
+  // has a StartActionsSequence defined
+  "ExitCommandSequence":[
+    {"CommandFile":"Commands/Commands_YamahaAmpMain.json",   "Command":"PWR_OFF"},
+    {"CommandFile":"Commands/Commands_SonyProjector.json",   "Command":"PWR_OFF"}
+  ]
+}

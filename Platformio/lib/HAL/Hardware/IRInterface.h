@@ -132,8 +132,9 @@ public:
     GORENJE,
     WOWWEE,
     CARRIER_AC84, // 125
-    YORK //magic_enum only goes up to 127 by default so care needed if list increases
-  };    //also use int8_t to hold protocol field in freeRTOS massage
+    YORK,
+    SONY15 // magic_enum only goes up to 127 by default so care needed if list increases
+  }; // also use int8_t to hold protocol field in freeRTOS massage
 
   // uint64_t data, uint16_t nbits = <defaulted>, uint16_t repeat = <defaulted>
   enum class int64SendTypes {
@@ -167,6 +168,7 @@ public:
   // <defaulted>
   enum class constInt64SendTypes {
     Sony = static_cast<int>(protocol::SONY),
+    Sony15 = static_cast<int>(protocol::SONY15),
     Sony38 = static_cast<int>(protocol::SONY_38K),
     SAMSUNG = static_cast<int>(protocol::SAMSUNG),
     Samsung36 = static_cast<int>(protocol::SAMSUNG36),

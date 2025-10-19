@@ -1,3 +1,4 @@
+#include <fstream>
 #include <string>
 #include <unistd.h>
 
@@ -210,14 +211,14 @@ void wifiHandlerSim::mqttSaveCredentials() {
     d.AddMember("password", mMqttPassword, d.GetAllocator());
     d.AddMember("client", mMqttClientName, d.GetAllocator());
 
-    File file = HardwareFactory::getAbstract().littleFs()->open("/mqtt.json", LFS_O_WRONLY | LFS_O_CREAT);
-
-    if (!file)
+    std::ofstream file(FS_PATH "mqtt.json", std::ios::out | std::ios::trunc);
+    if (!file) {
       return;
+    }
 
     std::string jsonStr = ToString(d);
-    file.write(jsonStr);
-    file ? file.truncate(jsonStr.length()) : []() { return -1; }();
+    file << jsonStr;
+    file.close();
 
     mMqttSaveOnConnect = false;
   }
@@ -225,12 +226,15 @@ void wifiHandlerSim::mqttSaveCredentials() {
 
 void wifiHandlerSim::restoreCredentials() {
   // restore from disk
-  File fp = HardwareFactory::getAbstract().littleFs()->open("/mqtt.json", LFS_O_RDONLY);
-
-  if (!fp)
+  std::ifstream file(FS_PATH "mqtt.json", std::ios::in);
+  if (!file) {
     return;
+  }
 
-  std::string content = fp.read(1000);
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  file.close();
+  std::string content(buffer.str());
 
   MemConsciousDocument d;
   d.Parse(content.c_str());

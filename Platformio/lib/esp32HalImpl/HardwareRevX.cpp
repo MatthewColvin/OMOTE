@@ -1,12 +1,13 @@
 #include "HardwareRevX.hpp"
-
 #include "Esp32Logger.hpp"
 #include "Hardware/KeyPressAbstract.hpp"
 #include "IRTransceiver.hpp"
 #include "display.hpp"
+#include "driver/rtc_io.h"
 #include "esp32WebSocket.hpp"
 #include "observerHandles.hpp"
 #include "wifihandler.hpp"
+#include <Wire.h>
 
 void HardwareRevX::initIO() {
   // Button Pin Definition
@@ -23,7 +24,6 @@ void HardwareRevX::initIO() {
 #else
   digitalWrite(IR_LED, HIGH); // HIGH off - LOW on
 #endif
-  IR_VCC_OFF;
 
   // LCD Pin Definition
   pinMode(LCD_EN, OUTPUT);
@@ -38,16 +38,34 @@ void HardwareRevX::initIO() {
 
   // Release GPIO hold in case we are coming out of standby
   gpio_hold_dis((gpio_num_t)LCD_EN);
+  gpio_hold_dis((gpio_num_t)ACC_INT);
+#if defined OMOTE_HARDWARE_REV5
+  gpio_hold_dis((gpio_num_t)TCA_INT);
+  gpio_hold_dis((gpio_num_t)SD_EN);
+#endif
+#if defined(OMOTE_KEYBRD_3661)
+  gpio_hold_dis((gpio_num_t)3);
+#else
   gpio_hold_dis((gpio_num_t)LCD_BL);
+#endif
   gpio_deep_sleep_hold_dis();
 }
 
 HardwareRevX::HardwareRevX() : HardwareAbstract(), mLogger(std::make_unique<LoggingInterface>()) {
   mLogger->setLogModule(LogModule::General);
+  mIMU_new = std::make_shared<LIS3DH_IMU>(mIMU);
 }
 
 HardwareRevX::WakeReason getWakeReason() {
   // Find out wakeup cause
+  // Serial.printf("reset reason: %i, wake reason: %i\r\n", esp_reset_reason(), esp_sleep_get_wakeup_cause());
+
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER)
+    return HardwareRevX::WakeReason::TIMER;
+
+  if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0)
+    return HardwareRevX::WakeReason::CHARGER;
+
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT1) {
     if (esp_sleep_get_ext1_wakeup_status() == (1ULL << ACC_INT))
       return HardwareRevX::WakeReason::IMU;
@@ -64,7 +82,19 @@ void HardwareRevX::init() {
   mWakeupReason = getWakeReason();
   initIO();
 
-  Serial.begin(115200);
+  // Make sure time is zeroed if booting from deep sleep due to poor accuracy
+  // of internal oscillator.
+  {
+    timeval tv(0, 0);
+    timezone tz(0, 0);
+    settimeofday(&tv, &tz);
+  }
+
+  mLogger->setLogModule(LogModule::General);
+  if (mLogger->isPrintWanted(LogLevel::Info)) {
+    mLogStream << "Wake up due to " << magic_enum::enum_name(mWakeupReason);
+    mLogger->log(LogLevel::Info, mLogStream);
+  }
 
   mDisplay = Display::getInstance();
 
@@ -73,10 +103,16 @@ void HardwareRevX::init() {
   mWifiHandler->mqttRestoreCredentials();
   mWifiHandler->setupMqttBroker();
 
+  mWifiHandler->ntpRestoreCredentials();
+  mWifiHandler->setupNtp();
+
+  mWifiHandler->ftpRestoreCredentials();
+
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>(logger());
 
-  mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
+  // mBattery = std::make_shared<Battery>(ADC_BAT, CRG_STAT);
+  //  mBattery->writeCustomModel();
 
   restorePreferences();
   mStandbyTimer = getSleepTimeout();
@@ -87,15 +123,18 @@ void HardwareRevX::init() {
     mStandbyTimer = this->getSleepTimeout();
   };
 
-  setupIMU();
+  mIMU_new->setup();
 
-  UI::observerHandles::registerTextHandle(BATT_STATUS, OBSERVER_BUF_SIZE, "");
-  UI::observerHandles::registerTextHandle(WIFI_STATUS, OBSERVER_BUF_SIZE, "");
-  UI::observerHandles::registerIntHandle(SOC_STATUS, 0);
+  UI::observerHandles::registerTextHandle(GENERAL_STATUS, OBSERVER_BUF_SIZE, "");
 
   mLogger->setLogModule(LogModule::General);
   if (mLogger->isPrintWanted(LogLevel::Info)) {
-        mLogStream << "Finished RevX Hardware Setup in " << millis() << "ms"; mLogger->log(LogLevel::Info, mLogStream);}
+    mLogStream << "Finished RevX Hardware Setup in " << millis() << "ms";
+    mLogger->log(LogLevel::Info, mLogStream);
+  }
+
+  // mDisplay->startFade(50); // allow time for LCD init to complete before bringing up backlight
+  // fade triggered on first light sensor data
 }
 
 void HardwareRevX::debugPrint(const char *fmt, ...) {
@@ -117,8 +156,6 @@ std::shared_ptr<wifiHandlerInterface> HardwareRevX::wifi() {
   return mWifiHandler;
 }
 
-std::shared_ptr<BatteryInterface> HardwareRevX::battery() { return mBattery; }
-
 std::shared_ptr<DisplayAbstract> HardwareRevX::display() { return mDisplay; }
 
 std::shared_ptr<KeyPressAbstract> HardwareRevX::keys() { return mKeys; }
@@ -134,51 +171,14 @@ std::shared_ptr<SystemStatsInterface> HardwareRevX::stats() {
 
 std::shared_ptr<webSocketInterface> HardwareRevX::webSocket() {
   return std::make_shared<esp32WebSocket>(mWifiHandler, std::make_unique<ESP32Logger>());
-  return nullptr;
 }
 
-std::shared_ptr<LittleFsInterface> HardwareRevX::littleFs() {
-  return mLittleFs;
-};
+std::shared_ptr<LIS3DH_IMU> HardwareRevX::imu() {
+  return mIMU_new;
+}
 
 std::chrono::milliseconds HardwareRevX::execTime() {
   return std::chrono::milliseconds(millis());
-}
-
-bool HardwareRevX::activityDetection() {
-  bool activityDetected = false;
-  static int accXold = mIMU.readFloatAccelX() * 1000;
-  static int accYold = mIMU.readFloatAccelY() * 1000;
-  static int accZold = mIMU.readFloatAccelZ() * 1000;
-  static int accXbuf[4], accYbuf[4], accZbuf[4];
-  static int motion = 0;
-  static uint8_t bufferIndex = 0;
-
-  accXbuf[bufferIndex] = mIMU.readFloatAccelX() * 1000;
-  accYbuf[bufferIndex] = mIMU.readFloatAccelY() * 1000;
-  accZbuf[bufferIndex] = mIMU.readFloatAccelZ() * 1000;
-
-  bufferIndex++;
-  if (bufferIndex >= 4) {
-    bufferIndex = 0;
-    int accX = (accXbuf[0] + accXbuf[1] + accXbuf[2] + accXbuf[3]) / 4;
-    int accY = (accYbuf[0] + accYbuf[1] + accYbuf[2] + accYbuf[3]) / 4;
-    int accZ = (accZbuf[0] + accZbuf[1] + accZbuf[2] + accZbuf[3]) / 4;
-    // determine motion value as da/dt
-    motion = (abs(accXold - accX) + abs(accYold - accY) + abs(accZold - accZ));
-    // Store the current acceleration and time
-    accXold = accX;
-    accYold = accY;
-    accZold = accZ;
-    if (motion > MOTION_THRESHOLD)
-      activityDetected = true;
-
-    mLogger->setLogModule(LogModule::IMU);
-    if (mLogger->isPrintWanted(LogLevel::Debug)) {
-      std::stringstream ss;
-      ss << "Motion Level :" <<  motion << ", Detected: " << activityDetected; mLogger->log(LogLevel::Debug, ss);}
-  }
-  return activityDetected;
 }
 
 char HardwareRevX::getCurrentDevice() { return mCurrentDevice; }
@@ -197,128 +197,218 @@ uint32_t HardwareRevX::getSleepTimeout() { return mSleepTimeout; }
 
 void HardwareRevX::setSleepTimeout(uint32_t sleepTimeout) {
   this->mSleepTimeout = sleepTimeout;
-  mStandbyTimer = sleepTimeout;
+}
+
+bool HardwareRevX::getLightSleepEnabled() { return mLightSleepEnabled; }
+
+void HardwareRevX::setLightSleepEnabled(bool lightSleepEnabled) {
+  this->mLightSleepEnabled = lightSleepEnabled;
+}
+
+uint32_t HardwareRevX::getLightSleepTimeout() { return mLightSleepTimeout; }
+
+void HardwareRevX::setLightSleepTimeout(uint32_t lightSleepTimeout) {
+  this->mLightSleepTimeout = lightSleepTimeout;
+}
+
+void HardwareRevX::setInScene(bool inScene) {
+  this->mInScene = inScene;
 }
 
 void HardwareRevX::saveSettings() {
   // Save settings to internal flash memory
   mPreferences.begin("settings", false);
   mPreferences.putBool("wkpByIMU", mWakeupByIMUEnabled);
+  mPreferences.putBool("lightSlpEn", mLightSleepEnabled);
   mPreferences.putUChar("lcdDayBright", mDisplay->getLcdDayBrightness());
   mPreferences.putUChar("lcdNightBright", mDisplay->getLcdNightBrightness());
   mPreferences.putUChar("kbdDayBright", mDisplay->getKbdDayBrightness());
   mPreferences.putUChar("kbdNightBright", mDisplay->getKbdNightBrightness());
   mPreferences.putUChar("currentDevice", mCurrentDevice);
   mPreferences.putUInt("sleepTimeout", mSleepTimeout);
+  mPreferences.putUInt("LgtSlpTimeout", mLightSleepTimeout);
   if (!mPreferences.getBool("alreadySetUp"))
     mPreferences.putBool("alreadySetUp", true);
   mPreferences.end();
- 
+
   mLogger->setLogModule(LogModule::Display);
   if (mLogger->isPrintWanted(LogLevel::Info))
     mLogger->log(LogLevel::Info, "Settings Saved");
 }
 
-void HardwareRevX::enterSleep() {
+void HardwareRevX::enterSleep(SleepMode mode, uint32_t duration) {
+  /*
+  Light sleep implementation is a bit crude, rather than making use of all the features
+  of light sleep to allow automatic pin changes, allow minimal disruption to initialised
+  peripherals and things like WiFi/auto sleep it instead goes for maximum simularity to
+  the deep sleep code.
+
+  Did try using the full light sleep functions but supply currents were worse due to pin
+  config errors.  It's going to take more work to sort than I currently have time for.
+
+  Light sleep current on the S3 still seems higher than it should be (1mA rather than 350uA),
+  not sure why but suspicious that the CPU isn't powering down correctly (disabling CPU power
+  down makes no difference!)  This would give 650uA increase on S3 and would explain the high current.
+  It's also possible that it's due to a pin config error but if so can't find it.
+  Testing with a bare STM32-S3FH4R2 with the ESP demo code gave around 700uA with the same config -
+  a bit better but still not as low as it should be.
+  Also worth noting that disabling USB for debug and terminal output in menuconfig actually makes
+  things worse (even though it isn't being used)!  Seems to mess up the state of the USB lines
+  during lightsleep causing backpowering the LCD and increasing current to 2.25mA.
+
+  Current implementation gives:
+    Deep sleep boot to slect scene menu: ~500ms
+    Deep sleep boot to 1page scene:      ~700ms
+    Deep sleep boot to 4page scene:      ~1250ms
+    Light sleep boot to any scene:       ~250ms
+
+    Active current (3661):      ~140mA
+    light sleep current (3661): ~1mA
+    Deep sleep current (3661):  ~50uA
+  */
+
   // Configure IMU
+  mIMU.settings.accelSampleRate = 50; // 100Hz seems to give 300uA current spikes every 4th conversion??
+  mIMU.applySettings();
   uint8_t intDataRead;
   mIMU.readRegister(&intDataRead, LIS3DH_INT1_SRC); // clear interrupt
-  configIMUInterrupts();
+  mIMU_new->configIMUInterrupts(mWakeupByIMUEnabled);
   mIMU.readRegister(&intDataRead,
                     LIS3DH_INT1_SRC); // really clear interrupt
+  // Power down modem
+  WiFi.disconnect();
+  WiFi.mode(WIFI_OFF);
 
   // Prepare IO states
-  pinMode(LCD_DC, OUTPUT); // LCD control signals off
-  digitalWrite(LCD_DC, LOW);
-  pinMode(LCD_CS, OUTPUT);
-  digitalWrite(LCD_CS, LOW);
+  pinMode(LCD_DC, INPUT_PULLDOWN); // LCD control signals off
+  pinMode(LCD_CS, INPUT_PULLDOWN);
 
   sleepDisplayPins();
 
-  digitalWrite(LCD_EN, HIGH); // LCD logic off
-  pinMode(LCD_BL, OUTPUT);
-  LCD_BL_OFF;
-  pinMode(CRG_STAT, INPUT);   // Disable Pull-Up
-  digitalWrite(IR_VCC, LOW);  // IR Receiver off
+  pinMode(LCD_EN, INPUT_PULLUP);
+#if defined(OMOTE_KEYBRD_3661)
+  pinMode(LCD_BL, INPUT_PULLDOWN);
+  pinMode(3, INPUT_PULLUP);
+  gpio_hold_en((gpio_num_t)3);
+#else
+  pinMode(LCD_BL, INPUT_PULLUP);
+  gpio_hold_en((gpio_num_t)LCD_BL);
+#endif
+#if defined OMOTE_HARDWARE_REV5
+  pinMode(KBD_BL, INPUT_PULLDOWN);
+#endif
+  pinMode(CRG_STAT, INPUT_PULLDOWN); // Disable Pull-Up
+
+  // Following pins don't get reconfigured by default on light sleep wake so use light sleep redef.
+  // Possibly should use this for all pins to simplify re-init but couldn't get to work right
+  // pinMode(IR_VCC, INPUT_PULLDOWN);
+  gpio_sleep_set_direction((gpio_num_t)IR_VCC, GPIO_MODE_INPUT);
+  gpio_sleep_set_pull_mode((gpio_num_t)IR_VCC, GPIO_PULLDOWN_ONLY);
+  gpio_sleep_sel_en((gpio_num_t)IR_VCC);
+  // pinMode(USER_LED, INPUT_PULLDOWN);
+  gpio_sleep_set_direction((gpio_num_t)USER_LED, GPIO_MODE_INPUT);
+  gpio_sleep_set_pull_mode((gpio_num_t)USER_LED, GPIO_PULLDOWN_ONLY);
+  gpio_sleep_sel_en((gpio_num_t)USER_LED);
 
   configPinsForSleepInterrupts();
 
-  // Force display pins to high impedance
-  // Without this the display might not wake up from sleep
-  pinMode(LCD_BL, INPUT);
-  pinMode(LCD_EN, INPUT);
-  gpio_hold_en((gpio_num_t)LCD_BL);
+  // Isolate any pins that need to remain high in deep sleep from the GPIO power domain
+  // Without this they will backfeed and each will add 100uA to the deep sleep current
   gpio_hold_en((gpio_num_t)LCD_EN);
+  gpio_hold_en((gpio_num_t)ACC_INT);
+#if defined OMOTE_HARDWARE_REV5
+  gpio_hold_en((gpio_num_t)TCA_INT);
+  gpio_hold_en((gpio_num_t)SD_EN);
+#endif
   gpio_deep_sleep_hold_en();
 
+  Wire.end();
+  pinMode(SCL, OUTPUT);
+  digitalWrite(SCL, LOW);
+  delay(2);
+  pinMode(SDA, OUTPUT);
+  digitalWrite(SDA, LOW);
+  pinMode(SCL, INPUT_PULLDOWN);
+  pinMode(SDA, INPUT_PULLDOWN);
+
+  // Serial.end();
+  gpio_sleep_set_direction((gpio_num_t)TX, GPIO_MODE_INPUT);
+  gpio_sleep_set_pull_mode((gpio_num_t)TX, GPIO_PULLDOWN_ONLY);
+  gpio_sleep_sel_en((gpio_num_t)TX);
+  gpio_sleep_set_direction((gpio_num_t)RX, GPIO_MODE_INPUT);
+  gpio_sleep_set_pull_mode((gpio_num_t)RX, GPIO_PULLDOWN_ONLY);
+  gpio_sleep_sel_en((gpio_num_t)RX);
+
+  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
   enableWakeupByPin();
 
-  delay(100);
-  // Sleep
-  esp_deep_sleep_start();
+  if ((mode == SleepMode::LIGHT_SLEEP_WAKE_ON_CHG) || (mode == SleepMode::LIGHT_SLEEP_WAKE_ON_NOCHG) || (mode == SleepMode::LIGHT_DEEP_SLEEP)) {
+    if ((mode == SleepMode::LIGHT_SLEEP_WAKE_ON_NOCHG) || (mode == SleepMode::LIGHT_SLEEP_WAKE_ON_CHG)) { // battery calibration
+      rtc_gpio_pullup_en((gpio_num_t)CRG_STAT);
+      esp_sleep_enable_ext0_wakeup((gpio_num_t)CRG_STAT, mode == SleepMode::LIGHT_SLEEP_WAKE_ON_NOCHG ? HIGH : LOW);
+    }
+    if (duration == 0)
+      esp_sleep_enable_timer_wakeup(((uint64_t)mLightSleepTimeout) * 1000); // light sleep duration
+    else
+      esp_sleep_enable_timer_wakeup(((uint64_t)duration) * 1000); // light sleep duration
+    delay(10);
+    esp_light_sleep_start();
+  } else {
+    delay(10);
+    esp_deep_sleep_start();
+  }
+
+  // if deep sleep will restart at main, will only continue here if light sleep
+  rtc_gpio_deinit((gpio_num_t)CRG_STAT);
+  lightSleepWakeReint(mode);
+}
+
+void HardwareRevX::lightSleepWakeReint(SleepMode mode) {
+  mWakeTime = millis();
+  mWakeupReason = getWakeReason();
+
+  mLogger->setLogModule(LogModule::General);
+
+  if ((mWakeupReason == HardwareRevX::WakeReason::TIMER) && (mode == SleepMode::LIGHT_DEEP_SLEEP)) {
+    mLogger->info("Timer wakeup, entering deep sleep");
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+    enableWakeupByPin();
+    delay(10);
+    esp_deep_sleep_start();
+  }
+
+  gpio_deep_sleep_hold_dis();
+
+  if (mLogger->isPrintWanted(LogLevel::Info)) {
+    mLogStream << "Wake from light sleep at " << millis() << " due to " << magic_enum::enum_name(mWakeupReason);
+    mLogger->log(LogLevel::Info, mLogStream);
+  }
+
+  mWifiHandler->begin();
+  mWifiHandler->mqttForceReconnect();
+
+  initIO();
+
+  Wire.begin();
+
+  mIMU.settings.accelSampleRate = 100;
+  mIMU.applySettings();
+
+  mDisplay->reInit();
+
+  mIMUTaskTimer = millis();
+  mStandbyTimer = getSleepTimeout();
+  mIMU_new->setup();
+
+  mLogger->setLogModule(LogModule::General);
+  if (mLogger->isPrintWanted(LogLevel::Info)) {
+    mLogStream << "Finished RevX Reinit in " << millis() << "ms";
+    mLogger->log(LogLevel::Info, mLogStream);
+  }
 }
 
 void HardwareRevX::enableWakeupByPin() {
   esp_sleep_enable_ext1_wakeup(BUTTON_PIN_BITMASK, ESP_EXT1_WAKEUP_ANY_HIGH);
-}
-
-void HardwareRevX::configIMUInterrupts() {
-  uint8_t dataToWrite = 0;
-
-  // LIS3DH_INT1_CFG
-  // dataToWrite |= 0x80;//AOI, 0 = OR 1 = AND
-  // dataToWrite |= 0x40;//6D, 0 = interrupt source, 1 = 6 direction source
-  // Set these to enable individual axes of generation source (or direction)
-  //  -- high and low are used generically
-  dataToWrite |= 0x20; // Z high
-  // dataToWrite |= 0x10;//Z low
-  dataToWrite |= 0x08; // Y high
-  // dataToWrite |= 0x04;//Y low
-  dataToWrite |= 0x02; // X high
-  // dataToWrite |= 0x01;//X low
-  if (mWakeupByIMUEnabled)
-    mIMU.writeRegister(LIS3DH_INT1_CFG, 0b00101010);
-  else
-    mIMU.writeRegister(LIS3DH_INT1_CFG, 0b00000000);
-
-  // LIS3DH_INT1_THS
-  dataToWrite = 0;
-  // Provide 7 bit value, 0x7F always equals max range by accelRange setting
-  dataToWrite |= 0x45;
-  mIMU.writeRegister(LIS3DH_INT1_THS, dataToWrite);
-
-  // LIS3DH_INT1_DURATION
-  dataToWrite = 0;
-  // minimum duration of the interrupt
-  // LSB equals 1/(sample rate)
-  dataToWrite |= 0x00; // 1 * 1/50 s = 20ms
-  mIMU.writeRegister(LIS3DH_INT1_DURATION, dataToWrite);
-
-  // LIS3DH_CTRL_REG5
-  // Int1 latch interrupt and 4D on  int1 (preserve fifo en)
-  mIMU.readRegister(&dataToWrite, LIS3DH_CTRL_REG5);
-  dataToWrite &= 0xF3; // Clear bits of interest
-  dataToWrite |= 0x08; // Latch interrupt (Cleared by reading int1_src)
-  // dataToWrite |= 0x04; //Pipe 4D detection from 6D recognition to int1?
-  mIMU.writeRegister(LIS3DH_CTRL_REG5, dataToWrite);
-
-  // LIS3DH_CTRL_REG6
-  configIMUInterruptPolarity();
-
-  // LIS3DH_CTRL_REG3
-  // Choose source for pin 1
-  dataToWrite = 0;
-  // dataToWrite |= 0x80; //Click detect on pin 1
-  dataToWrite |= 0x40; // AOI1 event (Generator 1 interrupt on pin 1)
-  dataToWrite |= 0x20; // AOI2 event ()
-  // dataToWrite |= 0x10; //Data ready
-  // dataToWrite |= 0x04; //FIFO watermark
-  // dataToWrite |= 0x02; //FIFO overrun
-  mIMU.writeRegister(LIS3DH_CTRL_REG3, dataToWrite);
-}
-
-void HardwareRevX::configIMUInterruptPolarity() {
-  mIMU.writeRegister(LIS3DH_CTRL_REG6, 0x00); // For active-high interrupt
 }
 
 void HardwareRevX::restorePreferences() {
@@ -330,15 +420,20 @@ void HardwareRevX::restorePreferences() {
   mPreferences.begin("settings", false);
   if (mPreferences.getBool("alreadySetUp")) {
     mWakeupByIMUEnabled = mPreferences.getBool("wkpByIMU");
+    mLightSleepEnabled = mPreferences.getBool("lightSlpEn");
     lcd_day_backlight_brightness = mPreferences.getUChar("lcdDayBright");
     lcd_night_backlight_brightness = mPreferences.getUChar("lcdNightBright");
     kbd_day_backlight_brightness = mPreferences.getUChar("kbdDayBright");
     kbd_night_backlight_brightness = mPreferences.getUChar("kbdNightBright");
     mCurrentDevice = mPreferences.getUChar("currentDevice");
     mSleepTimeout = mPreferences.getUInt("sleepTimeout");
+    mLightSleepTimeout = mPreferences.getUInt("LgtSlpTimeout");
     // setting the default to prevent a 0ms sleep timeout
     if (mSleepTimeout == 0) {
       mSleepTimeout = SLEEP_TIMEOUT;
+    }
+    if (mLightSleepTimeout == 0) {
+      mLightSleepTimeout = LIGHT_SLEEP_TIMEOUT;
     }
   }
   mPreferences.end();
@@ -347,50 +442,38 @@ void HardwareRevX::restorePreferences() {
     lcd_day_backlight_brightness = 10;
   if (lcd_night_backlight_brightness < 10)
     lcd_night_backlight_brightness = 10;
-  mDisplay->setLcdDayBrightness(lcd_day_backlight_brightness);
-  mDisplay->setLcdNightBrightness(lcd_night_backlight_brightness);
-  mDisplay->setKbdDayBrightness(kbd_day_backlight_brightness);
-  mDisplay->setKbdNightBrightness(kbd_night_backlight_brightness);
-}
 
-void HardwareRevX::setupIMU() {
-  // Setup hal
-  // Hz.  Can be: 0,1,10,25,50,100,200,400,1600,5000 Hz
-  // Note: 10ms per sample allows guaranteed clean sample between I2C reads
-  mIMU.settings.accelSampleRate = 100;
-  // Max G force readable.  Can be: 2, 4, 8, 16
-  mIMU.settings.accelRange = 2;
-  mIMU.settings.adcEnabled = 0;
-  mIMU.settings.tempEnabled = 0;
-  mIMU.settings.xAccelEnabled = 1;
-  mIMU.settings.yAccelEnabled = 1;
-  mIMU.settings.zAccelEnabled = 1;
-  mIMU.begin();
-  uint8_t intDataRead;
-  mIMU.readRegister(&intDataRead, LIS3DH_INT1_SRC); // clear interrupt
+  // initialise levels but do not start fade yet
+  mDisplay->initBrightnessLevels(lcd_day_backlight_brightness, lcd_night_backlight_brightness,
+                                 kbd_day_backlight_brightness, kbd_night_backlight_brightness);
 }
 
 void HardwareRevX::startTasks() {}
 
 void HardwareRevX::loopHandler() {
+  static int32_t battVoltage = 0;
+
   mWifiHandler->mqttSync();
+  mWifiHandler->ftpSync();
+
+  mWifiHandler->nptSync();
 
   mIr->loopHandleRx();
 
-  mStandbyTimer < 2000 ? mDisplay->sleep() : mDisplay->wake();
+  mStandbyTimer < 750 ? mDisplay->sleep() : mDisplay->wake();
 
   // Blink debug LED at 1 Hz
   digitalWrite(USER_LED, millis() % 1000 > 500);
 
-  // Refresh IMU data at 10Hz
-  static unsigned long IMUTaskTimer = millis();
-  if (millis() - IMUTaskTimer >= 25) {
+  // Refresh IMU data at 40Hz
+  if (millis() - mIMUTaskTimer >= 25) {
     // Calculate time to standby
-    mStandbyTimer -= 25;
+    mStandbyTimer -= (millis() - mIMUTaskTimer);
+    mIMUTaskTimer = millis();
     if (mStandbyTimer < 0)
       mStandbyTimer = 0;
 
-    if (activityDetection())
+    if (mIMU_new->activityDetection())
       mStandbyTimer = mSleepTimeout;
 
     if (keyboardScan())
@@ -403,61 +486,82 @@ void HardwareRevX::loopHandler() {
       updateBacklightMode(irLevel);
       mLogger->setLogModule(LogModule::Display);
       if (mLogger->isPrintWanted(LogLevel::Debug)) {
-        mLogStream << "Light sensor:" << irLevel; mLogger->log(LogLevel::Debug, mLogStream);}
+        mLogStream << "Light sensor:" << irLevel;
+        mLogger->log(LogLevel::Debug, mLogStream);
+      }
     }
 
     mDisplay->getTouchData(); // trigger read here to keep all I2C accesses
                               // together
+    battVoltage = battery()->getVoltage();
 
     static uint16_t secCount = 20; // update immediately on power up
-    if (secCount++ >= 20) {
+    if (++secCount >= 20) {        // 500ms
+      secCount = 0;
+
       mLogger->setLogModule(LogModule::Memory);
       if (mLogger->isPrintWanted(LogLevel::Info)) {
         mLogStream.precision(2);
-        mLogStream << "Heap:" <<
-            (100.0f * ESP.getFreeHeap()) / ESP.getHeapSize() << "% free of " << 
-            ESP.getHeapSize() / 1024 << "kB, Pram:" <<
-            (100.0f * ESP.getFreePsram()) / ESP.getPsramSize() << "% free of " <<
-            ESP.getPsramSize() / 1024 << "kB, Stack min free: " << 
-            uxTaskGetStackHighWaterMark(nullptr) << "w";
+        mLogStream << "Heap:" << (100.0f * ESP.getFreeHeap()) / ESP.getHeapSize() << "% free of "
+                   << ESP.getHeapSize() / 1024 << "kB, Pram:" << (100.0f * ESP.getFreePsram()) / ESP.getPsramSize()
+                   << "% free of " << ESP.getPsramSize() / 1024 << "kB, Stack min free: "
+                   << uxTaskGetStackHighWaterMark(nullptr) << "w";
         mLogger->log(LogLevel::Info, mLogStream);
       }
-      
-      secCount = 0;
-      int32_t iSoc = mBattery->getPercentage();
-      if (iSoc > 99)
-        iSoc = 99;
-      UI::observerHandles::setInt(SOC_STATUS, iSoc);
 
-      if (mBattery->isConnected())
-        UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_USB);
-      else {
-        if (iSoc < 13)
-          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_EMPTY);
-        else if (iSoc < 38)
-          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_1);
-        else if (iSoc < 63)
-          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_2);
-        else if (iSoc < 88)
-          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_3);
-        else
-          UI::observerHandles::setText(BATT_STATUS, LV_SYMBOL_BATTERY_FULL);
+      if (mStandbyTimer == 0) {
+        mLogger->setLogModule(LogModule::General);
+
+        if (mInScene && mLightSleepEnabled) {
+          mLogger->info("Entering Light Sleep Mode. Bye");
+          enterSleep(SleepMode::LIGHT_DEEP_SLEEP); // light sleep then automatically drop into deep sleep
+          secCount = 20;                           // update immediately on power up
+        } else {
+          mLogger->info("Entering Deep Sleep Mode. Goodbye");
+          enterSleep(SleepMode::DEEP_SLEEP);
+        }
       }
 
-      wifiHandlerInterface::wifiStatus wifiStatus = mWifiHandler->GetStatus();
-      if (wifiStatus.isConnected)
-        UI::observerHandles::setText(WIFI_STATUS, LV_SYMBOL_WIFI);
-      else
-        UI::observerHandles::setText(WIFI_STATUS, "");
-    }
+      // Note - this block is likely to need tweaking, or even disabling, on
+      // hardware revs <5 due to the reduced voltage measurement accuracy
+      static int lowBattTimer = 0;
+      // Serial.printf("Battery Voltage: %imV\r\n", battVoltage);
+      // Fairly early stop to limit battery degradation, trips
+      // around 5min after hitting 0% SOC
+      if (battVoltage < 3450) {
+        lowBattTimer++;
+        if (lowBattTimer >= 4) { // constantly low for 2s
+          mLogger->info("Battery low, entering Deep Sleep");
+          enterSleep(SleepMode::DEEP_SLEEP);
+        }
+      } else {
+        lowBattTimer = 0;
+      }
 
-    if (mStandbyTimer == 0) {
       mLogger->setLogModule(LogModule::General);
-      if (mLogger->isPrintWanted(LogLevel::Info))
-        mLogger->log(LogLevel::Info, "Entering Sleep Mode. Goodbye.");
-
-      enterSleep();
+      if (mLogger->isPrintWanted(LogLevel::Debug)) {
+        mLogStream << "Main sensor loop ran at:" << mIMUTaskTimer << "ms, execution time:" << (millis() - mIMUTaskTimer);
+        mLogger->log(LogLevel::Debug, mLogStream);
+      }
     }
-    IMUTaskTimer = millis();
   }
 }
+
+void HardwareRevX::updateBacklightMode(uint16_t lightLevel) {
+  static bool firstData = true;
+
+  if (firstData) {
+    // if first measurement start fade regardless, if already started this will be ignored
+    firstData = false;
+    mDisplay->startFade(25);
+  }
+}
+
+bool HardwareRevX::lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) {
+  static bool firstTime = true;
+  if (firstTime) {
+    firstTime = false;
+    return true;
+  } else
+    return false;
+};

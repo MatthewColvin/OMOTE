@@ -24,7 +24,8 @@
             "-I littlefs",
             "-I logging",
             "-I stats",
-            "-I wifiHandler"
+            "-I wifiHandler",
+            "-I imu"
         ]
     },
     "frameworks": "arduino",

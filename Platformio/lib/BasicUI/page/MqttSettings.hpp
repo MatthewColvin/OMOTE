@@ -14,7 +14,8 @@ namespace UI::Page {
 enum field { broker,
              port,
              user,
-             password };
+             password,
+             clientid };
 
 class MqttSettings : public Base {
   using WifiInfo = wifiHandlerInterface::WifiInfo;

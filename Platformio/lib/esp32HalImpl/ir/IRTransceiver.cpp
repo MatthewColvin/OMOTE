@@ -23,8 +23,9 @@ IRTransceiver::IRTransceiver(std::unique_ptr<LoggingInterface> aLogger)
   if (mLog) {
     mLog->setLogModule(LogModule::IR);
   }
-  
+
   IRsend::begin();
+  // calibrateTx();  //slows boot slightly so include only if default IR period is not correct
 
   digitalWrite(IR_VCC, HIGH); // Turn on IR receiver
 
@@ -55,34 +56,35 @@ void IRTransceiver::IRSendTask(void *aStruct) {
           info << "IRSendTask, send with protocol:" << magic_enum::enum_name(protocol.value()) << " with command:" << command;
           cs->thisPtr->mLog->debug(info);
         }
-        
+
         uint16_t repeat = 0;
         auto pos = command.find(':');
-        if(pos != std::string::npos)
-          repeat = std::stoul(command.substr(pos+1));
+        if (pos != std::string::npos)
+          repeat = std::stoul(command.substr(pos + 1));
 
-        if(IRInterface::protocol::DELAY == protocol.value()) {
+        if (IRInterface::protocol::DELAY == protocol.value()) {
           uint32_t msec = std::stoul(command, nullptr, 0);
           if (cs->thisPtr->mLog && cs->thisPtr->mLog->isPrintWanted(LogLevel::Debug)) {
             std::stringstream info;
             info << "IRSendTask: Sending Delay: " << msec << "ms";
             cs->thisPtr->mLog->debug(info);
           }
-          if(msec <10000)
+          if (msec < 10000)
             vTaskDelay(msec / portTICK_PERIOD_MS);
-        }
-        else
-        {
+        } else {
           auto intVal = magic_enum::enum_integer(protocol.value());
 
           if (magic_enum::enum_contains<IRInterface::constInt64SendTypes>(intVal)) {
-            if (cs->thisPtr->mLog) cs->thisPtr->mLog->debug("IRSendTask, constInt64SendTypes");
+            if (cs->thisPtr->mLog)
+              cs->thisPtr->mLog->debug("IRSendTask, constInt64SendTypes");
             cs->thisPtr->send((IRInterface::constInt64SendTypes)intVal, std::stoull(command, nullptr, 0));
           } else if (magic_enum::enum_contains<IRInterface::int64SendTypes>(intVal)) {
-            if (cs->thisPtr->mLog) cs->thisPtr->mLog->debug("IRSendTask, int64SendTypes");
+            if (cs->thisPtr->mLog)
+              cs->thisPtr->mLog->debug("IRSendTask, int64SendTypes");
             cs->thisPtr->send((IRInterface::int64SendTypes)intVal, std::stoull(command, nullptr, 0));
           } else if (magic_enum::enum_contains<IRInterface::int16SendTypes>(intVal)) {
-            if (cs->thisPtr->mLog) cs->thisPtr->mLog->debug("IRSendTask, int16SendTypes");
+            if (cs->thisPtr->mLog)
+              cs->thisPtr->mLog->debug("IRSendTask, int16SendTypes");
             std::vector<uint16_t> dataArray;
             std::stringstream ss(command);
             while (ss.good()) {
@@ -90,10 +92,13 @@ void IRTransceiver::IRSendTask(void *aStruct) {
               std::getline(ss, values, ',');
               dataArray.push_back(std::stoul(values, nullptr, 16));
             }
-            std::stringstream info; info << "Repeat: " << repeat; cs->thisPtr->mLog->debug(info);
+            std::stringstream info;
+            info << "Repeat: " << repeat;
+            cs->thisPtr->mLog->debug(info);
             cs->thisPtr->send((IRInterface::int16SendTypes)intVal, dataArray, repeat);
           } else if (magic_enum::enum_contains<IRInterface::charArrSendType>(intVal)) {
-            if (cs->thisPtr->mLog) cs->thisPtr->mLog->debug("IRSendTask, charArrSendType");
+            if (cs->thisPtr->mLog)
+              cs->thisPtr->mLog->debug("IRSendTask, charArrSendType");
             std::vector<uint8_t> dataArray;
             std::stringstream ss(command);
             while (ss.good()) {
@@ -219,6 +224,9 @@ void IRTransceiver::send(constInt64SendTypes protocol, const uint64_t data) {
   switch (protocol) {
   case constInt64SendTypes::Sony:
     return sendSony(data);
+  case constInt64SendTypes::Sony15:
+    // TODO: What is 15, 4?
+    return sendSony(data, 15, 4);
   case constInt64SendTypes::Sony38:
     return sendSony38(data);
   case constInt64SendTypes::SAMSUNG:

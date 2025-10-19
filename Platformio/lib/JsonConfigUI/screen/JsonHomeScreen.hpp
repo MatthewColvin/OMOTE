@@ -29,7 +29,7 @@ public:
   JsonHomeScreen(DeviceFactory &factory);
 
   void SetBgColor(lv_color_t value,
-                  lv_style_selector_t selector = LV_PART_MAIN) override;
+                  lv_part_t selector = LV_PART_MAIN) override;
 
   void AddPage(Page::Base::Ptr aPage);
 
@@ -48,6 +48,8 @@ protected:
 
   void clearScene();
 
+  void sendExitSequence();
+
 private:
   DeviceFactory &mFactory;
 
@@ -61,6 +63,7 @@ private:
   std::vector<Command::CommandStruct> mExitCommands;
   std::string mLastScene;
   std::string mLastStartSeq;
+  std::string mSavedExitSeq;
   std::multimap<KeyIds, ScreensStruct> mSceneKeyHandlers;
   std::multimap<Command::KeyIds, Command::KeyStruct> mOverrideKeyHandlers;
   std::string mScreenToLoad;

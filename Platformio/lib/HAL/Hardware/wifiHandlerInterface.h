@@ -5,6 +5,10 @@
 
 #include "Notification.hpp"
 
+enum ntpDisplayMode { constant,
+                      alternates,
+                      first5sec };
+
 class wifiHandlerInterface {
 public:
   wifiHandlerInterface() = default;
@@ -57,19 +61,43 @@ public:
   virtual void setupMqttBroker() = 0;
   virtual void mqttSend(std::string aTopic, std::string aMessage) = 0;
   virtual void mqttSync() = 0;
+  virtual void mqttForceReconnect() = 0;
   virtual void mqttSetBroker(std::string broker) = 0;
   virtual void mqttSetPort(std::string port) = 0;
   virtual void mqttSetUser(std::string user) = 0;
   virtual void mqttSetPassword(std::string pword) = 0;
+  virtual void mqttSetClientID(std::string clientid) = 0;
   virtual std::string mqttGetBroker() = 0;
   virtual std::string mqttGetPort() = 0;
   virtual std::string mqttGetUser() = 0;
   virtual std::string mqttGetPassword() = 0;
+  virtual std::string mqttGetClientID() = 0;
   virtual void mqttSaveCredentialsOnConnect() = 0;
   virtual void mqttBindTextEvent(uint32_t bindId, std::string topic, std::string field) = 0;
   virtual void mqttUnBindTextEvent(uint32_t unBindId) = 0;
   virtual void enableMqtt(bool enabled) = 0;
   virtual bool isMqttEnabled(void) = 0;
+
+  virtual void enableFtp(bool enabled) = 0;
+  virtual bool isFtpEnabled(void) = 0;
+  virtual void ftpSetUser(std::string user) = 0;
+  virtual void ftpSetPassword(std::string password) = 0;
+  virtual void mDNSSetName(std::string name) = 0;
+  virtual std::string ftpGetUser() = 0;
+  virtual std::string ftpGetPassword() = 0;
+  virtual std::string mDNSGetName() = 0;
+  virtual void ftpSaveCredentials() = 0;
+
+  virtual void enableNtp(bool enabled) = 0;
+  virtual bool isNtpEnabled(void) = 0;
+  virtual std::string ntpGetServer() = 0;
+  virtual std::string ntpGetTimeZone() = 0;
+  virtual int ntpGetDisplayMode() = 0;
+  virtual void ntpSetServer(std::string server) = 0;
+  virtual void ntpSetTimeZone(std::string timezone) = 0;
+  virtual void ntpSetDisplayMode(int mode) = 0;
+  virtual void ntpSaveCredentials() = 0;
+  virtual void setupNtp() = 0;
 
 protected:
   std::shared_ptr<ScanNotificationTy> mScanNotification =

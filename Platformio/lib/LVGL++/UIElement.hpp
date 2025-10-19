@@ -20,10 +20,12 @@ public:
   virtual ~UIElement();
 
   virtual void SetBgColor(lv_color_t value,
-                          lv_style_selector_t selector = LV_PART_MAIN);
+                          lv_part_t selector = LV_PART_MAIN);
 
   virtual void SetBgOpacity(lv_opa_t aOpacity,
-                            lv_style_selector_t aStyle = LV_PART_MAIN);
+                            lv_part_t aStyle = LV_PART_MAIN);
+
+  virtual void SetDisabled(bool aDisable);
 
   void SetVisiblity(bool aVisibility);
   bool IsVisible();
@@ -54,22 +56,22 @@ public:
                lv_coord_t aXoffset = 0, lv_coord_t aYOffset = 0);
 
   virtual void SetBorder(Border aNewBorder,
-                         lv_style_selector_t aStyle = LV_PART_MAIN);
-  Border GetBorder(lv_style_selector_t aStyle = LV_PART_MAIN);
+                         lv_part_t aStyle = LV_PART_MAIN);
+  Border GetBorder(lv_part_t aPart = LV_PART_MAIN);
 
   virtual void SetOutline(Outline aNewOutline,
-                          lv_style_selector_t aStyle = LV_PART_MAIN);
-  Outline GetOutline(lv_style_selector_t aStyle = LV_PART_MAIN);
+                          lv_part_t aStyle = LV_PART_MAIN);
+  Outline GetOutline(lv_part_t aStyle = LV_PART_MAIN);
 
   virtual void SetPadding(Padding aNewPadding,
-                          lv_style_selector_t aStyle = LV_PART_MAIN);
+                          lv_part_t aStyle = LV_PART_MAIN);
   virtual void SetAllPadding(lv_coord_t aNewPadding,
-                             lv_style_selector_t aStyle = LV_PART_MAIN);
-  Padding GetPadding(lv_style_selector_t aStyle = LV_PART_MAIN);
+                             lv_part_t aStyle = LV_PART_MAIN);
+  Padding GetPadding(lv_part_t aStyle = LV_PART_MAIN);
 
   virtual void SetTextStyle(TextStyle aNewStyle,
-                            lv_style_selector_t aStyle = LV_PART_MAIN);
-  TextStyle GetTextStyle(lv_style_selector_t aStyle = LV_PART_MAIN);
+                            lv_part_t aStyle = LV_PART_MAIN);
+  TextStyle GetTextStyle(lv_part_t aStyle = LV_PART_MAIN);
 
   virtual void AddStyle(lv_style_t *aStyle, lv_style_selector_t aStyleSelector);
 
@@ -95,6 +97,13 @@ public:
 
   template <class UIElemTy>
   static UIElemTy GetElement(lv_obj_t *aLvglObject);
+
+  // Helper to reduce warning with style selectors since parts and states
+  // are different enums and this is deprecated in C++20
+  template <typename... PartOrStateEnum>
+  static constexpr lv_style_selector_t MakeSelector(PartOrStateEnum... statesAndParts) {
+    return (static_cast<lv_style_selector_t>(statesAndParts) | ...);
+  }
 
   /// @brief There are use cases in which objects
   ///        need to stay alive in LVGL but can die

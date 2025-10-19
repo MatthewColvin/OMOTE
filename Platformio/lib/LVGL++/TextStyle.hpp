@@ -47,6 +47,6 @@ private:
   lv_text_align_t align = LV_TEXT_ALIGN_CENTER;
   lv_coord_t letter_space = 0;
   lv_coord_t line_space = 0;
-  const lv_font_t *font = lv_font_default();
+  const lv_font_t *font = LV_FONT_DEFAULT; // lv_font_ edefault();
 };
 } // namespace UI

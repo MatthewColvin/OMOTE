@@ -15,7 +15,7 @@ public:
 
   // Override in order to pass styling to label
   void SetTextStyle(TextStyle aNewStyle,
-                    lv_style_selector_t aStyle = LV_PART_MAIN) override;
+                    lv_part_t aStyle = LV_PART_MAIN) override;
 
 protected:
   void OnLvglEvent(lv_event_t *anEvent) override;

@@ -72,8 +72,16 @@ bool IrLearner::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
       DisableRx();
       break;
     case id::Aux4:
-      mIr->calibrateTx();
+    case id::Center: {
+      int8_t calibrationOffset = mIr->calibrateTx();
+      auto logger = std::make_unique<LoggingInterface>(LogModule::IR);
+      if (logger->isPrintWanted(LogLevel::Info)) {
+        std::stringstream ss;
+        ss << "Calibration Offset: " << calibrationOffset;
+        logger->info(ss);
+      }
       break;
+    }
     }
     return true;
   }

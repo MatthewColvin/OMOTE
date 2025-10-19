@@ -19,7 +19,7 @@ public:
   JsonTabView(DeviceFactory &factory, std::string aFileName);
 
   void SetBgColor(lv_color_t value,
-                  lv_style_selector_t selector = LV_PART_MAIN) override;
+                  lv_part_t selector = LV_PART_MAIN) override;
 
   void AddPage(Page::Base::Ptr aPage);
 

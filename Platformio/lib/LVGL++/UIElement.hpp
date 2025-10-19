@@ -73,7 +73,7 @@ public:
                             lv_part_t aStyle = LV_PART_MAIN);
   TextStyle GetTextStyle(lv_part_t aStyle = LV_PART_MAIN);
 
-  virtual void AddStyle(lv_style_t *aStyle, lv_part_t aStyleSelector);
+  virtual void AddStyle(lv_style_t *aStyle, lv_style_selector_t aStyleSelector);
 
   template <class UIElemTy>
   UIElemTy *AddElement(std::unique_ptr<UIElemTy> aWidget);
@@ -97,6 +97,13 @@ public:
 
   template <class UIElemTy>
   static UIElemTy GetElement(lv_obj_t *aLvglObject);
+
+  // Helper to reduce warning with style selectors since parts and states
+  // are different enums and this is deprecated in C++20
+  template <typename... PartOrStateEnum>
+  static constexpr lv_style_selector_t MakeSelector(PartOrStateEnum... statesAndParts) {
+    return (static_cast<lv_style_selector_t>(statesAndParts) | ...);
+  }
 
   /// @brief There are use cases in which objects
   ///        need to stay alive in LVGL but can die

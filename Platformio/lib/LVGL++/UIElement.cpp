@@ -243,7 +243,7 @@ TextStyle UIElement::GetTextStyle(lv_part_t aStyle) {
 }
 
 void UIElement::AddStyle(lv_style_t *aStyle,
-                         lv_part_t aStyleSelector) {
+                         lv_style_selector_t aStyleSelector) {
   LvglResourceManager::GetInstance().AttemptNow(
       [this, aStyle, aStyleSelector] { lv_obj_add_style(mLvglSelf, aStyle, aStyleSelector); });
 }

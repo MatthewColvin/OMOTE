@@ -150,7 +150,7 @@ lv_coord_t UIElement::GetX() {
 
 lv_coord_t UIElement::GetBottom() { return GetY() + GetHeight(); };
 
-void UIElement::SetBorder(Border aNewBorder, lv_style_selector_t aStyle) {
+void UIElement::SetBorder(Border aNewBorder, lv_part_t aStyle) {
   LvglResourceManager::GetInstance().AttemptNow([this, aNewBorder, aStyle] {
     lv_obj_set_style_border_color(mLvglSelf, aNewBorder.color, aStyle);
     lv_obj_set_style_border_opa(mLvglSelf, aNewBorder.opacity, aStyle);
@@ -159,16 +159,16 @@ void UIElement::SetBorder(Border aNewBorder, lv_style_selector_t aStyle) {
   });
 }
 
-Border UIElement::GetBorder(lv_style_selector_t aStyle) {
+Border UIElement::GetBorder(lv_part_t aPart) {
   auto lock = LvglResourceManager::GetInstance().scopeLock();
   return Border()
-      .Color(lv_obj_get_style_border_color(mLvglSelf, aStyle))
-      .Opacity(lv_obj_get_style_border_opa(mLvglSelf, aStyle))
-      .Sides(lv_obj_get_style_border_side(mLvglSelf, aStyle))
-      .Width(lv_obj_get_style_border_width(mLvglSelf, aStyle));
+      .Color(lv_obj_get_style_border_color(mLvglSelf, aPart))
+      .Opacity(lv_obj_get_style_border_opa(mLvglSelf, aPart))
+      .Sides(lv_obj_get_style_border_side(mLvglSelf, aPart))
+      .Width(lv_obj_get_style_border_width(mLvglSelf, aPart));
 }
 
-void UIElement::SetOutline(Outline aNewOutline, lv_style_selector_t aStyle) {
+void UIElement::SetOutline(Outline aNewOutline, lv_part_t aStyle) {
   LvglResourceManager::GetInstance().AttemptNow([this, aNewOutline, aStyle] {
     lv_obj_set_style_outline_color(mLvglSelf, aNewOutline.color, aStyle);
     lv_obj_set_style_outline_opa(mLvglSelf, aNewOutline.opacity, aStyle);
@@ -177,7 +177,7 @@ void UIElement::SetOutline(Outline aNewOutline, lv_style_selector_t aStyle) {
   });
 };
 
-Outline UIElement::GetOutline(lv_style_selector_t aStyle) {
+Outline UIElement::GetOutline(lv_part_t aStyle) {
   auto lock = LvglResourceManager::GetInstance().scopeLock();
   return Outline()
       .Color(lv_obj_get_style_outline_color(mLvglSelf, aStyle))
@@ -186,7 +186,7 @@ Outline UIElement::GetOutline(lv_style_selector_t aStyle) {
       .Width(lv_obj_get_style_outline_width(mLvglSelf, aStyle));
 };
 
-void UIElement::SetPadding(Padding aNewPadding, lv_style_selector_t aStyle) {
+void UIElement::SetPadding(Padding aNewPadding, lv_part_t aStyle) {
   LvglResourceManager::GetInstance().AttemptNow([this, aNewPadding, aStyle] {
     lv_obj_set_style_pad_top(mLvglSelf, aNewPadding.top, aStyle);
     lv_obj_set_style_pad_bottom(mLvglSelf, aNewPadding.bottom, aStyle);
@@ -198,13 +198,13 @@ void UIElement::SetPadding(Padding aNewPadding, lv_style_selector_t aStyle) {
 };
 
 void UIElement::SetAllPadding(lv_coord_t aNewPadding,
-                              lv_style_selector_t aStyle) {
+                              lv_part_t aStyle) {
   LvglResourceManager::GetInstance().AttemptNow([this, aNewPadding, aStyle] {
     lv_obj_set_style_pad_all(mLvglSelf, aNewPadding, aStyle);
   });
 }
 
-Padding UIElement::GetPadding(lv_style_selector_t aStyle) {
+Padding UIElement::GetPadding(lv_part_t aStyle) {
   auto lock = LvglResourceManager::GetInstance().scopeLock();
   return Padding()
       .Top(lv_obj_get_style_pad_top(mLvglSelf, aStyle))
@@ -216,7 +216,7 @@ Padding UIElement::GetPadding(lv_style_selector_t aStyle) {
 };
 
 void UIElement::SetTextStyle(TextStyle aNewTextStyle,
-                             lv_style_selector_t aStyle) {
+                             lv_part_t aStyle) {
   LvglResourceManager::GetInstance().AttemptNow([this, aNewTextStyle, aStyle] {
     lv_obj_set_style_text_align(mLvglSelf, aNewTextStyle.align, aStyle);
     lv_obj_set_style_text_color(mLvglSelf, aNewTextStyle.color, aStyle);
@@ -230,7 +230,7 @@ void UIElement::SetTextStyle(TextStyle aNewTextStyle,
   });
 }
 
-TextStyle UIElement::GetTextStyle(lv_style_selector_t aStyle) {
+TextStyle UIElement::GetTextStyle(lv_part_t aStyle) {
   auto lock = LvglResourceManager::GetInstance().scopeLock();
   return TextStyle()
       .Align(lv_obj_get_style_text_align(mLvglSelf, aStyle))
@@ -245,12 +245,12 @@ TextStyle UIElement::GetTextStyle(lv_style_selector_t aStyle) {
 void UIElement::AddStyle(lv_style_t *aStyle,
                          lv_style_selector_t aStyleSelector) {
   LvglResourceManager::GetInstance().AttemptNow(
-      [=] { lv_obj_add_style(mLvglSelf, aStyle, aStyleSelector); });
+      [this, aStyle, aStyleSelector] { lv_obj_add_style(mLvglSelf, aStyle, aStyleSelector); });
 }
 
 void UIElement::AlignTo(UIElement *anElementToAlignTo, lv_align_t anAlignment,
                         lv_coord_t aXoffset, lv_coord_t aYOffset) {
-  LvglResourceManager::GetInstance().AttemptNow([=] {
+  LvglResourceManager::GetInstance().AttemptNow([this, anElementToAlignTo, anAlignment, aXoffset, aYOffset] {
     lv_obj_align_to(mLvglSelf, anElementToAlignTo->mLvglSelf, anAlignment,
                     aXoffset, aYOffset);
   });
@@ -267,20 +267,20 @@ void UIElement::SetVisiblity(bool aVisible) {
   }
 }
 
-void UIElement::SetBgColor(lv_color_t aColor, lv_style_selector_t aStyle) {
+void UIElement::SetBgColor(lv_color_t aColor, lv_part_t aStyle) {
   LvglResourceManager::GetInstance().AttemptNow([this, aColor, aStyle] {
     lv_obj_set_style_bg_color(mLvglSelf, aColor, aStyle);
   });
 };
 
-void UIElement::SetBgOpacity(lv_opa_t aOpacity, lv_style_selector_t aStyle) {
+void UIElement::SetBgOpacity(lv_opa_t aOpacity, lv_part_t aStyle) {
   LvglResourceManager::GetInstance().AttemptNow([this, aOpacity, aStyle] {
     lv_obj_set_style_bg_opa(mLvglSelf, aOpacity, aStyle);
   });
 }
 
 void UIElement::SetDisabled(bool aDisable) {
-  if(aDisable)
+  if (aDisable)
     lv_obj_add_state(mLvglSelf, LV_STATE_DISABLED);
   else
     lv_obj_remove_state(mLvglSelf, LV_STATE_DISABLED);

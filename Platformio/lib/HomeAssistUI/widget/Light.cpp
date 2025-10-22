@@ -36,7 +36,7 @@ void Light::SetupStyle() {
   lv_style_set_pad_all(&mMainStyle, 10);
   mBrightnessSlider->AddStyle(&mMainStyle, LV_PART_KNOB);
   mBrightnessSlider->AddStyle(&mIndicatorStyle,
-                              LV_PART_INDICATOR | LV_STATE_PRESSED);
+                              MakeSelector(LV_PART_INDICATOR, LV_STATE_PRESSED));
 }
 
 void Light::SetHeight(lv_coord_t aHeight) {

@@ -16,7 +16,7 @@ public:
 
   // Override in order to pass styling to label
   void SetTextStyle(TextStyle aNewStyle,
-                    lv_style_selector_t aStyle = LV_PART_MAIN) override;
+                    lv_part_t aStyle = LV_PART_MAIN) override;
 
   Button &OnPress(std::function<void()> aOnPressHandler);
   Button &OnRelease(std::function<void()> aOnReleaseHandler);

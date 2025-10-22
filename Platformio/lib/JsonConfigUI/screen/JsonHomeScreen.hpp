@@ -29,7 +29,7 @@ public:
   JsonHomeScreen(DeviceFactory &factory);
 
   void SetBgColor(lv_color_t value,
-                  lv_style_selector_t selector = LV_PART_MAIN) override;
+                  lv_part_t selector = LV_PART_MAIN) override;
 
   void AddPage(Page::Base::Ptr aPage);
 
@@ -59,7 +59,6 @@ private:
   Widget::StatusBar *mStatusBar;
   Widget::List *mList;
   Page::TabView *mTabView;
-  // Screen::JsonTabView *mSceneTabViewScreen = nullptr;
   std::vector<Command::CommandStruct> mExitCommands;
   std::string mLastScene;
   std::string mLastStartSeq;

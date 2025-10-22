@@ -1,8 +1,12 @@
 #include "RapidJsonUtilty.hpp"
+
 #include "rapidjson/document.h"
+#include "rapidjson/istreamwrapper.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+
+#include <fstream>
 
 void MemConciousAllocator::Free(void *aVal) {}
 
@@ -12,6 +16,7 @@ void *MemConciousAllocator::Malloc(size_t aSize) {
   mBuffers.emplace_back(aSize);
   return mBuffers.back().data();
 }
+
 void *MemConciousAllocator::Realloc(void *originalPtr, size_t originalSize,
                                     size_t newSize) {
   if (originalPtr == nullptr) {
@@ -34,7 +39,7 @@ std::string ToString(const rapidjson::Document &aDoc) {
   return std::string(buff.GetString());
 }
 
-std::string ToPrettyString(rapidjson::Document &aDoc) {
+std::string ToPrettyString(const rapidjson::Document &aDoc) {
   rapidjson::StringBuffer buff;
   rapidjson::PrettyWriter<rapidjson::StringBuffer> prettyWrite(buff);
   prettyWrite.SetIndent(' ', 2);
@@ -58,6 +63,21 @@ rapidjson::GenericDocument<rapidjson::UTF8<>, MemConciousAllocator> GetDocument(
     const std::string &aStringToParse) {
   rapidjson::GenericDocument<rapidjson::UTF8<>, MemConciousAllocator> doc;
   doc.Parse(aStringToParse.c_str());
+  return doc;
+}
+
+MemConsciousDocument GetDocument(const std::filesystem::path &aPathToJson) {
+  std::ifstream file(aPathToJson);
+  MemConsciousDocument doc;
+  if (!file.is_open()) {
+    return doc; // return empty doc if file couldn't be opened
+  }
+  rapidjson::IStreamWrapper fileStream(file);
+  doc.ParseStream(fileStream);
+  // If parsing failed return an empty object document
+  if (doc.HasParseError()) {
+    return MemConsciousDocument(rapidjson::kObjectType);
+  }
   return doc;
 }
 

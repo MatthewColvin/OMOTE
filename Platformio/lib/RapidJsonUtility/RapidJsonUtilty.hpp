@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -33,11 +34,13 @@ private:
 
 std::string ToString(const rapidjson::Document &aDoc);
 
-std::string ToPrettyString(rapidjson::Document &aDoc);
+std::string ToPrettyString(const rapidjson::Document &aDoc);
 
 const MemConciousValue *GetNestedField(const MemConciousValue &aValue,
                                        const std::vector<std::string> &aFields);
 
 MemConsciousDocument GetDocument(const std::string &aStringToParse);
+
+MemConsciousDocument GetDocument(const std::filesystem::path &aPathToJson);
 
 std::string ToString(const MemConsciousDocument &aDoc);

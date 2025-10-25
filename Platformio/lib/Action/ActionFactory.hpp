@@ -2,13 +2,14 @@
 #include "IAction.hpp"
 #include "IRAction.hpp"
 #include "RapidJsonUtilty.hpp"
+#include "Validator.hpp"
 #include <memory>
 #include <string>
 #include <vector>
 
 class ActionFactory {
 public:
-  static constexpr auto ActionsDirectory = "Actions";
+  static constexpr auto ActionsDirectory = FS_PATH "Actions";
   static constexpr auto MaxActionFileLength = 500;
 
   ActionFactory() = default;
@@ -32,4 +33,5 @@ public:
 
 private:
   std::unique_ptr<IRAction> createIRAction(const std::string &aName, const rapidjson::Value &aData);
+  Validator mJsonValidator;
 };

@@ -4,8 +4,9 @@
 #include <fstream>
 
 std::unique_ptr<IAction> ActionFactory::createAction(const rapidjson::Value &value) {
-  if (!value.HasMember("type") || !value.HasMember("name") || !value.HasMember("data"))
+  if (!mJsonValidator.IsAction(value)) {
     return nullptr;
+  }
 
   const std::string type = value["type"].GetString();
   const std::string name = value["name"].GetString();
@@ -59,14 +60,10 @@ std::vector<std::unique_ptr<IAction>> ActionFactory::getAllActions() {
     if (!dir_entry.is_regular_file()) {
       continue;
     }
-    std::filesystem::path fullPath(FS_PATH);
-    fullPath /= dir_entry.path().filename();
-    auto actionDoc = GetDocument(fullPath);
-    if (actionDoc.HasMember("name") && actionDoc["name"].IsString()) {
-      auto action = createAction(actionDoc);
-      if (action) {
-        actions.push_back(std::move(action));
-      }
+    auto actionDoc = GetDocument(dir_entry.path());
+    auto action = createAction(actionDoc);
+    if (action) {
+      actions.push_back(std::move(action));
     }
   }
   return actions;

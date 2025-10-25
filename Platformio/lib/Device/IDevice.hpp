@@ -24,10 +24,10 @@ public:
   virtual DeviceId GetId() const = 0;
 
   // Optional configuration data
-  virtual MemConsciousDocument GetExtraConfig() const {
+  virtual rapidjson::Document GetExtraConfig() const {
     return {};
   }
-  virtual void SetExtraConfig(const MemConsciousDocument &config) {}
+  virtual void SetExtraConfig(const rapidjson::Document &config) {}
 
   // Interaction handlers
   virtual bool HandleKeyEvent(KeyPressAbstract::KeyEvent event) = 0;

@@ -26,6 +26,6 @@ private:
 
   Handler<ActiveDevices::ListEvent> mSaveOnChangeHandler;
 
-  std::shared_ptr<IDevice> createHomeAssistDevice(const MemConciousValue &aActiveDeviceJsonConfigMember);
-  std::shared_ptr<IDevice> createJsonDevice(const MemConciousValue &aActiveDeviceJsonConfigMember);
+  std::shared_ptr<IDevice> createHomeAssistDevice(const rapidjson::Value &aActiveDeviceJsonConfigMember);
+  std::shared_ptr<IDevice> createJsonDevice(const rapidjson::Value &aActiveDeviceJsonConfigMember);
 };

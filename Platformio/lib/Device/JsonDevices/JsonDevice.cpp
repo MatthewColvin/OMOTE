@@ -21,7 +21,7 @@ JsonDevice::JsonDevice(std::filesystem::path aDeviceJsonFilePath) {
   std::stringstream deviceSS;
   deviceSS << deviceJsonStream.rdbuf();
   auto deviceJsonStr = deviceSS.str();
-  MemConsciousDocument deviceJson;
+  rapidjson::Document deviceJson;
   deviceJson.Parse(deviceJsonStr.c_str());
   mParseResult = parse(deviceJson);
 
@@ -30,7 +30,7 @@ JsonDevice::JsonDevice(std::filesystem::path aDeviceJsonFilePath) {
   }
 }
 
-JsonDevice::ParseResult JsonDevice::parse(const MemConsciousDocument &aDeviceJson) {
+JsonDevice::ParseResult JsonDevice::parse(const rapidjson::Document &aDeviceJson) {
   if (!parseGeneralInfo(aDeviceJson)) {
     return ParseResult::GeneralInfoError;
   }
@@ -40,14 +40,14 @@ JsonDevice::ParseResult JsonDevice::parse(const MemConsciousDocument &aDeviceJso
   return ParseResult::Success;
 }
 
-bool JsonDevice::parseGeneralInfo(const MemConsciousDocument &aDeviceJson) {
+bool JsonDevice::parseGeneralInfo(const rapidjson::Document &aDeviceJson) {
   // Todo add color info and checks
   mName = aDeviceJson["name"].GetString();
   mId = DeviceId::None;
   return true;
 }
 
-bool JsonDevice::parseKeyActions(const MemConciousValue &aKeysJson) {
+bool JsonDevice::parseKeyActions(const rapidjson::Value &aKeysJson) {
   if (!aKeysJson.IsObject()) {
     return false;
   }
@@ -84,12 +84,12 @@ DeviceId JsonDevice::GetId() const {
   return DeviceId::None;
 }
 
-MemConsciousDocument JsonDevice::GetExtraConfig() const {
-  MemConsciousDocument extraInfo;
+rapidjson::Document JsonDevice::GetExtraConfig() const {
+  rapidjson::Document extraInfo;
   auto &alloc = extraInfo.GetAllocator();
   extraInfo.SetObject();
 
-  MemConciousValue filePath;
+  rapidjson::Value filePath;
   filePath.SetString(mFilePath.c_str(), alloc);
 
   extraInfo.AddMember("file_path", filePath, alloc);

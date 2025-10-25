@@ -9,7 +9,7 @@ namespace HomeAssist::WebSocket {
 
 class Request {
 public:
-  Request(MemConsciousDocument &&aRequestMessage); // Changed constructor
+  Request(rapidjson::Document &&aRequestMessage); // Changed constructor
   ~Request() = default;
 
   std::string GetRequestMessage();
@@ -17,10 +17,10 @@ public:
   void SetId(int aId);
 
 private:
-  MemConsciousDocument mRequestMessage;
+  rapidjson::Document mRequestMessage;
 };
 
-inline Request::Request(MemConsciousDocument &&aRequestMessage)
+inline Request::Request(rapidjson::Document &&aRequestMessage)
     : mRequestMessage(std::move(aRequestMessage)) {}
 
 inline std::string Request::GetRequestMessage() {
@@ -30,7 +30,7 @@ inline std::string Request::GetRequestMessage() {
 inline void Request::SetId(int aId) {
   auto &alloc = mRequestMessage.GetAllocator();
   if (!mRequestMessage.HasMember("id")) {
-    mRequestMessage.AddMember("id", MemConciousValue().SetInt(aId), alloc);
+    mRequestMessage.AddMember("id", rapidjson::Value().SetInt(aId), alloc);
   }
   mRequestMessage["id"] = aId;
 }

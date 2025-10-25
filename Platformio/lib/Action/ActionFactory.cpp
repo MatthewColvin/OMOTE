@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 
-std::unique_ptr<IAction> ActionFactory::createAction(const MemConciousValue &value) {
+std::unique_ptr<IAction> ActionFactory::createAction(const rapidjson::Value &value) {
   if (!value.HasMember("type") || !value.HasMember("name") || !value.HasMember("data"))
     return nullptr;
 
@@ -19,7 +19,7 @@ std::unique_ptr<IAction> ActionFactory::createAction(const MemConciousValue &val
 }
 
 std::unique_ptr<IRAction> ActionFactory::createIRAction(const std::string &aName,
-                                                        const MemConciousValue &aData) {
+                                                        const rapidjson::Value &aData) {
   if (!aData.HasMember("protocol") || !aData.HasMember("data")) {
     return nullptr;
   }
@@ -37,7 +37,7 @@ std::unique_ptr<IAction> ActionFactory::createAction(const std::string &aActionN
       fullPath += dir_entry.path().string();
       std::ifstream file(fullPath, std::ios::in);
       if (file) {
-        MemConsciousDocument actionDoc;
+        rapidjson::Document actionDoc;
         std::stringstream buffer;
         buffer << file.rdbuf();
         file.close();

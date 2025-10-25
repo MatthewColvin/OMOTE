@@ -15,7 +15,7 @@ public:
   JsonDeviceFactory() = default;
   virtual ~JsonDeviceFactory() = default;
 
-  IDevice::Ptr Create(const MemConciousValue &aDeviceJson);
+  IDevice::Ptr Create(const rapidjson::Value &aDeviceJson);
   IDevice::Ptr Create(const std::filesystem::path &aDeviceFile);
 
   // Given a Directory path, loop over files that define devices and return them

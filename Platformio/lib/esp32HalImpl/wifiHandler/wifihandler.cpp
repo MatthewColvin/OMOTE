@@ -335,7 +335,7 @@ void wifiHandler::mqttRestoreCredentials() {
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (!d.Parse(content.c_str()).HasParseError()) {
     if (d.HasMember("broker") && d["broker"].IsString())
       mMqttBroker = d["broker"].GetString();
@@ -403,7 +403,7 @@ void wifiHandler::ntpRestoreCredentials() {
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (!d.Parse(content.c_str()).HasParseError()) {
     if (d.HasMember("enabled") && d["enabled"].IsBool())
       mNtpEnabled = d["enabled"].GetBool();
@@ -508,7 +508,7 @@ void wifiHandler::ftpRestoreCredentials() {
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (!d.Parse(content.c_str()).HasParseError()) {
     if (d.HasMember("enabled") && d["enabled"].IsBool())
       mFtpEnabled = d["enabled"].GetBool();

@@ -47,9 +47,9 @@ std::string ToPrettyString(const rapidjson::Document &aDoc) {
   return std::string(buff.GetString());
 }
 
-const MemConciousValue *GetNestedField(
-    const MemConciousValue &aValue, const std::vector<std::string> &aFields) {
-  const MemConciousValue *value = &aValue;
+const rapidjson::Value *GetNestedField(
+    const rapidjson::Value &aValue, const std::vector<std::string> &aFields) {
+  const rapidjson::Value *value = &aValue;
   for (const auto &field : aFields) {
     if (!value || !value->IsObject() || !value->HasMember(field.c_str())) {
       return nullptr;
@@ -59,16 +59,16 @@ const MemConciousValue *GetNestedField(
   return value;
 }
 
-rapidjson::GenericDocument<rapidjson::UTF8<>, MemConciousAllocator> GetDocument(
+rapidjson::Document GetDocument(
     const std::string &aStringToParse) {
-  rapidjson::GenericDocument<rapidjson::UTF8<>, MemConciousAllocator> doc;
+  rapidjson::Document doc;
   doc.Parse(aStringToParse.c_str());
   return doc;
 }
 
-MemConsciousDocument GetDocument(const std::filesystem::path &aPathToJson) {
+rapidjson::Document GetDocument(const std::filesystem::path &aPathToJson) {
   std::ifstream file(aPathToJson);
-  MemConsciousDocument doc;
+  rapidjson::Document doc;
   if (!file.is_open()) {
     return doc; // return empty doc if file couldn't be opened
   }
@@ -76,14 +76,7 @@ MemConsciousDocument GetDocument(const std::filesystem::path &aPathToJson) {
   doc.ParseStream(fileStream);
   // If parsing failed return an empty object document
   if (doc.HasParseError()) {
-    return MemConsciousDocument(rapidjson::kObjectType);
+    return rapidjson::Document(rapidjson::kObjectType);
   }
   return doc;
-}
-
-std::string ToString(const MemConsciousDocument &aDoc) {
-  rapidjson::StringBuffer buff;
-  rapidjson::Writer<rapidjson::StringBuffer> writer(buff);
-  aDoc.Accept(writer);
-  return std::string(buff.GetString());
 }

@@ -17,7 +17,7 @@ public:
   /**
    * Given an Action Json Create the corresponding object
    */
-  std::unique_ptr<IAction> createAction(const MemConciousValue &value);
+  std::unique_ptr<IAction> createAction(const rapidjson::Value &value);
 
   /**
    * Given a name of an action look through the Actions directory to
@@ -31,5 +31,5 @@ public:
   std::vector<std::unique_ptr<IAction>> getAllActions();
 
 private:
-  std::unique_ptr<IRAction> createIRAction(const std::string &aName, const MemConciousValue &aData);
+  std::unique_ptr<IRAction> createIRAction(const std::string &aName, const rapidjson::Value &aData);
 };

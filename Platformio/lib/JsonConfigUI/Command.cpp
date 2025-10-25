@@ -15,7 +15,7 @@ CommandMode Commands::getCommand(const std::string &aCommandFIle, const std::str
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (d.Parse(content.c_str()).HasParseError())
     return NONE;
 

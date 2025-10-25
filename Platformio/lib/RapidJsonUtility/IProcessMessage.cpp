@@ -38,7 +38,7 @@ IProcessMessage::IProcessMessage(
 IProcessMessage::~IProcessMessage() = default;
 
 bool IProcessMessage::ProcessDocument(
-    const MemConsciousDocument &aRecievedDocument) {
+    const rapidjson::Document &aRecievedDocument) {
   if (mDocProcessor) {
     return mDocProcessor(aRecievedDocument);
   }
@@ -153,7 +153,7 @@ void IProcessMessage::UpdateBufferAndMetaData() {
 
 IProcessMessage::ProcessResult IProcessMessage::ProcessJsonAsDoc(
     const std::string &aJsonString) {
-  MemConsciousDocument aDoc;
+  rapidjson::Document aDoc;
   aDoc.Parse(aJsonString.data());
   if (aDoc.HasParseError()) {
     return {aDoc.GetParseError()};

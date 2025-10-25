@@ -2,7 +2,7 @@
 
 using namespace HomeAssist::WebSocket;
 
-Message::Attributes::Light::Light(const MemConciousValue &aAttributeListVal)
+Message::Attributes::Light::Light(const rapidjson::Value &aAttributeListVal)
     : mBrightness(INVALIDINT),
       mColorTemp(INVALIDINT),
       mRgbColor({INVALIDINT, INVALIDINT, INVALIDINT}) {

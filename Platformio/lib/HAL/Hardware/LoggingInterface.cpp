@@ -20,7 +20,7 @@ void LoggingInterface::restoreSettings() {
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (!d.Parse(content.c_str()).HasParseError()) {
     if (d.IsObject()) {
       for (auto &item : d.GetObject()) {
@@ -40,13 +40,13 @@ void LoggingInterface::restoreSettings() {
 
 void LoggingInterface::saveSettings() {
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   d.SetObject();
 
   // Add data to the JSON document
   for (auto module : magic_enum::enum_values<LogModule>()) {
-    MemConciousValue key(std::string(magic_enum::enum_name(module)), d.GetAllocator());
-    MemConciousValue val(std::string(magic_enum::enum_name(getLogLevel(module))), d.GetAllocator());
+    rapidjson::Value key(std::string(magic_enum::enum_name(module)), d.GetAllocator());
+    rapidjson::Value val(std::string(magic_enum::enum_name(getLogLevel(module))), d.GetAllocator());
     d.AddMember(key, val, d.GetAllocator());
   }
 

@@ -2,7 +2,7 @@
 #include "ActionFactory.hpp"
 #include "magic_enum.hpp"
 
-KeyAction::KeyAction(const MemConciousValue &aKeyPressBehaviorJson) {
+KeyAction::KeyAction(const rapidjson::Value &aKeyPressBehaviorJson) {
   ActionFactory factory;
   for (auto KeyIdEnum : magic_enum::enum_values<KeyPressAbstract::KeyEvent::Type>()) {
     auto KeyIdStr = magic_enum::enum_name(KeyIdEnum);

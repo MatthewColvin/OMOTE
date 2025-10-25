@@ -36,11 +36,9 @@ std::string ToString(const rapidjson::Document &aDoc);
 
 std::string ToPrettyString(const rapidjson::Document &aDoc);
 
-const MemConciousValue *GetNestedField(const MemConciousValue &aValue,
+const rapidjson::Value *GetNestedField(const rapidjson::Value &aValue,
                                        const std::vector<std::string> &aFields);
 
-MemConsciousDocument GetDocument(const std::string &aStringToParse);
+rapidjson::Document GetDocument(const std::string &aStringToParse);
 
-MemConsciousDocument GetDocument(const std::filesystem::path &aPathToJson);
-
-std::string ToString(const MemConsciousDocument &aDoc);
+rapidjson::Document GetDocument(const std::filesystem::path &aPathToJson);

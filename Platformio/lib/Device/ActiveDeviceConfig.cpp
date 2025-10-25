@@ -15,17 +15,17 @@ ActiveDeviceConfig::ActiveDeviceConfig(DeviceFactory &factory)
 }
 
 bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
-  MemConsciousDocument doc;
+  rapidjson::Document doc;
   doc.SetArray();
   auto &allocator = doc.GetAllocator();
 
-  std::vector<MemConsciousDocument> configDocs;
+  std::vector<rapidjson::Document> configDocs;
   for (const auto &device : devices) {
-    MemConciousValue deviceObj(rapidjson::kObjectType);
+    rapidjson::Value deviceObj(rapidjson::kObjectType);
     deviceObj.AddMember("type", static_cast<int>(device->GetType()), allocator);
     deviceObj.AddMember("id", static_cast<int>(device->GetId()), allocator);
 
-    MemConsciousDocument extraConfig = device->GetExtraConfig();
+    rapidjson::Document extraConfig = device->GetExtraConfig();
     if (!extraConfig.IsNull()) {
       configDocs.push_back(std::move(extraConfig));
       deviceObj.AddMember("config", configDocs.back(), allocator);
@@ -65,7 +65,7 @@ std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
   if (content.empty())
     return devices;
 
-  MemConsciousDocument doc;
+  rapidjson::Document doc;
   doc.Parse(content.c_str());
 
   if (!doc.IsArray())
@@ -98,7 +98,7 @@ std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
       }
 
       if (device) {
-        MemConsciousDocument configDoc;
+        rapidjson::Document configDoc;
         configDoc.CopyFrom(configObj, configDoc.GetAllocator());
         device->SetExtraConfig(configDoc);
       }
@@ -112,8 +112,8 @@ std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
   return devices;
 }
 
-std::shared_ptr<IDevice> ActiveDeviceConfig::createHomeAssistDevice(const MemConciousValue &aActiveDeviceJsonConfigMember) {
-  MemConsciousDocument configDoc;
+std::shared_ptr<IDevice> ActiveDeviceConfig::createHomeAssistDevice(const rapidjson::Value &aActiveDeviceJsonConfigMember) {
+  rapidjson::Document configDoc;
   configDoc.CopyFrom(aActiveDeviceJsonConfigMember, configDoc.GetAllocator());
   // Check Config for entityId to build HA Device
   if (configDoc.HasMember("entityId") && configDoc["entityId"].IsString()) {
@@ -125,7 +125,7 @@ std::shared_ptr<IDevice> ActiveDeviceConfig::createHomeAssistDevice(const MemCon
   return nullptr;
 }
 
-std::shared_ptr<IDevice> ActiveDeviceConfig::createJsonDevice(const MemConciousValue &aActiveDeviceJsonConfigMember) {
+std::shared_ptr<IDevice> ActiveDeviceConfig::createJsonDevice(const rapidjson::Value &aActiveDeviceJsonConfigMember) {
   if (!aActiveDeviceJsonConfigMember.HasMember("file_path") ||
       !aActiveDeviceJsonConfigMember["file_path"].IsString()) {
     return nullptr;

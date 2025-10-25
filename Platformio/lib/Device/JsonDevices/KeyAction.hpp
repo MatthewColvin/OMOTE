@@ -9,7 +9,7 @@
 class KeyAction {
 public:
   KeyAction() = default;
-  KeyAction(const MemConciousValue &aKeyPressBehaviorJson);
+  KeyAction(const rapidjson::Value &aKeyPressBehaviorJson);
   virtual ~KeyAction() = default;
 
   void ExecuteAction(KeyPressAbstract::KeyEvent::Type aKeyEventType);

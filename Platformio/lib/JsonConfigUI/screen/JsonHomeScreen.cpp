@@ -70,7 +70,7 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (d.Parse(content.c_str()).HasParseError())
     return;
 
@@ -125,7 +125,7 @@ bool JsonHomeScreen::checkSceneForEntryExit(const std::string &aFileName) {
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
     return false; // file error, nothing to do
 
@@ -153,7 +153,7 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
     return; // file error, nothing to do
 

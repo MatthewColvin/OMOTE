@@ -31,7 +31,7 @@ public:
   DeviceId GetId() const override;
 
   // Data used on bootup to restore json device
-  MemConsciousDocument GetExtraConfig() const override;
+  rapidjson::Document GetExtraConfig() const override;
 
   // Interaction handlers
   bool HandleKeyEvent(KeyPressAbstract::KeyEvent event) override;
@@ -40,9 +40,9 @@ public:
   bool isValid() const;
 
 protected:
-  ParseResult parse(const MemConsciousDocument &aJson);
-  bool parseGeneralInfo(const MemConsciousDocument &aJson);
-  bool parseKeyActions(const MemConciousValue &aKeysJson);
+  ParseResult parse(const rapidjson::Document &aJson);
+  bool parseGeneralInfo(const rapidjson::Document &aJson);
+  bool parseKeyActions(const rapidjson::Value &aKeysJson);
 
 private:
   std::string mName;

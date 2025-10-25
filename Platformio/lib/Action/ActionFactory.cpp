@@ -1,5 +1,7 @@
 #include "ActionFactory.hpp"
+#include "ActionTypes.hpp"
 #include "HardwareFactory.hpp"
+#include "magic_enum.hpp"
 #include <filesystem>
 #include <fstream>
 
@@ -12,8 +14,12 @@ std::unique_ptr<IAction> ActionFactory::createAction(const rapidjson::Value &val
   const std::string name = value["name"].GetString();
   const auto &data = value["data"];
 
-  if (type == "IRAction") {
+  auto action = magic_enum::enum_cast<ActionTypes>(type);
+  switch (action.value_or(ActionTypes::INVALID)) {
+  case ActionTypes::IRAction:
     return createIRAction(name, data);
+  default:
+    return nullptr;
   }
 
   return nullptr;

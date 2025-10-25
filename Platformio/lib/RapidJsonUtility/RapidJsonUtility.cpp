@@ -8,30 +8,6 @@
 
 #include <fstream>
 
-void MemConciousAllocator::Free(void *aVal) {}
-
-void BuffDeleter::operator()(void *buffer) { free(buffer); }
-
-void *MemConciousAllocator::Malloc(size_t aSize) {
-  mBuffers.emplace_back(aSize);
-  return mBuffers.back().data();
-}
-
-void *MemConciousAllocator::Realloc(void *originalPtr, size_t originalSize,
-                                    size_t newSize) {
-  if (originalPtr == nullptr) {
-    return Malloc(newSize);
-  }
-  for (auto &buffer : mBuffers) {
-    if (originalPtr == buffer.data()) {
-      buffer.resize(newSize);
-      return buffer.data();
-    }
-  }
-  // Told us to realloc but didn't know about old buffer... bad
-  return nullptr;
-}
-
 std::string ToString(const rapidjson::Document &aDoc) {
   rapidjson::StringBuffer buff;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buff);

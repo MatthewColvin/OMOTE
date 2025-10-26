@@ -8,6 +8,7 @@
 // TODO: Add Error tracking via stateful enum since we do not have std::expected in C++20
 std::unique_ptr<IAction> ActionFactory::createAction(const rapidjson::Value &aProbableActionJson) {
   if (!mJsonValidator.IsAction(aProbableActionJson)) {
+    mLastError = CreationError::InvalidActionJson;
     return nullptr;
   }
   auto &actionJson = aProbableActionJson;
@@ -17,17 +18,21 @@ std::unique_ptr<IAction> ActionFactory::createAction(const rapidjson::Value &aPr
 
   auto actionType = magic_enum::enum_cast<ActionTypes>(type).value_or(ActionTypes::COUNT);
   if (actionType == ActionTypes::COUNT) {
+    mLastError = CreationError::UnknownActionType;
     return nullptr;
   }
   if (!mJsonValidator.IsDataValid(actionType, data)) {
+    mLastError = CreationError::InvalidActionData;
     return nullptr;
   }
   auto &actionCreator = mActionCreators[static_cast<uint16_t>(actionType)];
   if (!actionCreator) {
+    mLastError = CreationError::NoCreatorRegistered;
     return nullptr;
   }
   auto action = actionCreator(name, data);
   if (!action) {
+    mLastError = CreationError::ActionCreationFailed;
     return nullptr;
   }
 

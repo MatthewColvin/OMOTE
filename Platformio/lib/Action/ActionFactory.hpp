@@ -14,6 +14,13 @@ public:
   static constexpr auto MaxActionFileLength = 500;
   using ActionCreator = std::function<std::unique_ptr<IAction>(const std::string &aName, const rapidjson::Value &aDataJson)>;
 
+  enum class CreationError { None,
+                             InvalidActionJson,
+                             UnknownActionType,
+                             InvalidActionData,
+                             NoCreatorRegistered,
+                             ActionCreationFailed };
+
   /**
    * Register an Action Type with its schema and creator function
    * aSchemaJson - JSON Schema for validating action data portion of action json
@@ -41,8 +48,14 @@ public:
    */
   std::vector<std::unique_ptr<IAction>> getAllActions();
 
+  /**
+   * Get the last error that occurred during action creation
+   */
+  CreationError getLastError() const { return mLastError; }
+
 private:
   Validator mJsonValidator;
+  CreationError mLastError = CreationError::None;
 
   static inline std::array<ActionCreator, static_cast<uint16_t>(ActionTypes::COUNT)> mActionCreators;
 };

@@ -5,30 +5,33 @@
 #include <filesystem>
 #include <fstream>
 
-std::unique_ptr<IAction> ActionFactory::createAction(const rapidjson::Value &value) {
-  if (!mJsonValidator.IsAction(value)) {
+// TODO: Add Error tracking via stateful enum since we do not have std::expected in C++20
+std::unique_ptr<IAction> ActionFactory::createAction(const rapidjson::Value &aProbableActionJson) {
+  if (!mJsonValidator.IsAction(aProbableActionJson)) {
     return nullptr;
   }
-
-  const std::string type = value["type"].GetString();
-  const std::string name = value["name"].GetString();
-  const auto &data = value["data"];
+  auto &actionJson = aProbableActionJson;
+  const std::string type = actionJson["type"].GetString();
+  const std::string name = actionJson["name"].GetString();
+  const auto &data = actionJson["data"];
 
   auto actionType = magic_enum::enum_cast<ActionTypes>(type).value_or(ActionTypes::COUNT);
-  if (actionType == ActionTypes::COUNT || !mJsonValidator.IsDataValid(actionType, data)) {
+  if (actionType == ActionTypes::COUNT) {
+    return nullptr;
+  }
+  if (!mJsonValidator.IsDataValid(actionType, data)) {
+    return nullptr;
+  }
+  auto &actionCreator = mActionCreators[static_cast<uint16_t>(actionType)];
+  if (!actionCreator) {
+    return nullptr;
+  }
+  auto action = actionCreator(name, data);
+  if (!action) {
     return nullptr;
   }
 
-  return createAction(actionType, name, data);
-}
-
-std::unique_ptr<IAction> ActionFactory::createAction(ActionTypes aActionType, const std::string &aActionName, const rapidjson::Value &aValidatedData) {
-  switch (aActionType) {
-  case ActionTypes::IRAction:
-    std::make_unique<IRAction>(aActionName, aValidatedData["protocol"].GetString(), aValidatedData["data"].GetString());
-  default:
-    return nullptr;
-  }
+  return action;
 }
 
 std::unique_ptr<IAction> ActionFactory::createAction(const std::string &aActionName) {

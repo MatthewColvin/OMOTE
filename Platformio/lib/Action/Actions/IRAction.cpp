@@ -1,5 +1,5 @@
 #include "IRAction.hpp"
-#include "Validator.hpp"
+#include "ActionFactory.hpp"
 #include "magic_enum.hpp"
 
 static constexpr auto irDataSchema = R"({
@@ -11,8 +11,12 @@ static constexpr auto irDataSchema = R"({
         }
       })";
 
-const auto schemaRegistered = Validator::Register(
-    ActionTypes::IRAction, irDataSchema);
+const auto mIRActionRegistered = ActionFactory::Register(
+    ActionTypes::IRAction,
+    irDataSchema,
+    [](const std::string &aActionName, const rapidjson::Value &aDataJson) {
+      return std::make_unique<IRAction>(aActionName, aDataJson["protocol"].GetString(), aDataJson["data"].GetString());
+    });
 
 IRAction::IRAction(const std::string &aName, const std::string &aProtocol, const std::string &aHexData)
     : IAction(aName) {

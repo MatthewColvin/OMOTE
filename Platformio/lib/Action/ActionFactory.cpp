@@ -14,27 +14,21 @@ std::unique_ptr<IAction> ActionFactory::createAction(const rapidjson::Value &val
   const std::string name = value["name"].GetString();
   const auto &data = value["data"];
 
-  auto action = magic_enum::enum_cast<ActionTypes>(type);
-  switch (action.value_or(ActionTypes::INVALID)) {
+  auto actionType = magic_enum::enum_cast<ActionTypes>(type).value_or(ActionTypes::COUNT);
+  if (actionType == ActionTypes::COUNT || !mJsonValidator.IsDataValid(actionType, data)) {
+    return nullptr;
+  }
+
+  return createAction(actionType, name, data);
+}
+
+std::unique_ptr<IAction> ActionFactory::createAction(ActionTypes aActionType, const std::string &aActionName, const rapidjson::Value &aValidatedData) {
+  switch (aActionType) {
   case ActionTypes::IRAction:
-    return createIRAction(name, data);
+    std::make_unique<IRAction>(aActionName, aValidatedData["protocol"].GetString(), aValidatedData["data"].GetString());
   default:
     return nullptr;
   }
-
-  return nullptr;
-}
-
-std::unique_ptr<IRAction> ActionFactory::createIRAction(const std::string &aName,
-                                                        const rapidjson::Value &aData) {
-  if (!aData.HasMember("protocol") || !aData.HasMember("data")) {
-    return nullptr;
-  }
-
-  const std::string protocol = aData["protocol"].GetString();
-  const std::string hexData = aData["data"].GetString();
-
-  return std::make_unique<IRAction>(aName, protocol, hexData);
 }
 
 std::unique_ptr<IAction> ActionFactory::createAction(const std::string &aActionName) {

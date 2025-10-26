@@ -1,4 +1,5 @@
 #pragma once
+#include "ActionTypes.hpp"
 #include "IAction.hpp"
 #include "IRAction.hpp"
 #include "RapidJsonUtilty.hpp"
@@ -32,6 +33,10 @@ public:
   std::vector<std::unique_ptr<IAction>> getAllActions();
 
 private:
-  std::unique_ptr<IRAction> createIRAction(const std::string &aName, const rapidjson::Value &aData);
+  /**
+   *  Preconditions: aValidatedData has been validated for the given ActionType schema
+   */
+  std::unique_ptr<IAction> createAction(ActionTypes aActionType, const std::string &aActionName, const rapidjson::Value &aValidatedData);
+
   Validator mJsonValidator;
 };

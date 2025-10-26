@@ -1,5 +1,18 @@
 #include "IRAction.hpp"
+#include "Validator.hpp"
 #include "magic_enum.hpp"
+
+static constexpr auto irDataSchema = R"({
+        "type": "object",
+        "required": ["protocol", "data"],
+        "properties": {
+          "protocol": { "type": "string" },
+          "data": { "type": "string" }
+        }
+      })";
+
+const auto schemaRegistered = Validator::Register(
+    ActionTypes::IRAction, irDataSchema);
 
 IRAction::IRAction(const std::string &aName, const std::string &aProtocol, const std::string &aHexData)
     : IAction(aName) {

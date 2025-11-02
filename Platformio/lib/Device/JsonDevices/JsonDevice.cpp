@@ -90,7 +90,8 @@ rapidjson::Document JsonDevice::GetExtraConfig() const {
   extraInfo.SetObject();
 
   rapidjson::Value filePath;
-  filePath.SetString(mFilePath.c_str(), alloc);
+  const char *filePathStr = mFilePath.c_str();
+  filePath.SetString(filePathStr, alloc);
 
   extraInfo.AddMember("file_path", filePath, alloc);
 

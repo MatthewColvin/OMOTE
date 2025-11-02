@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 
+// Responsible for mapping a Key Press EVENT to an action for a single key
 class KeyAction {
 public:
   KeyAction() = default;

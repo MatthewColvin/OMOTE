@@ -2,6 +2,7 @@
 #include "ActionFactory.hpp"
 #include "magic_enum.hpp"
 
+// TODO replace manual validation with json schema validation
 KeyAction::KeyAction(const rapidjson::Value &aKeyPressBehaviorJson) {
   ActionFactory factory;
   for (auto KeyIdEnum : magic_enum::enum_values<KeyPressAbstract::KeyEvent::Type>()) {

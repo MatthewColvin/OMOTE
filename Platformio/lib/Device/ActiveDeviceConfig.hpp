@@ -21,7 +21,7 @@ public:
   std::vector<IDevice::Ptr> loadDevices();
 
 private:
-  static constexpr auto ACTIVE_DEVICES_CONFIG_FILE = "/activeDevices.json";
+  static constexpr auto ACTIVE_DEVICES_CONFIG_FILE = FS_PATH "activeDevices.json";
   DeviceFactory &mFactory;
 
   Handler<ActiveDevices::ListEvent> mSaveOnChangeHandler;

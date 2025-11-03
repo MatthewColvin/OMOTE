@@ -29,14 +29,14 @@ IDevice::Ptr DeviceFactory::CreateHomeAssistDevice(const std::string &aEntityStr
   return mHomeAssistFactory->Create(aEntityString);
 }
 
-IDevice::Ptr DeviceFactory::CreateJsonDevice(const std::string &aDeviceJsonFilePath) {
+IDevice::Ptr DeviceFactory::CreateJsonDevice(const std::filesystem::path &aDeviceJsonFilePath) {
   if (!mJsonFactory) {
     return nullptr;
   }
   return mJsonFactory->Create(aDeviceJsonFilePath);
 }
 
-std::vector<std::shared_ptr<IDevice>> DeviceFactory::getJsonDevices(std::string aDevicesDirectory) {
+std::vector<std::shared_ptr<IDevice>> DeviceFactory::getJsonDevices(const std::filesystem::path &aDevicesDirectory) {
   if (mJsonFactory) {
     return mJsonFactory->getDevices(aDevicesDirectory);
   }

@@ -19,7 +19,7 @@ public:
   IDevice::Ptr Create(const std::filesystem::path &aDeviceFile);
 
   // Given a Directory path, loop over files that define devices and return them
-  std::vector<std::shared_ptr<IDevice>> getDevices(const std::filesystem::path &aDevicesDirectory = "/Devices");
+  std::vector<std::shared_ptr<IDevice>> getDevices(const std::filesystem::path &aDevicesDirectory = FS_PATH "Devices");
 };
 
 } // namespace Json

@@ -1,8 +1,28 @@
 #include "IRAction.hpp"
+#include "ActionFactory.hpp"
 #include "magic_enum.hpp"
 
+static constexpr auto irDataSchema = R"({
+        "type": "object",
+        "required": ["protocol", "data"],
+        "properties": {
+          "protocol": { "type": "string" },
+          "data": { "type": "string" }
+        }
+      })";
+
+const auto mIRActionRegistered = ActionFactory::Register(
+    ActionTypes::IRAction,
+    irDataSchema,
+    [](const std::string &aActionName, const rapidjson::Value &aDataJson) {
+      return std::make_unique<IRAction>(aActionName, aDataJson["protocol"].GetString(), aDataJson["data"].GetString());
+    });
+
 IRAction::IRAction(const std::string &aName, const std::string &aProtocol, const std::string &aHexData)
-    : IAction(aName) {}
+    : IAction(aName) {
+  auto protocol = getProtocol(aProtocol);
+  getData(protocol, aHexData);
+}
 
 void IRAction::execute() {
   auto &hardware = HardwareFactory::getAbstract();

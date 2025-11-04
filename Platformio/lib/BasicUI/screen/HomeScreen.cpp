@@ -16,19 +16,12 @@ HomeScreen::HomeScreen(DeviceFactory &aFactory)
     : Base(UI::ID::Screens::Home),
       mFactory(aFactory),
       mStatusBar(AddNewElement<Widget::StatusBar>(mFactory)),
-      mTabView(AddNewElement<Page::TabView>(ID(ID::Pages::INVALID_PAGE_ID))) {
+      mTabView(AddNewElement<Page::TabView>(ID(ID::Pages::HomeScreenTabView))) {
   SetBgColor(UI::Color::BLACK);
   SetPushAnimation(LV_SCR_LOAD_ANIM_FADE_IN);
 
-  static constexpr auto ContentHeight =
-      SCREEN_HEIGHT - Widget::StatusBar::Height;
   mTabView->SetHeight(ContentHeight);
   mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
-
-  // Adds pages to the Tab view
-  // mTabView->AddTab(std::make_unique<Page::IrLearner>());
-  mTabView->AddTab(std::make_unique<Page::Demo>());
-  mTabView->AddTab(std::make_unique<Page::Heating>(HardwareFactory::getAbstract().wifi()));
 }
 
 void HomeScreen::AddPage(Page::Base::Ptr aPage) {
@@ -43,3 +36,11 @@ void HomeScreen::SetBgColor(lv_color_t value, lv_part_t selector) {
 bool HomeScreen::OnKeyEvent(KeyPressAbstract::KeyEvent aKeyEvent) {
   return false;
 };
+
+std::unique_ptr<UI::Page::TabView> HomeScreen::SwapTabView(std::unique_ptr<UI::Page::TabView> aNewTabView) {
+  auto oldTabView = RemoveElement(mTabView);
+  mTabView = AddElement(std::move(aNewTabView));
+  mTabView->SetHeight(ContentHeight);
+  mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
+  return std::unique_ptr<UI::Page::TabView>(static_cast<UI::Page::TabView *>(oldTabView.release()));
+}

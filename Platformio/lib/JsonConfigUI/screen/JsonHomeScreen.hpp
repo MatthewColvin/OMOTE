@@ -55,11 +55,9 @@ private:
 
   Handler<std::string> mSceneChangeHandler;
 
-  // Page::TabView *mTabView;
   Widget::StatusBar *mStatusBar;
   Widget::List *mList;
   Page::TabView *mTabView;
-  // Screen::JsonTabView *mSceneTabViewScreen = nullptr;
   std::vector<Command::CommandStruct> mExitCommands;
   std::string mLastScene;
   std::string mLastStartSeq;

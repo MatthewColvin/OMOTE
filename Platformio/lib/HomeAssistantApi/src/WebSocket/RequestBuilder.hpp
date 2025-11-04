@@ -70,12 +70,12 @@ namespace RequestTypes {
 
 class TriggerBuilder {
 public:
-  TriggerBuilder(MemConsciousDocument::AllocatorType &aAllocator)
+  TriggerBuilder(rapidjson::Document::AllocatorType &aAllocator)
       : mTrigger(rapidjson::kObjectType), mAllocator(aAllocator) {}
 
   TriggerBuilder &SetPlatform(const std::string &aPlatform) {
     mTrigger.AddMember(
-        "platform", MemConciousValue().SetString(aPlatform.c_str(), mAllocator),
+        "platform", rapidjson::Value().SetString(aPlatform.c_str(), mAllocator),
         mAllocator);
     return *this;
   }
@@ -83,7 +83,7 @@ public:
   TriggerBuilder &SetEntityId(const std::string &aEntityId) {
     mTrigger.AddMember(
         "entity_id",
-        MemConciousValue().SetString(aEntityId.c_str(), mAllocator),
+        rapidjson::Value().SetString(aEntityId.c_str(), mAllocator),
         mAllocator);
     return *this;
   }
@@ -91,7 +91,7 @@ public:
   TriggerBuilder &SetFromState(const std::string &aFrom) {
     if (!aFrom.empty()) {
       mTrigger.AddMember(
-          "from", MemConciousValue().SetString(aFrom.c_str(), mAllocator),
+          "from", rapidjson::Value().SetString(aFrom.c_str(), mAllocator),
           mAllocator);
     }
     return *this;
@@ -100,17 +100,17 @@ public:
   TriggerBuilder &SetToState(const std::string &aTo) {
     if (!aTo.empty()) {
       mTrigger.AddMember("to",
-                         MemConciousValue().SetString(aTo.c_str(), mAllocator),
+                         rapidjson::Value().SetString(aTo.c_str(), mAllocator),
                          mAllocator);
     }
     return *this;
   }
 
-  MemConciousValue Build() { return std::move(mTrigger); }
+  rapidjson::Value Build() { return std::move(mTrigger); }
 
 private:
-  MemConciousValue mTrigger;
-  MemConsciousDocument::AllocatorType &mAllocator;
+  rapidjson::Value mTrigger;
+  rapidjson::Document::AllocatorType &mAllocator;
 };
 
 class RequestBuilder {
@@ -135,8 +135,8 @@ public:
       const std::string &aTo);
 
 private:
-  MemConsciousDocument mDocument;
-  MemConsciousDocument::AllocatorType &mAllocator;
+  rapidjson::Document mDocument;
+  rapidjson::Document::AllocatorType &mAllocator;
 };
 
 inline RequestBuilder::RequestBuilder()
@@ -144,7 +144,7 @@ inline RequestBuilder::RequestBuilder()
 
 inline RequestBuilder &RequestBuilder::SetType(const std::string &aType) {
   mDocument.AddMember("type",
-                      MemConciousValue().SetString(aType.c_str(), mAllocator),
+                      rapidjson::Value().SetString(aType.c_str(), mAllocator),
                       mAllocator);
   return *this;
 }
@@ -156,32 +156,32 @@ inline RequestBuilder &RequestBuilder::SetId(int aId) {
 
 inline RequestBuilder &RequestBuilder::AddField(const std::string &aKey,
                                                 const std::string &aValue) {
-  mDocument.AddMember(MemConciousValue().SetString(aKey.c_str(), mAllocator),
-                      MemConciousValue().SetString(aValue.c_str(), mAllocator),
+  mDocument.AddMember(rapidjson::Value().SetString(aKey.c_str(), mAllocator),
+                      rapidjson::Value().SetString(aValue.c_str(), mAllocator),
                       mAllocator);
   return *this;
 }
 
 inline RequestBuilder &RequestBuilder::AddField(const std::string &aKey,
                                                 int aValue) {
-  mDocument.AddMember(MemConciousValue().SetString(aKey.c_str(), mAllocator),
+  mDocument.AddMember(rapidjson::Value().SetString(aKey.c_str(), mAllocator),
                       aValue, mAllocator);
   return *this;
 }
 
 inline RequestBuilder &RequestBuilder::AddField(const std::string &aKey,
                                                 bool aValue) {
-  mDocument.AddMember(MemConciousValue().SetString(aKey.c_str(), mAllocator),
+  mDocument.AddMember(rapidjson::Value().SetString(aKey.c_str(), mAllocator),
                       aValue, mAllocator);
   return *this;
 }
 
 inline RequestBuilder &RequestBuilder::AddTargetEntity(
     const std::string &aEntityId) {
-  MemConciousValue targetEntity;
+  rapidjson::Value targetEntity;
   targetEntity.SetString(aEntityId.c_str(), mAllocator);
 
-  MemConciousValue targetObject;
+  rapidjson::Value targetObject;
   targetObject.SetObject();
   targetObject.AddMember("entity_id", targetEntity, mAllocator);
   mDocument.AddMember("target", targetObject, mAllocator);

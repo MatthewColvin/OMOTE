@@ -10,7 +10,7 @@ public:
   enum class EntityType { Unknown,
                           Light };
 
-  Attributes(EntityType aEntityType, const MemConciousValue &aAttributeVal);
+  Attributes(EntityType aEntityType, const rapidjson::Value &aAttributeVal);
   ~Attributes();
 
   Light *BorrowLight();

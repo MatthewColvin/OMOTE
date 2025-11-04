@@ -15,7 +15,7 @@ ResponseHandler::ResponseHandler(Api &aApi)
       mApi(aApi) {}
 
 bool ResponseHandler::ProcessResponseDoc(
-    const MemConsciousDocument &aDocFromSocket) {
+    const rapidjson::Document &aDocFromSocket) {
   // auto prettyDebugString = ToPrettyString(aDocFromSocket);
   // HardwareFactory::getAbstract().debugPrint("%s", prettyDebugString.c_str());
 
@@ -32,7 +32,7 @@ bool ResponseHandler::ProcessResponseDoc(
 }
 
 bool ResponseHandler::HandleRedirectToChunkProcessor(
-    const MemConsciousDocument &aDoc) {
+    const rapidjson::Document &aDoc) {
   if (aDoc.HasMember("id") && aDoc["id"].IsInt()) {
     auto sessionId = aDoc["id"].GetInt();
     if (auto &session = mApi.mSessions[sessionId]; session) {

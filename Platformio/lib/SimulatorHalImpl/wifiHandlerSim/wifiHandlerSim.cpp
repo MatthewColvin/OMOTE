@@ -236,7 +236,7 @@ void wifiHandlerSim::restoreCredentials() {
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   d.Parse(content.c_str());
 
   if (d.HasMember("enabled"))

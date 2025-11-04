@@ -1,6 +1,7 @@
 #include "JsonHomeScreen.hpp"
 
 #include "ActionTester.hpp"
+#include "AddDevice.hpp"
 #include "HardwareFactory.hpp"
 #include "JsonPage.hpp"
 #include "ScreenManager.hpp"
@@ -44,6 +45,8 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   // Bring up immediately as main screen, backlight fade in provides equivalent to fade animation
   // otherwise combined fade in and backlight fade can cause odd effect at some brightensses
   SetPushAnimation(LV_SCR_LOAD_ANIM_NONE);
+  // Init Factory to allow building of Json devices
+  aFactory.InitJsonFactory();
 
   mSceneChangeHandler.SetNotification(mStatusBar->GetSceneChangeNotification());
   mSceneChangeHandler = [this](std::string aNewScene) { GoToSceneSelection(aNewScene); };
@@ -67,27 +70,28 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (d.Parse(content.c_str()).HasParseError())
     return;
 
   if (d.HasMember("Scenes")) {
     for (rapidjson::SizeType i = 0; i < d["Scenes"].Size(); i++) {
-      if (d["Scenes"][i].HasMember("FileName") && d["Scenes"][i]["FileName"].IsString()) {
-        std::string fileName = d["Scenes"][i]["FileName"].GetString();
+      auto &scene = d["Scenes"][i];
+      if (scene.HasMember("FileName") && scene["FileName"].IsString()) {
+        std::string fileName = scene["FileName"].GetString();
         std::string sceneName;
-        if (d["Scenes"][i].HasMember("SceneName") && d["Scenes"][i]["SceneName"].IsString())
-          sceneName = d["Scenes"][i]["SceneName"].GetString();
+        if (scene.HasMember("SceneName") && scene["SceneName"].IsString())
+          sceneName = scene["SceneName"].GetString();
         else
           sceneName = fileName;
 
         auto symbol = checkSceneForEntryExit(fileName) ? LV_SYMBOL_WIFI : LV_SYMBOL_MINUS;
         mList->AddItem(sceneName, symbol, [this, fileName] { displayScenePage(fileName, false); });
 
-        if (d["Scenes"][i].HasMember("BindToKey") && d["Scenes"][i]["BindToKey"].IsString()) {
-          if (d["Scenes"][i].HasMember("PressType") && d["Scenes"][i]["PressType"].IsString()) {
-            auto id = magic_enum::enum_cast<KeyIds>(d["Scenes"][i]["BindToKey"].GetString());
-            auto type = magic_enum::enum_cast<KeyPressTypes>(d["Scenes"][i]["PressType"].GetString());
+        if (scene.HasMember("BindToKey") && scene["BindToKey"].IsString()) {
+          if (scene.HasMember("PressType") && scene["PressType"].IsString()) {
+            auto id = magic_enum::enum_cast<KeyIds>(scene["BindToKey"].GetString());
+            auto type = magic_enum::enum_cast<KeyPressTypes>(scene["PressType"].GetString());
             if (id.has_value() && type.has_value())
               mSceneKeyHandlers.insert({id.value(), {type.value(), fileName}});
           }
@@ -100,6 +104,15 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
     // Serial.printf("Restoring scene from: %s\r\n", RtcLastState.currentScene);
     displayScenePage(RtcLastState.currentScene, true);
   } // else Serial.println("RTC sig invalid");
+
+  mStatusBar->AddDebugSettingItem({"Test Actions", LV_SYMBOL_LIST, [this] {
+                                     return std::make_unique<UI::Page::ActionTester>();
+                                   }});
+
+  mStatusBar->AddDebugSettingItem({"Add Json Device", LV_SYMBOL_EDIT, [this] {
+                                     auto jsonDevices = mFactory.getJsonDevices();
+                                     return std::make_unique<UI::Page::AddDevice>(mFactory.getActiveDevices(), jsonDevices);
+                                   }});
 }
 
 bool JsonHomeScreen::checkSceneForEntryExit(const std::string &aFileName) {
@@ -112,7 +125,7 @@ bool JsonHomeScreen::checkSceneForEntryExit(const std::string &aFileName) {
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
     return false; // file error, nothing to do
 
@@ -140,7 +153,7 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
     return; // file error, nothing to do
 

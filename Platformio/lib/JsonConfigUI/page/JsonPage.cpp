@@ -24,7 +24,7 @@ JsonPage::JsonPage(std::string aFileName, std::string aPageName, std::string aCo
   file.close();
   std::string content(buffer.str());
 
-  MemConsciousDocument d;
+  rapidjson::Document d;
   if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
     return;
 
@@ -92,7 +92,7 @@ JsonPage::~JsonPage() {
   }
 }
 
-void JsonPage::addTitle(const std::string &aCommandPrefix, const MemConciousValue &value, std::string aPageName) {
+void JsonPage::addTitle(const std::string &aCommandPrefix, const rapidjson::Value &value, std::string aPageName) {
   auto title = std::make_unique<Widget::Label>(aPageName);
   if (value.HasMember("HeightPct") && value["HeightPct"].IsUint())
     title->SetHeight(lv_pct(value["HeightPct"].GetUint()));
@@ -107,7 +107,7 @@ void JsonPage::addTitle(const std::string &aCommandPrefix, const MemConciousValu
   mWidgets.push_back(AddElement(std::move(title)));
 }
 
-void JsonPage::addLabel(const std::string &aCommandPrefix, const MemConciousValue &value) {
+void JsonPage::addLabel(const std::string &aCommandPrefix, const rapidjson::Value &value) {
   auto label = std::make_unique<Widget::Label>("");
   if (value.HasMember("Text") && value["Text"].IsString())
     label->SetText(value["Text"].GetString());
@@ -140,7 +140,7 @@ void JsonPage::addLabel(const std::string &aCommandPrefix, const MemConciousValu
   mWidgets.push_back(AddElement(std::move(label)));
 }
 
-void JsonPage::addButton(const std::string &aCommandPrefix, const MemConciousValue &value) {
+void JsonPage::addButton(const std::string &aCommandPrefix, const rapidjson::Value &value) {
   if (value.HasMember("Command") && value["Command"].IsString() && !mCommandFile.empty()) {
     Command::CommandStruct commandStruct;
     auto actionProto = Command::Commands::getCommand(mCommandFile, aCommandPrefix, value["Command"].GetString(), commandStruct);
@@ -171,7 +171,7 @@ void JsonPage::addButton(const std::string &aCommandPrefix, const MemConciousVal
   }
 }
 
-void JsonPage::addImage(const MemConciousValue &value) {
+void JsonPage::addImage(const rapidjson::Value &value) {
   if (value.HasMember("FileName") && value["FileName"].IsString()) {
     std::string file = value["FileName"].GetString();
     auto image = std::make_unique<Widget::Image>(file.c_str());
@@ -194,7 +194,7 @@ void JsonPage::addImage(const MemConciousValue &value) {
   }
 }
 
-void JsonPage::addColorButtons(const std::string &aCommandPrefix, const MemConciousValue &value) {
+void JsonPage::addColorButtons(const std::string &aCommandPrefix, const rapidjson::Value &value) {
   if (value.HasMember("Command") && value["Command"].IsArray() && !mCommandFile.empty()) {
     std::vector<Command::CommandStruct> commandStructs;
     for (rapidjson::SizeType i = 0; i < value["Command"].Size(); i++) {
@@ -218,7 +218,7 @@ void JsonPage::addColorButtons(const std::string &aCommandPrefix, const MemConci
   }
 }
 
-void JsonPage::addNumberPad(const std::string &aCommandPrefix, const MemConciousValue &value) {
+void JsonPage::addNumberPad(const std::string &aCommandPrefix, const rapidjson::Value &value) {
   if (value.HasMember("Command") && value["Command"].IsArray() && !mCommandFile.empty()) {
     std::vector<Command::CommandStruct> commandStructs;
     for (rapidjson::SizeType i = 0; i < value["Command"].Size(); i++) {
@@ -242,7 +242,7 @@ void JsonPage::addNumberPad(const std::string &aCommandPrefix, const MemConcious
   }
 }
 
-void JsonPage::getKeyOverrides(const MemConciousValue &value, std::multimap<Command::KeyIds, Command::KeyStruct> &aKeyHandlers) {
+void JsonPage::getKeyOverrides(const rapidjson::Value &value, std::multimap<Command::KeyIds, Command::KeyStruct> &aKeyHandlers) {
   if (value.IsArray()) {
     for (rapidjson::SizeType i = 0; i < value.Size(); i++) {
       if (value[i].IsString()) {

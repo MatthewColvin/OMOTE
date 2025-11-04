@@ -49,7 +49,7 @@ public:
     rapidjson::ParseResult mParseResult{};
   };
 
-  using DocumentProccessor = std::function<bool(const MemConsciousDocument &)>;
+  using DocumentProccessor = std::function<bool(const rapidjson::Document &)>;
 
   IProcessMessage();
   IProcessMessage(DocumentProccessor aProccessor = nullptr,
@@ -70,7 +70,7 @@ public:
   size_t GetMaxProcessBufferSize() const;
 
 protected:
-  bool ProcessDocument(const MemConsciousDocument &aRecievedDocument);
+  bool ProcessDocument(const rapidjson::Document &aRecievedDocument);
   size_t GetUnProcessedBufferCapacity();
 
 private:

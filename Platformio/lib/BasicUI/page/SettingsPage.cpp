@@ -20,16 +20,18 @@
 using namespace UI::Page;
 using namespace UI::Color;
 
+static constexpr auto SettingItemHeight = 45;
+
 SettingsPage::SettingsPage()
     : Base(ID::Pages::Settings), mSettingsList(AddNewElement<Widget::List>()) {
 
-  mSettingsList->AddItem("Backlight", LV_SYMBOL_SETTINGS, [this] { PushDisplaySettings(); }, mHeight);
+  mSettingsList->AddItem("Backlight", LV_SYMBOL_SETTINGS, [this] { PushDisplaySettings(); }, SettingItemHeight);
   mSettingsList->AddItem("Sleep", LV_SYMBOL_POWER, [this] { PushSystemSettings(); }, mHeight);
-  mSettingsList->AddItem("Wifi", LV_SYMBOL_WIFI, [this] { PushWifiSettings(); }, mHeight);
-  mSettingsList->AddItem("MQTT", LV_SYMBOL_HOME, [this] { PushMqttSettings(); }, mHeight);
-  mSettingsList->AddItem("NTP", LV_SYMBOL_REFRESH, [this] { PushNtpSettings(); }, mHeight);
-  mSettingsList->AddItem("FTP", LV_SYMBOL_DIRECTORY, [this] { PushFtpSettings(); }, mHeight);
-  mSettingsList->AddItem("Logging", LV_SYMBOL_LIST, [this] { PushLoggingSettings(); }, mHeight);
+  mSettingsList->AddItem("Wifi", LV_SYMBOL_WIFI, [this] { PushWifiSettings(); }, SettingItemHeight);
+  mSettingsList->AddItem("MQTT", LV_SYMBOL_HOME, [this] { PushMqttSettings(); }, SettingItemHeight);
+  mSettingsList->AddItem("NTP", LV_SYMBOL_REFRESH, [this] { PushNtpSettings(); }, SettingItemHeight);
+  mSettingsList->AddItem("FTP", LV_SYMBOL_DIRECTORY, [this] { PushFtpSettings(); }, SettingItemHeight);
+  mSettingsList->AddItem("Logging", LV_SYMBOL_LIST, [this] { PushLoggingSettings(); }, SettingItemHeight);
   mSettingsList->AddItem("Battery", LV_SYMBOL_BATTERY_3, [this] { PushLearnBattery(); }, mHeight);
   mSettingsList->AddItem("IR Receiver", LV_SYMBOL_EYE_OPEN, [this] { PushIrReader(); }, mHeight);
 }
@@ -39,7 +41,7 @@ void SettingsPage::AddSettingItem(std::string aTitle, const char *aSymbol,
   mSettingsList->AddItem(aTitle, aSymbol, [aPageGetter] {
     if (auto page = aPageGetter(); page) {
       UI::Screen::Manager::getInstance().pushPopUp(std::move(page));
-    } }, mHeight);
+    } }, SettingItemHeight);
 }
 
 void SettingsPage::PushDisplaySettings() {

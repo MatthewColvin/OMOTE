@@ -94,7 +94,11 @@
         "lv_sdl_private.h": "c",
         "*.inc": "cpp",
         "netfwd": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "cassert": "cpp",
+        "cerrno": "cpp",
+        "cfloat": "cpp",
+        "climits": "cpp"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/.pio/libdeps/esp32/Adafruit BusIO",
     "editor.formatOnSave": true,

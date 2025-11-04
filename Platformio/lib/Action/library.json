@@ -16,7 +16,8 @@
     "build": {
         "includeDir": ".",
         "flags": [
-            "-I Actions"
+            "-I Actions",
+            "-I Validation"
         ]
     },
     "frameworks": "*",

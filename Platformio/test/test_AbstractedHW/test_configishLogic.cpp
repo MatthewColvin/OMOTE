@@ -67,7 +67,7 @@ TEST_F(TestHardwareLittleFs, AppendToFile) {
 TEST_F(TestHardwareLittleFs, CreateAndVerifyConfig) {
 
   // Create test config document
-  MemConsciousDocument doc;
+  rapidjson::Document doc;
   doc.SetObject();
   auto &allocator = doc.GetAllocator();
 
@@ -87,13 +87,13 @@ TEST_F(TestHardwareLittleFs, CreateAndVerifyConfig) {
   doc.AddMember("name", "TestDevice", allocator);
   doc.AddMember("version", 1, allocator);
 
-  MemConciousValue settings(rapidjson::kObjectType);
+  rapidjson::Value settings(rapidjson::kObjectType);
   settings.AddMember("enabled", true, allocator);
   settings.AddMember("interval", 1000, allocator);
   settings.AddMember("threshold", 3.14, allocator);
   doc.AddMember("settings", settings, allocator);
 
-  MemConciousValue tags(rapidjson::kArrayType);
+  rapidjson::Value tags(rapidjson::kArrayType);
   tags.PushBack("test", allocator);
   tags.PushBack("debug", allocator);
   doc.AddMember("tags", tags, allocator);
@@ -119,7 +119,7 @@ TEST_F(TestHardwareLittleFs, CreateAndVerifyConfig) {
   EXPECT_EQ(readData, aConfigString);
 
   // Parse and verify content
-  MemConsciousDocument readDoc;
+  rapidjson::Document readDoc;
   readDoc.Parse(readData.c_str());
 
   EXPECT_TRUE(readDoc.HasMember("name"));

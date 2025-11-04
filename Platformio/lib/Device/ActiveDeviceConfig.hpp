@@ -21,8 +21,11 @@ public:
   std::vector<IDevice::Ptr> loadDevices();
 
 private:
-  static constexpr auto ACTIVE_DEVICES_CONFIG_FILE = "/devices.json";
+  static constexpr auto ACTIVE_DEVICES_CONFIG_FILE = FS_PATH "activeDevices.json";
   DeviceFactory &mFactory;
 
   Handler<ActiveDevices::ListEvent> mSaveOnChangeHandler;
+
+  std::shared_ptr<IDevice> createHomeAssistDevice(const rapidjson::Value &aActiveDeviceJsonConfigMember);
+  std::shared_ptr<IDevice> createJsonDevice(const rapidjson::Value &aActiveDeviceJsonConfigMember);
 };

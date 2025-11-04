@@ -13,6 +13,11 @@
     "dependencies": {
         "rapidjson": "https://github.com/MatthewColvin/rapidjson#master"
     },
+    "build": {
+        "flags": [
+            "-DRAPIDJSON_ALLOCATOR_DEFAULT_CHUNK_CAPACITY=1024"
+        ]
+    },
     "frameworks": "*",
     "platforms": "*"
 }

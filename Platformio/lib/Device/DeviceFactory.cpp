@@ -16,6 +16,10 @@ void DeviceFactory::InitHomeAssistFactory(HomeAssist::WebSocket::Api &aHaApi) {
   mHomeAssistFactory = std::make_unique<HomeAssist::HomeAssistDeviceFactory>(aHaApi);
 }
 
+void DeviceFactory::InitJsonFactory() {
+  mJsonFactory = std::make_unique<Json::JsonDeviceFactory>();
+}
+
 IDevice::Ptr DeviceFactory::CreateHomeAssistDevice(const std::string &aEntityString) {
   HardwareFactory::getAbstract().debugPrint("Attempting Creation of %s", aEntityString.c_str());
 
@@ -23,6 +27,20 @@ IDevice::Ptr DeviceFactory::CreateHomeAssistDevice(const std::string &aEntityStr
     return nullptr;
   }
   return mHomeAssistFactory->Create(aEntityString);
+}
+
+IDevice::Ptr DeviceFactory::CreateJsonDevice(const std::filesystem::path &aDeviceJsonFilePath) {
+  if (!mJsonFactory) {
+    return nullptr;
+  }
+  return mJsonFactory->Create(aDeviceJsonFilePath);
+}
+
+std::vector<std::shared_ptr<IDevice>> DeviceFactory::getJsonDevices(const std::filesystem::path &aDevicesDirectory) {
+  if (mJsonFactory) {
+    return mJsonFactory->getDevices(aDevicesDirectory);
+  }
+  return {};
 }
 
 void DeviceFactory::restoreFromConfig() {

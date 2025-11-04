@@ -20,13 +20,15 @@ public:
   ~StatusBar() override;
 
   void AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem);
+  void AddDebugSettingItem(UI::Page::SettingsPage::InjectedItem aItem);
+
   void SetTopButtonLabel(std::string aLabel);
 
   Notification<std::string>::Ptr GetSceneChangeNotification() { return mSceneChange; };
 
 private:
-  void SettingsPress();
-  void ActiveListPress();
+  void PushSettingsList(bool aWithDebug = false);
+  void PushActiveDeviceList();
   static void onTimer(_lv_timer_t *aTimer);
 
   DeviceFactory &mFactory;
@@ -35,6 +37,9 @@ private:
 
   std::vector<UI::Page::SettingsPage::InjectedItem>
       mExtraSettingsItems;
+
+  std::vector<UI::Page::SettingsPage::InjectedItem>
+      mDebugSettingsItems;
 
   lv_timer_t *mTimer = nullptr;
 

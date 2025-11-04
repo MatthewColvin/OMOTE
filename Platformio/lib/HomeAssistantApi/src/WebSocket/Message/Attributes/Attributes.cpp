@@ -5,7 +5,7 @@
 using namespace HomeAssist::WebSocket;
 
 Message::Attributes::Attributes(EntityType aEntityType,
-                                const MemConciousValue &aAttributeVal) {
+                                const rapidjson::Value &aAttributeVal) {
   switch (aEntityType) {
   case EntityType::Light:
     mLightAttributes = std::make_unique<Light>(aAttributeVal);

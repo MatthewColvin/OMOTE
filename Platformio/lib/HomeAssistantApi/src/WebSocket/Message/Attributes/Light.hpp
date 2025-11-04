@@ -14,7 +14,7 @@ public:
                           ColorTemp,
                           rgb };
 
-  Light(const MemConciousValue &aAttributeListVal);
+  Light(const rapidjson::Value &aAttributeListVal);
   ~Light();
 
   int GetBrightness();

@@ -21,8 +21,8 @@ StatusBar::StatusBar(DeviceFactory &aFactory)
       mTopBarBatteryLabel(AddNewElement<Widget::Label>("")),
       mTopBarWiFiLabel(AddNewElement<Widget::Label>("")),
       mTopBarGeneralLabel(AddNewElement<Widget::Label>("")),
-      mTopBarSettingsButton(AddNewElement<Widget::Button>([this] { SettingsPress(); })),
-      mTopBarActiveListButton(AddNewElement<Widget::Button>([this] { ActiveListPress(); })),
+      mTopBarSettingsButton(AddNewElement<Widget::Button>()),
+      mTopBarActiveListButton(AddNewElement<Widget::Button>()),
       mTopBarActiveListLabel(AddNewElement<Widget::Label>("Active List")) {
   SetHeight(Height);
   SetBgColor(UI::Color::BLACK);
@@ -57,6 +57,12 @@ StatusBar::StatusBar(DeviceFactory &aFactory)
   mTopBarGeneralLabel->BindTextEvent(GENERAL_STATUS, NULL);
 
   mTimer = lv_timer_create(StatusBar::onTimer, 100, this);
+
+  mTopBarActiveListButton->OnShortClick([this] { mSceneChange->notify("TheNewScene"); })
+      .OnLongHold([this] { PushActiveDeviceList(); });
+
+  mTopBarSettingsButton->OnShortClick([this] { PushSettingsList(); })
+      .OnLongHold([this] { PushSettingsList(true); });
 }
 
 StatusBar::~StatusBar() {
@@ -147,25 +153,32 @@ void StatusBar::AddExtraSettingItem(UI::Page::SettingsPage::InjectedItem aItem) 
   mExtraSettingsItems.push_back(aItem);
 }
 
+void StatusBar::AddDebugSettingItem(UI::Page::SettingsPage::InjectedItem aItem) {
+  mDebugSettingsItems.push_back(aItem);
+}
+
 void StatusBar::SetTopButtonLabel(std::string aLabel) {
   mTopBarActiveListLabel->SetText(aLabel);
 }
 
-void StatusBar::SettingsPress() {
+void StatusBar::PushSettingsList(const bool aWithDebug) {
   auto settings = std::make_unique<Page::SettingsPage>();
   for (auto &item : mExtraSettingsItems) {
     settings->AddSettingItem(std::get<0>(item), std::get<1>(item), std::get<2>(item));
+  }
+  if (aWithDebug) {
+    for (auto &item : mDebugSettingsItems) {
+      settings->AddSettingItem(std::get<0>(item), std::get<1>(item), std::get<2>(item));
+    }
   }
 
   UI::Screen::Manager::getInstance().pushPopUp(
       std::move(settings), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
 }
 
-void StatusBar::ActiveListPress() {
-  // UI::Screen::Manager::getInstance().pushPopUp(
-  //     std::make_unique<Page::ActiveDeviceList>(mFactory), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
-  //  Example of triggering handler to run using notify
-  mSceneChange->notify("TheNewScene");
+void StatusBar::PushActiveDeviceList() {
+  UI::Screen::Manager::getInstance().pushPopUp(
+      std::make_unique<Page::ActiveDeviceList>(mFactory), LV_SCR_LOAD_ANIM_OVER_BOTTOM);
 }
 
 } // namespace UI::Widget

@@ -58,6 +58,7 @@ public:
     ActiveDeviceList,
     AddDevicePage,
     ActionTesterPage,
+    HomeScreenTabView,
     INVALID_PAGE_ID
   };
 

@@ -16,8 +16,8 @@ public:
   DeviceType GetType() const override { return DeviceType::HomeAssist; }
   DeviceId GetId() const override { return DeviceId::None; }
 
-  MemConsciousDocument GetExtraConfig() const override;
-  void SetExtraConfig(const MemConsciousDocument &config) override;
+  rapidjson::Document GetExtraConfig() const override;
+  void SetExtraConfig(const rapidjson::Document &config) override;
 
 protected:
   std::string mEntityId;

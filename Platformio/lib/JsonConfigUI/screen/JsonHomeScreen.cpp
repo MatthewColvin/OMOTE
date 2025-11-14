@@ -4,6 +4,7 @@
 #include "AddDevice.hpp"
 #include "HardwareFactory.hpp"
 #include "JsonPage.hpp"
+#include "RapidJsonUtilty.hpp"
 #include "ScreenManager.hpp"
 #include "SettingsPage.hpp"
 #include <filesystem>
@@ -61,19 +62,7 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
   mTabView->SetVisiblity(false);
 
-  std::ifstream file(FS_PATH "Scenes.json", std::ios::in);
-  if (!file)
-    return;
-
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-
-  rapidjson::Document d;
-  if (d.Parse(content.c_str()).HasParseError())
-    return;
-
+  rapidjson::Document d = GetDocument(std::filesystem::path(FS_PATH "Scenes.json"));
   if (d.HasMember("Scenes")) {
     for (rapidjson::SizeType i = 0; i < d["Scenes"].Size(); i++) {
       auto &scene = d["Scenes"][i];

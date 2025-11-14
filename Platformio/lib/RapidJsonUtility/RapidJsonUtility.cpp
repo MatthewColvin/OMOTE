@@ -8,6 +8,8 @@
 
 #include <fstream>
 
+namespace OMOTE::JSON {
+
 std::string ToString(const rapidjson::Document &aDoc) {
   rapidjson::StringBuffer buff;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buff);
@@ -55,4 +57,6 @@ rapidjson::Document GetDocument(const std::filesystem::path &aPathToJson) {
     return rapidjson::Document(rapidjson::kObjectType);
   }
   return doc;
+}
+
 }

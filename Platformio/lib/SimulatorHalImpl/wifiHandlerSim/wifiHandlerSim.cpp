@@ -216,7 +216,7 @@ void wifiHandlerSim::mqttSaveCredentials() {
       return;
     }
 
-    std::string jsonStr = ToString(d);
+    std::string jsonStr = OMOTE::JSON::ToString(d);
     file << jsonStr;
     file.close();
 

@@ -34,7 +34,7 @@ bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
     doc.PushBack(deviceObj, allocator);
   }
 
-  std::string jsonStr = ToString(doc);
+  std::string jsonStr = OMOTE::JSON::ToString(doc);
   std::ofstream file(FS_PATH + std::string(ACTIVE_DEVICES_CONFIG_FILE), std::ios::out | std::ios::trunc);
   if (!file)
     return false;

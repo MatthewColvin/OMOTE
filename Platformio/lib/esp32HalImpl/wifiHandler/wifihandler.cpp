@@ -303,7 +303,7 @@ void wifiHandler::mqttSaveCredentials() {
     return;
   }
 
-  std::string jsonStr = ToString(d);
+  std::string jsonStr = OMOTE::JSON::ToString(d);
   file << jsonStr;
   file.close();
 
@@ -376,7 +376,7 @@ void wifiHandler::ntpSaveCredentials() {
     return;
   }
 
-  std::string jsonStr = ToString(d);
+  std::string jsonStr = OMOTE::JSON::ToString(d);
   file << jsonStr;
   file.close();
 
@@ -488,7 +488,7 @@ void wifiHandler::ftpSaveCredentials() {
     return;
   }
 
-  std::string jsonStr = ToString(d);
+  std::string jsonStr = OMOTE::JSON::ToString(d);
   file << jsonStr;
   file.close();
 

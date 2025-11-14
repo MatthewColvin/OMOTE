@@ -51,7 +51,7 @@ protected:
 
     mUpdateDoc->AddMember("entity_id", id, *mAllocator);
 
-    auto updates = mApi->SendUpdate(aApiPath.c_str(), ToString(*mUpdateDoc));
+    auto updates = mApi->SendUpdate(aApiPath.c_str(), OMOTE::JSON::ToString(*mUpdateDoc));
     // TODO consider what to do with updates.
     DeleteUpdateDoc();
     return false;

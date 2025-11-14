@@ -62,7 +62,7 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
   mTabView->SetVisiblity(false);
 
-  rapidjson::Document d = GetDocument(std::filesystem::path(FS_PATH "Scenes.json"));
+  rapidjson::Document d = OMOTE::JSON::GetDocument(std::filesystem::path(FS_PATH "Scenes.json"));
   if (d.HasMember("Scenes")) {
     for (rapidjson::SizeType i = 0; i < d["Scenes"].Size(); i++) {
       auto &scene = d["Scenes"][i];

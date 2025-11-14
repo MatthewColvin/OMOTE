@@ -44,12 +44,12 @@ void Message::SaveBasicInfo(const rapidjson::Document &aMessageJson) {
 }
 
 void Message::SaveStateInfo(const rapidjson::Document &aMessageJson) {
-  if (auto oldStateVal = GetNestedField(
+  if (auto oldStateVal = OMOTE::JSON::GetNestedField(
           aMessageJson, {"event", "variables", "trigger", "from_state"});
       oldStateVal) {
     mFromState = std::make_unique<Entity>(*oldStateVal);
   }
-  if (auto newStateVal = GetNestedField(
+  if (auto newStateVal = OMOTE::JSON::GetNestedField(
           aMessageJson, {"event", "variables", "trigger", "to_state"});
       newStateVal) {
     mToState = std::make_unique<Entity>(*newStateVal);

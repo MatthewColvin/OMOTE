@@ -68,7 +68,7 @@ std::vector<std::unique_ptr<IAction>> ActionFactory::getAllActions() {
     if (!dir_entry.is_regular_file()) {
       continue;
     }
-    auto actionDoc = GetDocument(dir_entry.path());
+    auto actionDoc = OMOTE::JSON::GetDocument(dir_entry.path());
     auto action = createAction(actionDoc);
     if (action) {
       actions.push_back(std::move(action));

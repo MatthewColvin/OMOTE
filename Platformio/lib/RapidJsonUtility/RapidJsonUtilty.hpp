@@ -19,6 +19,17 @@ const rapidjson::Value *GetNestedField(const rapidjson::Value &aValue,
 
 rapidjson::Document GetDocument(const std::string &aStringToParse);
 
+rapidjson::Document GetDocument(const std::string_view &aStringToParse);
+
 rapidjson::Document GetDocument(const std::filesystem::path &aPathToJson);
+
+enum class DocumentFileWriteResult {
+  Success,
+  FileOpenError,
+  WriteError
+};
+DocumentFileWriteResult WriteDocumentToFile(const rapidjson::Document &aDoc,
+                                            const std::filesystem::path &aPathToJson,
+                                            bool aPretty = false);
 
 } // namespace OMOTE::JSON

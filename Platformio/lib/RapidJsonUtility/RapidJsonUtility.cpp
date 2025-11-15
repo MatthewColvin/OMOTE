@@ -44,6 +44,12 @@ rapidjson::Document GetDocument(
   return doc;
 }
 
+rapidjson::Document GetDocument(const std::string_view &aStringToParse) {
+  rapidjson::Document doc;
+  doc.Parse(aStringToParse.data(), aStringToParse.size());
+  return doc;
+}
+
 rapidjson::Document GetDocument(const std::filesystem::path &aPathToJson) {
   std::ifstream file(aPathToJson);
   rapidjson::Document doc;
@@ -59,4 +65,25 @@ rapidjson::Document GetDocument(const std::filesystem::path &aPathToJson) {
   return doc;
 }
 
+DocumentFileWriteResult WriteDocumentToFile(
+    const rapidjson::Document &aDoc,
+    const std::filesystem::path &aPathToJson,
+    bool aPretty) {
+  std::ofstream file(aPathToJson, std::ios::out | std::ios::trunc);
+  if (!file.is_open()) {
+    return DocumentFileWriteResult::FileOpenError;
+  }
+
+  std::string jsonStr;
+  jsonStr = aPretty ? ToPrettyString(aDoc) : jsonStr = ToString(aDoc);
+
+  file << jsonStr;
+  if (file.fail()) {
+    return DocumentFileWriteResult::WriteError;
+  }
+
+  file.close();
+  return DocumentFileWriteResult::Success;
 }
+
+} // namespace OMOTE::JSON

@@ -46,22 +46,11 @@ bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
 std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
   std::vector<IDevice::Ptr> devices;
 
-  std::ifstream file(FS_PATH + std::string(ACTIVE_DEVICES_CONFIG_FILE), std::ios::in);
-  if (!file)
-    return devices;
-
-  // Todo consider max read size api
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-  HardwareFactory::getAbstract().debugPrint("Loaded JSON %s", content.c_str());
-
-  if (content.empty())
-    return devices;
-
-  rapidjson::Document doc;
-  doc.Parse(content.c_str());
+  // #TODO OMOTE-Community/OMOTE-Firmware-object-oriented#72
+  // HardwareFactory::getAbstract().debugPrint("Loaded JSON %s", content.c_str());
+  auto configPath = std::filesystem::path(
+      std::string(FS_PATH) + std::string(ACTIVE_DEVICES_CONFIG_FILE));
+  rapidjson::Document doc = OMOTE::JSON::GetDocument(configPath);
 
   if (!doc.IsArray())
     return devices;

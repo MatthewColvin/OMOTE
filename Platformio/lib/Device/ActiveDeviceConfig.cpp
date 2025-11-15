@@ -4,6 +4,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include <fstream>
+#include <string>
 
 ActiveDeviceConfig::ActiveDeviceConfig(DeviceFactory &factory)
     : mFactory(factory),
@@ -33,19 +34,13 @@ bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
 
     doc.PushBack(deviceObj, allocator);
   }
+  const auto pathToConfig = std::string(FS_PATH) + std::string(ACTIVE_DEVICES_CONFIG_FILE);
+  const auto writeResult = OMOTE::JSON::WriteDocumentToFile(doc, pathToConfig);
 
-  std::string jsonStr = OMOTE::JSON::ToString(doc);
-  std::ofstream file(FS_PATH + std::string(ACTIVE_DEVICES_CONFIG_FILE), std::ios::out | std::ios::trunc);
-  if (!file)
-    return false;
+  // TODO OMOTE-Community/OMOTE-Firmware-object-oriented#72
+  // HardwareFactory::getAbstract().debugPrint("DeviceSaveJSON:  %s", jsonStr.c_str());
 
-  HardwareFactory::getAbstract().debugPrint("DeviceSaveJSON:  %s", jsonStr.c_str());
-
-  file << jsonStr;
-
-  file.close();
-
-  return true;
+  return writeResult == OMOTE::JSON::DocumentFileWriteResult::Success;
 }
 
 std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {

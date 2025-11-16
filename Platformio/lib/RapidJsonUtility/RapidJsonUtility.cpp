@@ -40,13 +40,13 @@ const rapidjson::Value *GetNestedField(
 rapidjson::Document GetDocument(
     const std::string &aStringToParse) {
   rapidjson::Document doc;
-  doc.Parse(aStringToParse.c_str());
+  doc.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(aStringToParse.c_str());
   return doc;
 }
 
 rapidjson::Document GetDocument(const std::string_view &aStringToParse) {
   rapidjson::Document doc;
-  doc.Parse(aStringToParse.data(), aStringToParse.size());
+  doc.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(aStringToParse.data(), aStringToParse.size());
   return doc;
 }
 
@@ -57,7 +57,7 @@ rapidjson::Document GetDocument(const std::filesystem::path &aPathToJson) {
     return doc; // return empty doc if file couldn't be opened
   }
   rapidjson::IStreamWrapper fileStream(file);
-  doc.ParseStream(fileStream);
+  doc.ParseStream<rapidjson::ParseFlag::kParseCommentsFlag>(fileStream);
   return doc;
 }
 

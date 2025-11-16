@@ -58,10 +58,6 @@ rapidjson::Document GetDocument(const std::filesystem::path &aPathToJson) {
   }
   rapidjson::IStreamWrapper fileStream(file);
   doc.ParseStream(fileStream);
-  // If parsing failed return an empty object document
-  if (doc.HasParseError()) {
-    return rapidjson::Document(rapidjson::kObjectType);
-  }
   return doc;
 }
 

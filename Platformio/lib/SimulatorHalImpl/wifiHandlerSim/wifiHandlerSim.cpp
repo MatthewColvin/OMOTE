@@ -225,19 +225,11 @@ void wifiHandlerSim::mqttSaveCredentials() {
 }
 
 void wifiHandlerSim::restoreCredentials() {
-  // restore from disk
-  std::ifstream file(FS_PATH "mqtt.json", std::ios::in);
-  if (!file) {
+  std::filesystem::path mqttJson(FS_PATH "mqtt.json");
+  rapidjson::Document d = OMOTE::JSON::GetDocument(mqttJson);
+  if (d.HasParseError()) {
     return;
   }
-
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-
-  rapidjson::Document d;
-  d.Parse(content.c_str());
 
   if (d.HasMember("enabled"))
     mMqttEnabled = d["enabled"].GetBool();

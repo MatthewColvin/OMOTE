@@ -41,13 +41,8 @@ void LoggingInterface::saveSettings() {
     d.AddMember(key, val, d.GetAllocator());
   }
 
-  std::ofstream file(FS_PATH LOG_SETTINGS_FILE, std::ios::out | std::ios::trunc);
-  if (!file)
-    return;
-
-  std::string jsonStr = OMOTE::JSON::ToString(d);
-  file << jsonStr;
-  file.close();
+  std::filesystem::path settingsPath(FS_PATH LOG_SETTINGS_FILE);
+  OMOTE::JSON::WriteDocumentToFile(d, settingsPath);
 }
 
 #ifndef IS_SIMULATOR

@@ -4,14 +4,12 @@
 #include <fstream>
 #include <rapidjson/document.h>
 
-#define LOG_SETTINGS_FILE "logSettings.json"
-
 void LoggingInterface::restoreSettings() {
   // Default to warning for all modules before loading from file
   // so new modules default to warning
   std::fill(mCurrentLogLevels.begin(), mCurrentLogLevels.end(), LogLevel::Warning);
 
-  std::filesystem::path settingsPath(FS_PATH LOG_SETTINGS_FILE);
+  std::filesystem::path settingsPath(LOG_SETTINGS_FILE);
   rapidjson::Document d = OMOTE::JSON::GetDocument(settingsPath);
 
   if (!d.HasParseError() && d.IsObject()) {
@@ -41,7 +39,7 @@ void LoggingInterface::saveSettings() {
     d.AddMember(key, val, d.GetAllocator());
   }
 
-  std::filesystem::path settingsPath(FS_PATH LOG_SETTINGS_FILE);
+  std::filesystem::path settingsPath(LOG_SETTINGS_FILE);
   OMOTE::JSON::WriteDocumentToFile(d, settingsPath);
 }
 

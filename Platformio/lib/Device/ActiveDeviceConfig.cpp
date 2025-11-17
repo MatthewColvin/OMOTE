@@ -48,7 +48,7 @@ std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
 
   // #TODO OMOTE-Community/OMOTE-Firmware-object-oriented#72
   // HardwareFactory::getAbstract().debugPrint("Loaded JSON %s", content.c_str());
-  auto configPath = std::filesystem::path(ACTIVE_DEVICES_CONFIG_FILE);
+  std::filesystem::path configPath(ACTIVE_DEVICES_CONFIG_FILE);
   rapidjson::Document doc = OMOTE::JSON::GetDocument(configPath);
 
   if (!doc.IsArray())

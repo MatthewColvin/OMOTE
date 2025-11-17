@@ -116,7 +116,6 @@ private:
   /**
    * @brief MQTT variables
    */
-  static constexpr auto MQTT_CONFIG_FILE = FS_PATH "mqtt.json";
   std::string mMqttBroker = "broker";
   std::string mMqttPort = "port";
   std::string mMqttUser = "user";
@@ -132,7 +131,6 @@ private:
   /**
    * @brief NTP variables
    */
-  static constexpr auto NTP_CONFIG_FILE = FS_PATH "ntp.json";
   bool mNtpEnabled = false;
   bool mNtpInitialised = false;
   std::string mNtpServer = "pool.ntp.org";

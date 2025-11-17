@@ -316,8 +316,8 @@ void wifiHandler::enableMqtt(bool enabled) {
 
 void wifiHandler::mqttRestoreCredentials() {
   // restore from disk
-  std::filesystem::path aMqttPath(MQTT_CONFIG_FILE);
-  rapidjson::Document d = OMOTE::JSON::GetDocument(aMqttPath);
+  std::filesystem::path mqttConfigPath(MQTT_CONFIG_FILE);
+  rapidjson::Document d = OMOTE::JSON::GetDocument(mqttConfigPath);
   if (d.HasParseError() || d.IsNull()) {
     mLogger->error("Could not load MQTT credentials.");
     return;
@@ -369,8 +369,8 @@ void wifiHandler::ntpRestoreCredentials() {
   mNtpDisplayMode = ntpDisplayMode::constant;
 
   // restore from disk
-  std::filesystem::path ntpJsonConfig(NTP_CONFIG_FILE);
-  rapidjson::Document d = OMOTE::JSON::GetDocument(ntpJsonConfig);
+  std::filesystem::path ntpConfigPath(NTP_CONFIG_FILE);
+  rapidjson::Document d = OMOTE::JSON::GetDocument(ntpConfigPath);
 
   if (d.HasParseError() || d.IsNull()) {
     mLogger->error("Could not load NTP credentials.");

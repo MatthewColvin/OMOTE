@@ -105,17 +105,10 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
 }
 
 bool JsonHomeScreen::checkSceneForEntryExit(const std::string &aFileName) {
-  std::ifstream file(FS_PATH + aFileName, std::ios::in);
-  if (!file)
-    return false;
+  std::filesystem::path filePath(FS_PATH + aFileName);
+  rapidjson::Document d = OMOTE::JSON::GetDocument(filePath);
 
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-
-  rapidjson::Document d;
-  if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
+  if (d.HasParseError())
     return false; // file error, nothing to do
 
   return ((d.HasMember("StartCommandSequence") && d["StartCommandSequence"].IsArray()) ||
@@ -133,17 +126,10 @@ void JsonHomeScreen::clearScene() {
 }
 
 void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restoreScene) {
-  std::ifstream file(FS_PATH + aFileName, std::ios::in);
-  if (!file)
-    return;
+  std::filesystem::path aFilePath(FS_PATH + aFileName);
+  rapidjson::Document d = OMOTE::JSON::GetDocument(aFilePath);
 
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-
-  rapidjson::Document d;
-  if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
+  if (d.HasParseError())
     return; // file error, nothing to do
 
   if (mLastScene == aFileName) {

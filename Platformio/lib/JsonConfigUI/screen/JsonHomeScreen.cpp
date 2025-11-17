@@ -108,8 +108,8 @@ bool JsonHomeScreen::checkSceneForEntryExit(const std::string &aFileName) {
   std::filesystem::path filePath(FS_PATH + aFileName);
   rapidjson::Document d = OMOTE::JSON::GetDocument(filePath);
 
-  if (d.HasParseError())
-    return false; // file error, nothing to do
+  if (d.HasParseError() || d.IsNull())
+    return false;
 
   return ((d.HasMember("StartCommandSequence") && d["StartCommandSequence"].IsArray()) ||
           (d.HasMember("ExitCommandSequence") && d["ExitCommandSequence"].IsArray()));
@@ -129,7 +129,7 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
   std::filesystem::path aFilePath(FS_PATH + aFileName);
   rapidjson::Document d = OMOTE::JSON::GetDocument(aFilePath);
 
-  if (d.HasParseError())
+  if (d.HasParseError() || d.IsNull())
     return; // file error, nothing to do
 
   if (mLastScene == aFileName) {

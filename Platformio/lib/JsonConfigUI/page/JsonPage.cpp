@@ -18,7 +18,7 @@ JsonPage::JsonPage(std::string aFileName, std::string aPageName, std::string aCo
   std::filesystem::path aPageJsonPath(FS_PATH + aFileName);
 
   rapidjson::Document d = OMOTE::JSON::GetDocument(aPageJsonPath);
-  if (d.HasParseError())
+  if (d.HasParseError() || d.IsNull())
     return;
 
   if (d.HasMember("CommandFile") && d["CommandFile"].IsString()) {

@@ -9,7 +9,7 @@ CommandMode Commands::getCommand(const std::string &aCommandFile, const std::str
   std::filesystem::path commandFilePath(FS_PATH + aCommandFile);
 
   rapidjson::Document d = OMOTE::JSON::GetDocument(commandFilePath);
-  if (d.HasParseError())
+  if (d.HasParseError() || d.IsNull())
     return NONE;
 
   std::string fullCommand(aCommand);

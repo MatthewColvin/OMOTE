@@ -351,27 +351,20 @@ void wifiHandler::mqttRestoreCredentials() {
 }
 
 void wifiHandler::ntpSaveCredentials() {
-
   // persist to disk
   rapidjson::Document d;
   d.SetObject();
-
-  // Add data to the JSON document
   d.AddMember("enabled", mNtpEnabled, d.GetAllocator());
   d.AddMember("displayMode", mNtpDisplayMode, d.GetAllocator());
   d.AddMember("server", mNtpServer, d.GetAllocator());
   d.AddMember("timezone", mNtpTimeZone, d.GetAllocator());
 
-  std::ofstream file(FS_PATH "ntp.json", std::ios::out | std::ios::trunc);
-  if (!file) {
+  using namespace OMOTE::JSON;
+  std::filesystem::path ntpConfigPath(FS_PATH "ntp.json");
+  if (WriteDocumentToFile(d, ntpConfigPath) != DocumentFileWriteResult::Success) {
     mLogger->error("Could not save NTP credentials.");
     return;
   }
-
-  std::string jsonStr = OMOTE::JSON::ToString(d);
-  file << jsonStr;
-  file.close();
-
   mLogger->info("NTP credentials saved");
 }
 
@@ -384,33 +377,28 @@ void wifiHandler::ntpRestoreCredentials() {
   mNtpDisplayMode = ntpDisplayMode::constant;
 
   // restore from disk
-  std::ifstream file(FS_PATH "ntp.json", std::ios::in);
-  if (!file) {
+  std::filesystem::path ntpJsonConfig(FS_PATH "ntp.json");
+  rapidjson::Document d = OMOTE::JSON::GetDocument(ntpJsonConfig);
+
+  if (d.HasParseError() || d.IsNull()) {
     mLogger->error("Could not load NTP credentials.");
+    mLogger->info("NTP defaults used");
     return;
   }
 
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
+  if (d.HasMember("enabled") && d["enabled"].IsBool())
+    mNtpEnabled = d["enabled"].GetBool();
+  if (d.HasMember("displayMode") && d["displayMode"].IsInt())
+    mNtpDisplayMode = d["displayMode"].GetInt();
+  if (d.HasMember("server") && d["server"].IsString())
+    mNtpServer = d["server"].GetString();
+  if (d.HasMember("timezone") && d["timezone"].IsString())
+    mNtpTimeZone = d["timezone"].GetString();
 
-  rapidjson::Document d;
-  if (!d.Parse(content.c_str()).HasParseError()) {
-    if (d.HasMember("enabled") && d["enabled"].IsBool())
-      mNtpEnabled = d["enabled"].GetBool();
-    if (d.HasMember("displayMode") && d["displayMode"].IsInt())
-      mNtpDisplayMode = d["displayMode"].GetInt();
-    if (d.HasMember("server") && d["server"].IsString())
-      mNtpServer = d["server"].GetString();
-    if (d.HasMember("timezone") && d["timezone"].IsString())
-      mNtpTimeZone = d["timezone"].GetString();
-    mLogger->info("NTP credentials restored");
-    mLogger->debug(mNtpEnabled ? "NTP enabled" : "NTP disabled");
-    mLogger->debug(mNtpServer);
-    mLogger->debug(mNtpTimeZone);
-  } else
-    mLogger->info("NTP defaults used");
+  mLogger->info("NTP credentials restored");
+  mLogger->debug(mNtpEnabled ? "NTP enabled" : "NTP disabled");
+  mLogger->debug(mNtpServer);
+  mLogger->debug(mNtpTimeZone);
 }
 
 void wifiHandler::setupNtp() {

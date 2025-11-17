@@ -202,8 +202,6 @@ void wifiHandlerSim::mqttSaveCredentials() {
     // persist to disk
     Document d;
     d.SetObject();
-
-    // Add data to the JSON document
     d.AddMember("enabled", mMqttEnabled, d.GetAllocator());
     d.AddMember("broker", mMqttBroker, d.GetAllocator());
     d.AddMember("port", mMqttPort, d.GetAllocator());
@@ -211,14 +209,8 @@ void wifiHandlerSim::mqttSaveCredentials() {
     d.AddMember("password", mMqttPassword, d.GetAllocator());
     d.AddMember("client", mMqttClientName, d.GetAllocator());
 
-    std::ofstream file(FS_PATH "mqtt.json", std::ios::out | std::ios::trunc);
-    if (!file) {
-      return;
-    }
-
-    std::string jsonStr = OMOTE::JSON::ToString(d);
-    file << jsonStr;
-    file.close();
+    std::filesystem::path mqttJsonConfigPath(FS_PATH "mqtt.json");
+    OMOTE::JSON::WriteDocumentToFile(d, mqttJsonConfigPath);
 
     mMqttSaveOnConnect = false;
   }
@@ -227,7 +219,7 @@ void wifiHandlerSim::mqttSaveCredentials() {
 void wifiHandlerSim::restoreCredentials() {
   std::filesystem::path mqttJson(FS_PATH "mqtt.json");
   rapidjson::Document d = OMOTE::JSON::GetDocument(mqttJson);
-  if (d.HasParseError()) {
+  if (d.HasParseError() || d.IsNull()) {
     return;
   }
 

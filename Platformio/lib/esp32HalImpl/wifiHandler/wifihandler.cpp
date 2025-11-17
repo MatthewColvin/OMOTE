@@ -324,38 +324,30 @@ void wifiHandler::enableMqtt(bool enabled) {
 
 void wifiHandler::mqttRestoreCredentials() {
   // restore from disk
-  std::ifstream file(FS_PATH "mqtt.json", std::ios::in);
-  if (!file) {
+  std::filesystem::path aMqttPath(FS_PATH "mqtt.json");
+  rapidjson::Document d = OMOTE::JSON::GetDocument(aMqttPath);
+  if (d.HasParseError() || d.IsNull()) {
     mLogger->error("Could not load MQTT credentials.");
     return;
   }
 
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
+  if (d.HasMember("broker") && d["broker"].IsString())
+    mMqttBroker = d["broker"].GetString();
+  if (d.HasMember("port") && d["port"].IsString())
+    mMqttPort = d["port"].GetString();
+  if (d.HasMember("user") && d["user"].IsString())
+    mMqttUser = d["user"].GetString();
+  if (d.HasMember("password") && d["password"].IsString())
+    mMqttPassword = d["password"].GetString();
+  if (d.HasMember("client") && d["client"].IsString())
+    mMqttClientName = d["client"].GetString();
 
-  rapidjson::Document d;
-  if (!d.Parse(content.c_str()).HasParseError()) {
-    if (d.HasMember("broker") && d["broker"].IsString())
-      mMqttBroker = d["broker"].GetString();
-    if (d.HasMember("port") && d["port"].IsString())
-      mMqttPort = d["port"].GetString();
-    if (d.HasMember("user") && d["user"].IsString())
-      mMqttUser = d["user"].GetString();
-    if (d.HasMember("password") && d["password"].IsString())
-      mMqttPassword = d["password"].GetString();
-    if (d.HasMember("client") && d["client"].IsString())
-      mMqttClientName = d["client"].GetString();
-  }
-
-  // enabled kept in preferences as updated seperately
+  // enabled kept in preferences as updated separately
   Preferences preferences;
   preferences.begin("MqttSettings", false);
   mMqttEnabled = preferences.getBool("enabled", false);
   preferences.end();
   mLogger->info("MQTT credentials restored");
-  // Serial.println("MQTT credentials restored");
 }
 
 void wifiHandler::ntpSaveCredentials() {

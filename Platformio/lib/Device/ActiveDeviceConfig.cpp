@@ -34,7 +34,7 @@ bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
 
     doc.PushBack(deviceObj, allocator);
   }
-  const auto pathToConfig = std::string(FS_PATH) + std::string(ACTIVE_DEVICES_CONFIG_FILE);
+  std::filesystem::path pathToConfig(ACTIVE_DEVICES_CONFIG_FILE);
   const auto writeResult = OMOTE::JSON::WriteDocumentToFile(doc, pathToConfig);
 
   // TODO OMOTE-Community/OMOTE-Firmware-object-oriented#72
@@ -48,8 +48,7 @@ std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
 
   // #TODO OMOTE-Community/OMOTE-Firmware-object-oriented#72
   // HardwareFactory::getAbstract().debugPrint("Loaded JSON %s", content.c_str());
-  auto configPath = std::filesystem::path(
-      std::string(FS_PATH) + std::string(ACTIVE_DEVICES_CONFIG_FILE));
+  auto configPath = std::filesystem::path(ACTIVE_DEVICES_CONFIG_FILE);
   rapidjson::Document doc = OMOTE::JSON::GetDocument(configPath);
 
   if (!doc.IsArray())

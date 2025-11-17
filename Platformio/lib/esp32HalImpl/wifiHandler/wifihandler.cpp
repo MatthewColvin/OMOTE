@@ -285,30 +285,22 @@ void wifiHandler::mqttSync() {
 }
 
 void wifiHandler::mqttSaveCredentials() {
-
   // persist to disk
   rapidjson::Document d;
   d.SetObject();
-
-  // Add data to the JSON document
   d.AddMember("broker", mMqttBroker, d.GetAllocator());
   d.AddMember("port", mMqttPort, d.GetAllocator());
   d.AddMember("user", mMqttUser, d.GetAllocator());
   d.AddMember("password", mMqttPassword, d.GetAllocator());
   d.AddMember("client", mMqttClientName, d.GetAllocator());
 
-  std::ofstream file(FS_PATH "mqtt.json", std::ios::out | std::ios::trunc);
-  if (!file) {
+  using namespace OMOTE::JSON;
+  std::filesystem::path mqttConfigPath(MQTT_CONFIG_FILE);
+  if (WriteDocumentToFile(d, mqttConfigPath) != DocumentFileWriteResult::Success) {
     mLogger->error("Could not save MQTT credentials.");
     return;
   }
-
-  std::string jsonStr = OMOTE::JSON::ToString(d);
-  file << jsonStr;
-  file.close();
-
   mLogger->info("MQTT credentials saved");
-
   mMqttSaveOnConnect = false;
 }
 
@@ -324,7 +316,7 @@ void wifiHandler::enableMqtt(bool enabled) {
 
 void wifiHandler::mqttRestoreCredentials() {
   // restore from disk
-  std::filesystem::path aMqttPath(FS_PATH "mqtt.json");
+  std::filesystem::path aMqttPath(MQTT_CONFIG_FILE);
   rapidjson::Document d = OMOTE::JSON::GetDocument(aMqttPath);
   if (d.HasParseError() || d.IsNull()) {
     mLogger->error("Could not load MQTT credentials.");
@@ -360,7 +352,7 @@ void wifiHandler::ntpSaveCredentials() {
   d.AddMember("timezone", mNtpTimeZone, d.GetAllocator());
 
   using namespace OMOTE::JSON;
-  std::filesystem::path ntpConfigPath(FS_PATH "ntp.json");
+  std::filesystem::path ntpConfigPath(NTP_CONFIG_FILE);
   if (WriteDocumentToFile(d, ntpConfigPath) != DocumentFileWriteResult::Success) {
     mLogger->error("Could not save NTP credentials.");
     return;
@@ -377,7 +369,7 @@ void wifiHandler::ntpRestoreCredentials() {
   mNtpDisplayMode = ntpDisplayMode::constant;
 
   // restore from disk
-  std::filesystem::path ntpJsonConfig(FS_PATH "ntp.json");
+  std::filesystem::path ntpJsonConfig(NTP_CONFIG_FILE);
   rapidjson::Document d = OMOTE::JSON::GetDocument(ntpJsonConfig);
 
   if (d.HasParseError() || d.IsNull()) {

@@ -5,7 +5,7 @@
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 
-#include "Hardware/websockets/webSocketInterface.hpp"
+#include "Hardware/wifi/websockets/webSocketInterface.hpp"
 
 class webSocketSimulator : public webSocketInterface {
 public:

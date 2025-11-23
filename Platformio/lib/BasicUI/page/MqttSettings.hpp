@@ -1,6 +1,6 @@
 #pragma once
 #include "Button.hpp"
-#include "Hardware/wifiHandlerInterface.h"
+#include "Hardware/wifi/wifiHandlerInterface.h"
 #include "PageBase.hpp"
 
 namespace UI::Widget {

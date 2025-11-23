@@ -3,7 +3,7 @@
 #include <WiFi.h>
 #include <WiFiClient.h>
 
-#include "Hardware/wifiHandlerInterface.h"
+#include "Hardware/wifi/wifiHandlerInterface.h"
 #include "Notification.hpp"
 #include "memory.h"
 

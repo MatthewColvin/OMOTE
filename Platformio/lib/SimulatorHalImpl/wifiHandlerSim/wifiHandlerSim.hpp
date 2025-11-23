@@ -3,7 +3,7 @@
 #include <memory>
 #include <thread>
 
-#include "Hardware/wifiHandlerInterface.h"
+#include "Hardware/wifi/wifiHandlerInterface.h"
 #include "Notification.hpp"
 
 class wifiHandlerSim : public wifiHandlerInterface {

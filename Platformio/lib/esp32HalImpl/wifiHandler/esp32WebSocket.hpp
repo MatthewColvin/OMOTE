@@ -8,7 +8,7 @@
 #include <sstream>
 
 #include "Hardware/LoggingInterface.hpp"
-#include "Hardware/websockets/webSocketInterface.hpp"
+#include "Hardware/wifi/websockets/webSocketInterface.hpp"
 #include "esp_websocket_client.h"
 #include "wifihandler.hpp"
 

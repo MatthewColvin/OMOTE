@@ -6,7 +6,7 @@
 #include <mutex>
 #include <queue>
 
-#include "Hardware/websockets/webSocketInterface.hpp"
+#include "Hardware/wifi/websockets/webSocketInterface.hpp"
 #include "Notification.hpp"
 
 namespace HomeAssist::WebSocket {

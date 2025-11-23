@@ -21,6 +21,8 @@ public:
   void InitJsonFactory();
 
   IDevice::Ptr Create(DeviceId aId);
+  static bool RegisterDevice(DeviceId aId, std::function<IDevice::Ptr()> aCreator);
+
   IDevice::Ptr CreateHomeAssistDevice(const std::string &aEntityString);
   IDevice::Ptr CreateJsonDevice(const std::filesystem::path &aDeviceJsonFilePath);
 
@@ -36,6 +38,9 @@ private:
   ActiveDevices mActiveDevices;
   // Config that managed saving and restoring
   std::unique_ptr<ActiveDeviceConfig> mDeviceConfig = nullptr;
+
+  // Map used to store factory functions for custom devices defined at compile time.
+  static std::map<DeviceId, std::function<IDevice::Ptr()>> sDeviceCreators;
 
   // Optionally loaded Extra Device Factories
   std::unique_ptr<HomeAssist::HomeAssistDeviceFactory> mHomeAssistFactory = nullptr;

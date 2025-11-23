@@ -4,12 +4,20 @@
 #include <algorithm>
 #include <cctype>
 
+std::map<DeviceId, std::function<IDevice::Ptr()>> DeviceFactory::sDeviceCreators;
+
 DeviceFactory::DeviceFactory() {
   mDeviceConfig = std::make_unique<ActiveDeviceConfig>(*this);
 }
 
 IDevice::Ptr DeviceFactory::Create(DeviceId id) {
-  return nullptr;
+  auto it = sDeviceCreators.find(id);
+  return it == sDeviceCreators.end() ? nullptr : it->second();
+}
+
+bool DeviceFactory::RegisterDevice(DeviceId aId, std::function<IDevice::Ptr()> aCreator) {
+  sDeviceCreators[aId] = aCreator;
+  return true;
 }
 
 void DeviceFactory::InitHomeAssistFactory(HomeAssist::WebSocket::Api &aHaApi) {

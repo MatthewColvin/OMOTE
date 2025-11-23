@@ -16,6 +16,7 @@ public:
   void connect(std::string ssid, std::string password) override;
   void saveCredentialsOnConnect() override {};
   wifiStatus GetStatus() override { return mCurrentStatus; };
+  std::shared_ptr<HttpClientInterface> getHttpClient() override;
 
   void setupMqttBroker() override;
   void mqttSend(std::string aTopic, std::string aMessage) override;

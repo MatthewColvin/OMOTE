@@ -15,17 +15,10 @@ using namespace Command;
 JsonPage::JsonPage(std::string aFileName, std::string aPageName, std::string aCommandPrefix)
     : Base(ID::Pages::JsonPage) {
 
-  std::ifstream file(FS_PATH + aFileName, std::ios::in);
-  if (!file)
-    return;
+  std::filesystem::path aPageJsonPath(FS_PATH + aFileName);
 
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-
-  rapidjson::Document d;
-  if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
+  rapidjson::Document d = OMOTE::JSON::GetDocument(aPageJsonPath);
+  if (d.HasParseError() || d.IsNull())
     return;
 
   if (d.HasMember("CommandFile") && d["CommandFile"].IsString()) {

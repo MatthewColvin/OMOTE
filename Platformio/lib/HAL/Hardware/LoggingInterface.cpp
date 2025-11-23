@@ -4,34 +4,23 @@
 #include <fstream>
 #include <rapidjson/document.h>
 
-#define LOG_SETTINGS_FILE "logSettings.json"
-
 void LoggingInterface::restoreSettings() {
   // Default to warning for all modules before loading from file
   // so new modules default to warning
   std::fill(mCurrentLogLevels.begin(), mCurrentLogLevels.end(), LogLevel::Warning);
 
-  std::ifstream file(FS_PATH LOG_SETTINGS_FILE, std::ios::in);
-  if (!file)
-    return;
+  std::filesystem::path settingsPath(LOG_SETTINGS_FILE);
+  rapidjson::Document d = OMOTE::JSON::GetDocument(settingsPath);
 
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-
-  rapidjson::Document d;
-  if (!d.Parse(content.c_str()).HasParseError()) {
-    if (d.IsObject()) {
-      for (auto &item : d.GetObject()) {
-        if (item.name.IsString() && item.value.IsString()) {
-          std::string moduleName = item.name.GetString();
-          std::string moduleValue = item.value.GetString();
-          auto module = magic_enum::enum_cast<LogModule>(moduleName);
-          auto level = magic_enum::enum_cast<LogLevel>(moduleValue);
-          if (module.has_value() and level.has_value()) {
-            setLogLevel(module.value(), level.value());
-          }
+  if (!d.HasParseError() && d.IsObject()) {
+    for (auto &item : d.GetObject()) {
+      if (item.name.IsString() && item.value.IsString()) {
+        std::string moduleName = item.name.GetString();
+        std::string moduleValue = item.value.GetString();
+        auto module = magic_enum::enum_cast<LogModule>(moduleName);
+        auto level = magic_enum::enum_cast<LogLevel>(moduleValue);
+        if (module.has_value() and level.has_value()) {
+          setLogLevel(module.value(), level.value());
         }
       }
     }
@@ -50,13 +39,8 @@ void LoggingInterface::saveSettings() {
     d.AddMember(key, val, d.GetAllocator());
   }
 
-  std::ofstream file(FS_PATH LOG_SETTINGS_FILE, std::ios::out | std::ios::trunc);
-  if (!file)
-    return;
-
-  std::string jsonStr = ToString(d);
-  file << jsonStr;
-  file.close();
+  std::filesystem::path settingsPath(LOG_SETTINGS_FILE);
+  OMOTE::JSON::WriteDocumentToFile(d, settingsPath);
 }
 
 #ifndef IS_SIMULATOR

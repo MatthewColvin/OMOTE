@@ -4,6 +4,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include <fstream>
+#include <string>
 
 ActiveDeviceConfig::ActiveDeviceConfig(DeviceFactory &factory)
     : mFactory(factory),
@@ -33,40 +34,22 @@ bool ActiveDeviceConfig::saveDevices(const std::deque<IDevice::Ptr> &devices) {
 
     doc.PushBack(deviceObj, allocator);
   }
+  std::filesystem::path pathToConfig(ACTIVE_DEVICES_CONFIG_FILE);
+  const auto writeResult = OMOTE::JSON::WriteDocumentToFile(doc, pathToConfig);
 
-  std::string jsonStr = ToString(doc);
-  std::ofstream file(FS_PATH + std::string(ACTIVE_DEVICES_CONFIG_FILE), std::ios::out | std::ios::trunc);
-  if (!file)
-    return false;
+  // TODO OMOTE-Community/OMOTE-Firmware-object-oriented#72
+  // HardwareFactory::getAbstract().debugPrint("DeviceSaveJSON:  %s", jsonStr.c_str());
 
-  HardwareFactory::getAbstract().debugPrint("DeviceSaveJSON:  %s", jsonStr.c_str());
-
-  file << jsonStr;
-
-  file.close();
-
-  return true;
+  return writeResult == OMOTE::JSON::DocumentFileWriteResult::Success;
 }
 
 std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
   std::vector<IDevice::Ptr> devices;
 
-  std::ifstream file(FS_PATH + std::string(ACTIVE_DEVICES_CONFIG_FILE), std::ios::in);
-  if (!file)
-    return devices;
-
-  // Todo consider max read size api
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-  HardwareFactory::getAbstract().debugPrint("Loaded JSON %s", content.c_str());
-
-  if (content.empty())
-    return devices;
-
-  rapidjson::Document doc;
-  doc.Parse(content.c_str());
+  // #TODO OMOTE-Community/OMOTE-Firmware-object-oriented#72
+  // HardwareFactory::getAbstract().debugPrint("Loaded JSON %s", content.c_str());
+  std::filesystem::path configPath(ACTIVE_DEVICES_CONFIG_FILE);
+  rapidjson::Document doc = OMOTE::JSON::GetDocument(configPath);
 
   if (!doc.IsArray())
     return devices;

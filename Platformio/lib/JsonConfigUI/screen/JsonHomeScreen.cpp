@@ -4,6 +4,7 @@
 #include "AddDevice.hpp"
 #include "HardwareFactory.hpp"
 #include "JsonPage.hpp"
+#include "RapidJsonUtilty.hpp"
 #include "ScreenManager.hpp"
 #include "SettingsPage.hpp"
 #include <filesystem>
@@ -61,19 +62,7 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
   mTabView->SetVisiblity(false);
 
-  std::ifstream file(FS_PATH "Scenes.json", std::ios::in);
-  if (!file)
-    return;
-
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-
-  rapidjson::Document d;
-  if (d.Parse(content.c_str()).HasParseError())
-    return;
-
+  rapidjson::Document d = OMOTE::JSON::GetDocument(std::filesystem::path(FS_PATH "Scenes.json"));
   if (d.HasMember("Scenes")) {
     for (rapidjson::SizeType i = 0; i < d["Scenes"].Size(); i++) {
       auto &scene = d["Scenes"][i];
@@ -116,18 +105,11 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
 }
 
 bool JsonHomeScreen::checkSceneForEntryExit(const std::string &aFileName) {
-  std::ifstream file(FS_PATH + aFileName, std::ios::in);
-  if (!file)
+  std::filesystem::path filePath(FS_PATH + aFileName);
+  rapidjson::Document d = OMOTE::JSON::GetDocument(filePath);
+
+  if (d.HasParseError() || d.IsNull())
     return false;
-
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-
-  rapidjson::Document d;
-  if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
-    return false; // file error, nothing to do
 
   return ((d.HasMember("StartCommandSequence") && d["StartCommandSequence"].IsArray()) ||
           (d.HasMember("ExitCommandSequence") && d["ExitCommandSequence"].IsArray()));
@@ -144,17 +126,10 @@ void JsonHomeScreen::clearScene() {
 }
 
 void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restoreScene) {
-  std::ifstream file(FS_PATH + aFileName, std::ios::in);
-  if (!file)
-    return;
+  std::filesystem::path aFilePath(FS_PATH + aFileName);
+  rapidjson::Document d = OMOTE::JSON::GetDocument(aFilePath);
 
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-
-  rapidjson::Document d;
-  if (d.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(content.c_str()).HasParseError())
+  if (d.HasParseError() || d.IsNull())
     return; // file error, nothing to do
 
   if (mLastScene == aFileName) {

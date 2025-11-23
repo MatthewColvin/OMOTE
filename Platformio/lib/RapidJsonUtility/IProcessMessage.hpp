@@ -18,7 +18,7 @@ class IChunkProcessor;
  *
  * 2) Dynamically sized ring buffer processing allowing the user
  * of this interface to apply an upperlimit on the amount of memory they want it
- * to use for the parse **not including rapidjsons usage**. This utalizes the
+ * to use for the parse **not including rapidjsons usage**. This utilizes the
  * RapidJson SAX parser with a virtual twist to allow dependency injection from
  * higher level along with a feedback mechanism for progress see
  * IChunkProcessor interface.

@@ -285,30 +285,22 @@ void wifiHandler::mqttSync() {
 }
 
 void wifiHandler::mqttSaveCredentials() {
-
   // persist to disk
   rapidjson::Document d;
   d.SetObject();
-
-  // Add data to the JSON document
   d.AddMember("broker", mMqttBroker, d.GetAllocator());
   d.AddMember("port", mMqttPort, d.GetAllocator());
   d.AddMember("user", mMqttUser, d.GetAllocator());
   d.AddMember("password", mMqttPassword, d.GetAllocator());
   d.AddMember("client", mMqttClientName, d.GetAllocator());
 
-  std::ofstream file(FS_PATH "mqtt.json", std::ios::out | std::ios::trunc);
-  if (!file) {
+  using namespace OMOTE::JSON;
+  std::filesystem::path mqttConfigPath(MQTT_CONFIG_FILE);
+  if (WriteDocumentToFile(d, mqttConfigPath) != DocumentFileWriteResult::Success) {
     mLogger->error("Could not save MQTT credentials.");
     return;
   }
-
-  std::string jsonStr = ToString(d);
-  file << jsonStr;
-  file.close();
-
   mLogger->info("MQTT credentials saved");
-
   mMqttSaveOnConnect = false;
 }
 
@@ -324,62 +316,47 @@ void wifiHandler::enableMqtt(bool enabled) {
 
 void wifiHandler::mqttRestoreCredentials() {
   // restore from disk
-  std::ifstream file(FS_PATH "mqtt.json", std::ios::in);
-  if (!file) {
+  std::filesystem::path mqttConfigPath(MQTT_CONFIG_FILE);
+  rapidjson::Document d = OMOTE::JSON::GetDocument(mqttConfigPath);
+  if (d.HasParseError() || d.IsNull()) {
     mLogger->error("Could not load MQTT credentials.");
     return;
   }
 
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
+  if (d.HasMember("broker") && d["broker"].IsString())
+    mMqttBroker = d["broker"].GetString();
+  if (d.HasMember("port") && d["port"].IsString())
+    mMqttPort = d["port"].GetString();
+  if (d.HasMember("user") && d["user"].IsString())
+    mMqttUser = d["user"].GetString();
+  if (d.HasMember("password") && d["password"].IsString())
+    mMqttPassword = d["password"].GetString();
+  if (d.HasMember("client") && d["client"].IsString())
+    mMqttClientName = d["client"].GetString();
 
-  rapidjson::Document d;
-  if (!d.Parse(content.c_str()).HasParseError()) {
-    if (d.HasMember("broker") && d["broker"].IsString())
-      mMqttBroker = d["broker"].GetString();
-    if (d.HasMember("port") && d["port"].IsString())
-      mMqttPort = d["port"].GetString();
-    if (d.HasMember("user") && d["user"].IsString())
-      mMqttUser = d["user"].GetString();
-    if (d.HasMember("password") && d["password"].IsString())
-      mMqttPassword = d["password"].GetString();
-    if (d.HasMember("client") && d["client"].IsString())
-      mMqttClientName = d["client"].GetString();
-  }
-
-  // enabled kept in preferences as updated seperately
+  // enabled kept in preferences as updated separately
   Preferences preferences;
   preferences.begin("MqttSettings", false);
   mMqttEnabled = preferences.getBool("enabled", false);
   preferences.end();
   mLogger->info("MQTT credentials restored");
-  // Serial.println("MQTT credentials restored");
 }
 
 void wifiHandler::ntpSaveCredentials() {
-
   // persist to disk
   rapidjson::Document d;
   d.SetObject();
-
-  // Add data to the JSON document
   d.AddMember("enabled", mNtpEnabled, d.GetAllocator());
   d.AddMember("displayMode", mNtpDisplayMode, d.GetAllocator());
   d.AddMember("server", mNtpServer, d.GetAllocator());
   d.AddMember("timezone", mNtpTimeZone, d.GetAllocator());
 
-  std::ofstream file(FS_PATH "ntp.json", std::ios::out | std::ios::trunc);
-  if (!file) {
+  using namespace OMOTE::JSON;
+  std::filesystem::path ntpConfigPath(NTP_CONFIG_FILE);
+  if (WriteDocumentToFile(d, ntpConfigPath) != DocumentFileWriteResult::Success) {
     mLogger->error("Could not save NTP credentials.");
     return;
   }
-
-  std::string jsonStr = ToString(d);
-  file << jsonStr;
-  file.close();
-
   mLogger->info("NTP credentials saved");
 }
 
@@ -392,33 +369,28 @@ void wifiHandler::ntpRestoreCredentials() {
   mNtpDisplayMode = ntpDisplayMode::constant;
 
   // restore from disk
-  std::ifstream file(FS_PATH "ntp.json", std::ios::in);
-  if (!file) {
+  std::filesystem::path ntpConfigPath(NTP_CONFIG_FILE);
+  rapidjson::Document d = OMOTE::JSON::GetDocument(ntpConfigPath);
+
+  if (d.HasParseError() || d.IsNull()) {
     mLogger->error("Could not load NTP credentials.");
+    mLogger->info("NTP defaults used");
     return;
   }
 
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
+  if (d.HasMember("enabled") && d["enabled"].IsBool())
+    mNtpEnabled = d["enabled"].GetBool();
+  if (d.HasMember("displayMode") && d["displayMode"].IsInt())
+    mNtpDisplayMode = d["displayMode"].GetInt();
+  if (d.HasMember("server") && d["server"].IsString())
+    mNtpServer = d["server"].GetString();
+  if (d.HasMember("timezone") && d["timezone"].IsString())
+    mNtpTimeZone = d["timezone"].GetString();
 
-  rapidjson::Document d;
-  if (!d.Parse(content.c_str()).HasParseError()) {
-    if (d.HasMember("enabled") && d["enabled"].IsBool())
-      mNtpEnabled = d["enabled"].GetBool();
-    if (d.HasMember("displayMode") && d["displayMode"].IsInt())
-      mNtpDisplayMode = d["displayMode"].GetInt();
-    if (d.HasMember("server") && d["server"].IsString())
-      mNtpServer = d["server"].GetString();
-    if (d.HasMember("timezone") && d["timezone"].IsString())
-      mNtpTimeZone = d["timezone"].GetString();
-    mLogger->info("NTP credentials restored");
-    mLogger->debug(mNtpEnabled ? "NTP enabled" : "NTP disabled");
-    mLogger->debug(mNtpServer);
-    mLogger->debug(mNtpTimeZone);
-  } else
-    mLogger->info("NTP defaults used");
+  mLogger->info("NTP credentials restored");
+  mLogger->debug(mNtpEnabled ? "NTP enabled" : "NTP disabled");
+  mLogger->debug(mNtpServer);
+  mLogger->debug(mNtpTimeZone);
 }
 
 void wifiHandler::setupNtp() {
@@ -488,7 +460,7 @@ void wifiHandler::ftpSaveCredentials() {
     return;
   }
 
-  std::string jsonStr = ToString(d);
+  std::string jsonStr = OMOTE::JSON::ToString(d);
   file << jsonStr;
   file.close();
 

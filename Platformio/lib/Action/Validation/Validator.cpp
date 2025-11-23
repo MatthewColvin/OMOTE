@@ -29,13 +29,8 @@ bool Validator::IsDataValid(ActionTypes aActionType,
     return false;
   }
 
-  rapidjson::Document typeSpecificActionDataSchemaDoc;
-  typeSpecificActionDataSchemaDoc.Parse(schemaJsonString.data(), schemaJsonString.size());
-  if (typeSpecificActionDataSchemaDoc.HasParseError()) {
-    return false;
-  }
-
-  return IsValid(aDataValue, typeSpecificActionDataSchemaDoc);
+  rapidjson::Document typeSpecificActionDataSchemaDoc = OMOTE::JSON::GetDocument(schemaJsonString);
+  return typeSpecificActionDataSchemaDoc.HasParseError() ? false : IsValid(aDataValue, typeSpecificActionDataSchemaDoc);
 }
 
 bool Validator::IsValid(const rapidjson::Value &aValueToValidate, const rapidjson::Document &aSchemaDocument) {

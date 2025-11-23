@@ -101,6 +101,7 @@ private:
   // Check level and module to see if we want to print the log
   static bool isPrintWanted(LogModule aModule, LogLevel aLevelToCheck);
   static inline std::array<LogLevel, NumLogModules> mCurrentLogLevels{};
+  static constexpr auto LOG_SETTINGS_FILE = FS_PATH "logSettings.json";
 };
 
 inline void LoggingInterface::setLogModule(LogModule aModule) {

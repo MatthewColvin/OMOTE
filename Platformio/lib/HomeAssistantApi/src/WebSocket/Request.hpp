@@ -24,7 +24,7 @@ inline Request::Request(rapidjson::Document &&aRequestMessage)
     : mRequestMessage(std::move(aRequestMessage)) {}
 
 inline std::string Request::GetRequestMessage() {
-  return ToString(mRequestMessage);
+  return OMOTE::JSON::ToString(mRequestMessage);
 }
 
 inline void Request::SetId(int aId) {

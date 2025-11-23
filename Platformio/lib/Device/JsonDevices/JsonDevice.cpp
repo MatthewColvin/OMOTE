@@ -12,17 +12,8 @@ JsonDevice::JsonDevice(std::filesystem::path aDeviceJsonFilePath) {
     mParseResult = ParseResult::FileError;
     return;
   }
-  std::ifstream deviceJsonStream(aDeviceJsonFilePath);
-  if (!deviceJsonStream.is_open()) {
-    mParseResult = ParseResult::FileError;
-    return;
-  }
 
-  std::stringstream deviceSS;
-  deviceSS << deviceJsonStream.rdbuf();
-  auto deviceJsonStr = deviceSS.str();
-  rapidjson::Document deviceJson;
-  deviceJson.Parse(deviceJsonStr.c_str());
+  rapidjson::Document deviceJson = OMOTE::JSON::GetDocument(aDeviceJsonFilePath);
   mParseResult = parse(deviceJson);
 
   if (mParseResult == ParseResult::Success) {

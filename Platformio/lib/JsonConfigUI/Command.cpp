@@ -4,19 +4,12 @@
 
 using namespace Command;
 
-CommandMode Commands::getCommand(const std::string &aCommandFIle, const std::string &aCommandPrefix, const std::string &aCommand, CommandStruct &aCommandStruct) {
+CommandMode Commands::getCommand(const std::string &aCommandFile, const std::string &aCommandPrefix, const std::string &aCommand, CommandStruct &aCommandStruct) {
 
-  std::ifstream file(FS_PATH + aCommandFIle, std::ios::in);
-  if (!file)
-    return NONE;
+  std::filesystem::path commandFilePath(FS_PATH + aCommandFile);
 
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
-  std::string content(buffer.str());
-
-  rapidjson::Document d;
-  if (d.Parse(content.c_str()).HasParseError())
+  rapidjson::Document d = OMOTE::JSON::GetDocument(commandFilePath);
+  if (d.HasParseError() || d.IsNull())
     return NONE;
 
   std::string fullCommand(aCommand);

@@ -104,4 +104,7 @@ protected:
       std::make_shared<ScanNotificationTy>();
   std::shared_ptr<Notification<wifiStatus>> mStatusUpdate =
       std::make_shared<Notification<wifiStatus>>();
+
+  static constexpr auto MQTT_CONFIG_FILE = FS_PATH "mqtt.json";
+  static constexpr auto NTP_CONFIG_FILE = FS_PATH "ntp.json";
 };

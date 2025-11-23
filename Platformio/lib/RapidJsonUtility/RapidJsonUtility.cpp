@@ -8,6 +8,8 @@
 
 #include <fstream>
 
+namespace OMOTE::JSON {
+
 std::string ToString(const rapidjson::Document &aDoc) {
   rapidjson::StringBuffer buff;
   rapidjson::Writer<rapidjson::StringBuffer> writer(buff);
@@ -38,7 +40,13 @@ const rapidjson::Value *GetNestedField(
 rapidjson::Document GetDocument(
     const std::string &aStringToParse) {
   rapidjson::Document doc;
-  doc.Parse(aStringToParse.c_str());
+  doc.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(aStringToParse.c_str());
+  return doc;
+}
+
+rapidjson::Document GetDocument(const std::string_view &aStringToParse) {
+  rapidjson::Document doc;
+  doc.Parse<rapidjson::ParseFlag::kParseCommentsFlag>(aStringToParse.data(), aStringToParse.size());
   return doc;
 }
 
@@ -49,10 +57,29 @@ rapidjson::Document GetDocument(const std::filesystem::path &aPathToJson) {
     return doc; // return empty doc if file couldn't be opened
   }
   rapidjson::IStreamWrapper fileStream(file);
-  doc.ParseStream(fileStream);
-  // If parsing failed return an empty object document
-  if (doc.HasParseError()) {
-    return rapidjson::Document(rapidjson::kObjectType);
-  }
+  doc.ParseStream<rapidjson::ParseFlag::kParseCommentsFlag>(fileStream);
   return doc;
 }
+
+DocumentFileWriteResult WriteDocumentToFile(
+    const rapidjson::Document &aDoc,
+    const std::filesystem::path &aPathToJson,
+    bool aPretty) {
+  std::ofstream file(aPathToJson, std::ios::out | std::ios::trunc);
+  if (!file.is_open()) {
+    return DocumentFileWriteResult::FileOpenError;
+  }
+
+  std::string jsonStr;
+  jsonStr = aPretty ? ToPrettyString(aDoc) : jsonStr = ToString(aDoc);
+
+  file << jsonStr;
+  if (file.fail()) {
+    return DocumentFileWriteResult::WriteError;
+  }
+
+  file.close();
+  return DocumentFileWriteResult::Success;
+}
+
+} // namespace OMOTE::JSON

@@ -62,7 +62,7 @@ void webSocketSimulator::onMessage(websocketpp::connection_hdl hdl,
   rapidjson::Document doc;
   doc.Parse(msg->get_payload().c_str());
   std::cout << "Message:" << messageNum << std::endl
-            << ToPrettyString(doc) << std::endl
+            << OMOTE::JSON::ToPrettyString(doc) << std::endl
             << "EndMessage:" << messageNum << std::endl;
   messageNum++;
 

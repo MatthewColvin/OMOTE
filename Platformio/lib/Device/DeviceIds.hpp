@@ -16,5 +16,6 @@ enum class DeviceType {
 
 enum class DeviceId {
   None,
-  Roku
+  Roku,
+  COUNT
 };

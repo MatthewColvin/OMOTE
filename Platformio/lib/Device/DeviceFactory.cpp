@@ -4,19 +4,17 @@
 #include <algorithm>
 #include <cctype>
 
-std::map<DeviceId, std::function<IDevice::Ptr()>> DeviceFactory::sDeviceCreators;
-
 DeviceFactory::DeviceFactory() {
   mDeviceConfig = std::make_unique<ActiveDeviceConfig>(*this);
 }
 
 IDevice::Ptr DeviceFactory::Create(DeviceId id) {
-  auto it = sDeviceCreators.find(id);
-  return it == sDeviceCreators.end() ? nullptr : it->second();
+  auto creatorFunc = sDeviceCreators[static_cast<int>(id)];
+  return !creatorFunc ? nullptr : creatorFunc();
 }
 
 bool DeviceFactory::RegisterDevice(DeviceId aId, std::function<IDevice::Ptr()> aCreator) {
-  sDeviceCreators[aId] = aCreator;
+  sDeviceCreators[static_cast<int>(aId)] = aCreator;
   return true;
 }
 
@@ -49,6 +47,19 @@ std::vector<std::shared_ptr<IDevice>> DeviceFactory::getJsonDevices(const std::f
     return mJsonFactory->getDevices(aDevicesDirectory);
   }
   return {};
+}
+
+std::vector<std::shared_ptr<IDevice>> DeviceFactory::getCompileTimeDevices() {
+  std::vector<std::shared_ptr<IDevice>> devices;
+  for (const auto &creatorFunc : sDeviceCreators) {
+    if (creatorFunc) {
+      auto device = creatorFunc();
+      if (device) {
+        devices.push_back(std::move(device));
+      }
+    }
+  }
+  return devices;
 }
 
 void DeviceFactory::restoreFromConfig() {

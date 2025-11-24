@@ -43,9 +43,6 @@ private:
   // Roku control methods
   void sendKeyPress(const std::string &keyName);
   void launchApp(const std::string &appId);
-  void power();
-  void volumeUp();
-  void volumeDown();
 
   // Helper to build Roku API URL
   std::string buildRokuUrl(const std::string &endpoint) const;

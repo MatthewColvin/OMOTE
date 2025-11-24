@@ -3,11 +3,22 @@
 #include "HardwareFactory.hpp"
 #include <sstream>
 
+using Ids = KeyPressAbstract::KeyId;
+std::map<Ids, std::string_view> mKeyIdToRokuKeyName{
+    {Ids::Up, "Up"},
+    {Ids::Down, "Down"},
+    {Ids::Left, "Left"},
+    {Ids::Right, "Right"},
+    {Ids::Center, "Select"},
+    {Ids::Back, "Back"},
+    {Ids::Home, "Home"},
+    {Ids::Play, "Play"}};
+
 auto RokuRegistered = DeviceFactory::RegisterDevice(
     DeviceId::Roku, []() -> IDevice::Ptr {
       static constexpr char defaultName[] = "Roku";
       // TODO: Get IP Address from config or discovery?
-      std::string ipAddress = "192.168.86.104";
+      std::string ipAddress = "192.168.86.41";
       auto wifi = HardwareFactory().getAbstract().wifi();
 
       return !wifi ? nullptr : std::make_shared<RokuHttp>(defaultName, ipAddress, *wifi);
@@ -72,19 +83,12 @@ bool RokuHttp::HandleKeyEvent(KeyPressAbstract::KeyEvent event) {
     return false;
   }
 
-  switch (event.mId) {
-  case KeyPressAbstract::KeyId::Power:
-    power();
+  auto it = mKeyIdToRokuKeyName.find(event.mId);
+  if (it != mKeyIdToRokuKeyName.end()) {
+    sendKeyPress(std::string(it->second));
     return true;
-  case KeyPressAbstract::KeyId::VolUp:
-    volumeUp();
-    return true;
-  case KeyPressAbstract::KeyId::VolDown:
-    volumeDown();
-    return true;
-  default:
-    return false;
   }
+  return false;
 }
 
 std::unique_ptr<UI::Page::Base> RokuHttp::GetControlPage() {
@@ -120,16 +124,4 @@ void RokuHttp::launchApp(const std::string &appId) {
   mHttpClient->postAsync(url, body)->onError([](const HttpResponse &err) {
     // Handle error silently for now
   });
-}
-
-void RokuHttp::power() {
-  sendKeyPress("Power");
-}
-
-void RokuHttp::volumeUp() {
-  sendKeyPress("VolumeUp");
-}
-
-void RokuHttp::volumeDown() {
-  sendKeyPress("VolumeDown");
 }

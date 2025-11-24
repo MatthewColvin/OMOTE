@@ -10,22 +10,15 @@
 /**
  * @brief Curl-based HTTP client for desktop simulator
  *
- * This implementation uses libcurl to provide HTTP functionality
- * on desktop platforms. Requests are executed asynchronously using
- * a thread pool pattern with custom HttpFuture for fluent callbacks.
+ * Uses a thread pool and queue to handle asynchronous HTTP requests
+ * via libcurl. Implements HttpClientInterface with custom HttpFuture
+ * for fluent callback handling.
  */
 class CurlHttpClient : public HttpClientInterface {
 public:
-  /**
-   * @brief Constructor
-   *
-   * @param num_threads Number of worker threads for async requests (default: 2)
-   */
-  explicit CurlHttpClient(size_t num_threads = 2);
+  using QueueRequestItemType = std::pair<HttpRequest, std::weak_ptr<std::promise<HttpResponse>>>;
 
-  /**
-   * @brief Destructor - ensures proper cleanup
-   */
+  explicit CurlHttpClient(size_t aNumWorkerThreads = 2);
   ~CurlHttpClient() override;
 
   // Prevent copy operations
@@ -80,18 +73,19 @@ private:
    */
   static std::string methodToString(HttpRequest::Method method);
 
-  // Thread pool management
-  std::vector<std::thread> worker_threads_;
-  std::queue<HttpRequest> request_queue_;
-  std::queue<std::promise<HttpResponse>> promise_queue_;
-  mutable std::mutex queue_mutex_;
-  std::condition_variable queue_cv_;
-  bool shutdown_requested_ = false;
+  // Thread pool for executing requests
+  std::vector<std::thread> mWorkerThreads;
+
+  // Queue for thread-safe non-blocking request handling
+  mutable std::mutex mQueueMutex;
+  std::condition_variable mQueueCv;
+  std::queue<QueueRequestItemType> mRequestQueue;
 
   // Default headers
   std::map<std::string, std::string> default_headers_;
-  mutable std::mutex headers_mutex_;
+  mutable std::mutex mHeadersMutex;
 
   // State
-  bool initialized_ = false;
+  bool mInitialized = false;
+  bool mShutdownRequested = false;
 };

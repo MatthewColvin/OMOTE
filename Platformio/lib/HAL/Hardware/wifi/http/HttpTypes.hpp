@@ -51,8 +51,6 @@ struct HttpRequest {
 class HttpFuture : public std::enable_shared_from_this<HttpFuture> {
 public:
   using ResponseCallback = std::function<void(const HttpResponse &)>;
-  using ErrorCallback = std::function<void(const HttpResponse &)>;
-  using TransformCallback = std::function<std::shared_ptr<HttpFuture>(const HttpResponse &)>;
 
   explicit HttpFuture(std::future<HttpResponse> aFuture);
 
@@ -110,55 +108,6 @@ public:
   std::shared_ptr<HttpFuture> onOtherReturnCode(ResponseCallback aCallback);
 
   /**
-   * @brief Register a callback to be invoked on successful response (status 200-299)
-   *
-   * @param aCallback Function to call with the response
-   * @return Shared pointer to this HttpFuture for chaining
-   */
-  std::shared_ptr<HttpFuture> onResponse(ResponseCallback aCallback);
-
-  /**
-   * @brief Register a callback to be invoked on error (non-2xx status or network error)
-   *
-   * @param aCallback Function to call with the error response
-   * @return Shared pointer to this HttpFuture for chaining
-   */
-  std::shared_ptr<HttpFuture> onError(ErrorCallback aCallback);
-
-  /**
-   * @brief Register callbacks for both success and error cases
-   *
-   * @param aOnResponse Callback for successful responses
-   * @param aOnError Callback for errors
-   * @return Shared pointer to this HttpFuture for chaining
-   */
-  std::shared_ptr<HttpFuture> then(ResponseCallback aOnResponse, ErrorCallback aOnError);
-
-  /**
-   * @brief Transform the response into another HttpFuture (monadic bind)
-   *
-   * Allows chaining HTTP requests: first request result feeds into second request
-   * @example
-   * httpclient->getAsync("https://api.example.com/user/1")
-   *     ->flatMap([httpclient](const HttpResponse& resp) {
-   *         // Parse resp and make another request
-   *         return httpclient->getAsync("https://api.example.com/user/1/posts");
-   *     })
-   *     ->onResponse([](const HttpResponse& resp) {
-   *         std::cout << resp.body << std::endl;
-   *     });
-   */
-  std::shared_ptr<HttpFuture> flatMap(TransformCallback aTransform);
-
-  /**
-   * @brief Map/transform the response into a new value
-   *
-   * @param aTransform Function to transform the response
-   * @return Shared pointer to a new HttpFuture containing the transformed result
-   */
-  std::shared_ptr<HttpFuture> map(std::function<HttpResponse(const HttpResponse &)> aTransform);
-
-  /**
    * @brief Block and get the response (synchronous)
    *
    * @return The response when ready
@@ -183,7 +132,7 @@ public:
    *
    * @return true if response is ready
    */
-  bool ready() const;
+  bool IsReady() const;
 
   /**
    * @brief Register a callback to invoke when response is ready (regardless of success/error)
@@ -195,9 +144,7 @@ public:
 
 private:
   std::future<HttpResponse> mFuture;
-  ResponseCallback mResponseCallback;
-  ErrorCallback mErrorCallback;
-  bool mIsBlocking;
+
   mutable std::mutex mCallbackMutex;
   std::map<int, ResponseCallback> mReturnCodeCallbacks;
   ResponseCallback mReturnCodeDefaultCallback;
@@ -207,6 +154,3 @@ private:
    */
   void checkAndInvoke();
 };
-
-// Convenience type aliases
-using HttpFuturePtr = std::shared_ptr<HttpFuture>;

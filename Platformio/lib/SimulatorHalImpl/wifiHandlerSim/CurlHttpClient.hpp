@@ -2,6 +2,7 @@
 
 #include "Hardware/wifi/http/HttpClientInterface.hpp"
 #include <condition_variable>
+#include <curl/curl.h>
 #include <memory>
 #include <mutex>
 #include <queue>
@@ -17,6 +18,7 @@
 class CurlHttpClient : public HttpClientInterface {
 public:
   using QueueRequestItemType = std::pair<HttpRequest, std::weak_ptr<std::promise<HttpResponse>>>;
+  using AutoCleanupCurl = std::unique_ptr<CURL, std::function<void(CURL *)>>;
 
   explicit CurlHttpClient(size_t aNumWorkerThreads = 2);
   ~CurlHttpClient() override;
@@ -66,12 +68,16 @@ private:
   /**
    * @brief Execute a request synchronously (called by worker threads)
    */
-  static HttpResponse executeSyncRequest(const HttpRequest &request);
+  HttpResponse executeSyncRequest(const HttpRequest &request);
 
   /**
    * @brief Convert HTTP method enum to string
    */
   static std::string methodToString(HttpRequest::Method method);
+
+  AutoCleanupCurl SetupEasyCurl(const std::string &aURL);
+  void SetupMethodOptions(AutoCleanupCurl &aCurl, const HttpRequest &request);
+  auto GetHeaderList(const HttpRequest &aRequest) const;
 
   // Thread pool for executing requests
   std::vector<std::thread> mWorkerThreads;

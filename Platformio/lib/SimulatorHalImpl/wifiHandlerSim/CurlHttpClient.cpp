@@ -1,5 +1,4 @@
 #include "CurlHttpClient.hpp"
-#include <curl/curl.h>
 #include <iostream>
 #include <sstream>
 
@@ -57,6 +56,22 @@ CurlHttpClient::CurlHttpClient(size_t num_threads)
 
 CurlHttpClient::~CurlHttpClient() {
   shutdown();
+}
+
+auto CurlHttpClient::GetHeaderList(const HttpRequest &aRequest) const {
+  auto listDeleter = [&](curl_slist *ptr) { curl_slist_free_all(ptr); };
+  std::unique_ptr<curl_slist, decltype(listDeleter)> memManagedHeaders(nullptr,
+                                                                       listDeleter);
+  struct curl_slist *headers = nullptr;
+  for (const auto &[key, value] : aRequest.headers) {
+    std::string header_line = key + ":";
+    if (!value.empty()) {
+      header_line += " " + value;
+    }
+    headers = curl_slist_append(headers, header_line.c_str());
+  }
+  memManagedHeaders.reset(headers);
+  return memManagedHeaders;
 }
 
 std::shared_ptr<HttpFuture> CurlHttpClient::executeAsync(const HttpRequest &request) {
@@ -161,7 +176,7 @@ void CurlHttpClient::workerThread() {
 }
 
 HttpResponse CurlHttpClient::executeSyncRequest(const HttpRequest &request) {
-  CURL *curl = curl_easy_init();
+  auto curl = SetupEasyCurl(request.url);
   if (!curl) {
     HttpResponse error_response(-1, "", "Failed to initialize curl");
     error_response.success = false;
@@ -172,100 +187,103 @@ HttpResponse CurlHttpClient::executeSyncRequest(const HttpRequest &request) {
   std::map<std::string, std::string> response_headers;
   long response_code = 0;
 
-  try {
-    // Set URL
-    curl_easy_setopt(curl, CURLOPT_URL, request.url.c_str());
+  // Set timeouts (connection and total transfer)
+  // These must be set BEFORE perform() to prevent indefinite hangs
+  curl_easy_setopt(curl.get(), CURLOPT_CONNECTTIMEOUT_MS, (long)request.timeout_ms);
+  curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT_MS, (long)request.timeout_ms);
 
-    // Set timeouts (connection and total transfer)
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, (long)request.timeout_ms);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, (long)request.timeout_ms);
-    // In multithreaded programs, libcurl should not install or use signals.
-    // Prevent use of signals (like SIGALRM) which can interfere with threads.
-    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+  // DNS timeout (resolves "DNS hangs" on unreachable hosts)
+  // Set to same as connection timeout to fail fast
+  curl_easy_setopt(curl.get(), CURLOPT_DNS_CACHE_TIMEOUT, (long)(request.timeout_ms / 1000));
 
-    // Set HTTP method
-    switch (request.method) {
-    case HttpRequest::Method::GET:
-      curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
-      break;
-    case HttpRequest::Method::POST:
-      curl_easy_setopt(curl, CURLOPT_POST, 1L);
-      if (!request.body.empty()) {
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request.body.c_str());
-      }
-      break;
-    case HttpRequest::Method::PUT:
-      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-      if (!request.body.empty()) {
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request.body.c_str());
-      }
-      break;
-    case HttpRequest::Method::DELETE:
-      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-      break;
-    case HttpRequest::Method::PATCH:
-      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
-      if (!request.body.empty()) {
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request.body.c_str());
-      }
-      break;
-    case HttpRequest::Method::HEAD:
-      curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-      break;
-    case HttpRequest::Method::OPTIONS:
-      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "OPTIONS");
-      break;
+  // In multithreaded programs, libcurl should not install or use signals.
+  // Prevent use of signals (like SIGALRM) which can interfere with threads.
+  curl_easy_setopt(curl.get(), CURLOPT_NOSIGNAL, 1L);
+
+  // Force IPv4 to avoid potential IPv6 DNS issues
+  curl_easy_setopt(curl.get(), CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+
+  // Enable verbose logging for debugging
+  curl_easy_setopt(curl.get(), CURLOPT_VERBOSE, 1L);
+
+  SetupMethodOptions(curl, request);
+  auto headers = GetHeaderList(request);
+  if (headers) {
+    // Debug: print headers being sent
+    struct curl_slist *h = headers.get();
+    while (h) {
+      std::cout << "[CurlHttpClient] Sending header: " << h->data << std::endl;
+      h = h->next;
     }
+    curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers.get());
+  }
 
-    // Set headers
-    struct curl_slist *headers = nullptr;
-    if (!request.headers.empty()) {
-      for (const auto &[key, value] : request.headers) {
-        std::string header_line = key + ": " + value;
-        headers = curl_slist_append(headers, header_line.c_str());
-      }
+  // Set write callbacks for response body and headers
+  curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, WriteCallback);
+  curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, (void *)&response_body);
+  curl_easy_setopt(curl.get(), CURLOPT_HEADERFUNCTION, HeaderCallback);
+  curl_easy_setopt(curl.get(), CURLOPT_HEADERDATA, (void *)&response_headers);
+
+  // Allow empty response bodies (common for fire-and-forget APIs like Roku)
+  // curl_easy_setopt(curl.get(), CURLOPT_FAILONERROR, 0L);
+
+  // Perform the request
+  std::cout << "[CurlHttpClient] Starting request to: " << request.url << std::endl;
+  CURLcode res = curl_easy_perform(curl.get());
+  std::cout << "[CurlHttpClient] Request completed with code: " << res << " (" << curl_easy_strerror(res) << ")" << std::endl;
+
+  // Get response code
+  curl_easy_getinfo(curl.get(), CURLINFO_RESPONSE_CODE, &response_code);
+
+  // Create response
+  HttpResponse response((int)response_code, response_body, (response_code >= 200 && response_code < 300));
+  response.headers = response_headers;
+  return response;
+}
+
+void CurlHttpClient::SetupMethodOptions(AutoCleanupCurl &aCurl, const HttpRequest &aRequest) {
+  switch (aRequest.method) {
+  case HttpRequest::Method::GET:
+    curl_easy_setopt(aCurl.get(), CURLOPT_HTTPGET, 1L);
+    break;
+  case HttpRequest::Method::POST:
+    curl_easy_setopt(aCurl.get(), CURLOPT_POST, 1L);
+    if (!aRequest.body.empty()) {
+      curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDS, aRequest.body.c_str());
+      curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDSIZE, (long)aRequest.body.size());
+    } else {
+      // Explicitly tell libcurl that the POST has an empty body. If we don't
+      // set POSTFIELDS/POSTFIELDSIZE, libcurl may use chunked encoding and
+      // send an "Expect: 100-continue" handshake (or wait). Explicitly
+      // setting an empty body forces Content-Length: 0 and avoids hangs
+      // with servers that don't complete the 100-continue flow.
+      curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDS, "");
+      curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDSIZE, 0L);
     }
-    if (headers) {
-      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    break;
+  case HttpRequest::Method::PUT:
+    curl_easy_setopt(aCurl.get(), CURLOPT_CUSTOMREQUEST, "PUT");
+    if (!aRequest.body.empty()) {
+      curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDS, aRequest.body.c_str());
+      curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDSIZE, (long)aRequest.body.size());
     }
-
-    // Set write callbacks for response body and headers
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&response_body);
-    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, HeaderCallback);
-    curl_easy_setopt(curl, CURLOPT_HEADERDATA, (void *)&response_headers);
-
-    // Perform the request
-    CURLcode res = curl_easy_perform(curl);
-
-    // Get response code
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-
-    // Cleanup headers list
-    if (headers) {
-      curl_slist_free_all(headers);
+    break;
+  case HttpRequest::Method::DELETE:
+    curl_easy_setopt(aCurl.get(), CURLOPT_CUSTOMREQUEST, "DELETE");
+    break;
+  case HttpRequest::Method::PATCH:
+    curl_easy_setopt(aCurl.get(), CURLOPT_CUSTOMREQUEST, "PATCH");
+    if (!aRequest.body.empty()) {
+      curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDS, aRequest.body.c_str());
+      curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDSIZE, (long)aRequest.body.size());
     }
-
-    // Check for curl errors
-    if (res != CURLE_OK) {
-      HttpResponse error_response(-1, "", std::string("Curl error: ") + curl_easy_strerror(res));
-      error_response.success = false;
-      curl_easy_cleanup(curl);
-      return error_response;
-    }
-
-    // Create response
-    HttpResponse response((int)response_code, response_body, (response_code >= 200 && response_code < 300));
-    response.headers = response_headers;
-
-    curl_easy_cleanup(curl);
-    return response;
-
-  } catch (const std::exception &e) {
-    curl_easy_cleanup(curl);
-    HttpResponse error_response(-1, "", std::string("Exception: ") + e.what());
-    error_response.success = false;
-    return error_response;
+    break;
+  case HttpRequest::Method::HEAD:
+    curl_easy_setopt(aCurl.get(), CURLOPT_NOBODY, 1L);
+    break;
+  case HttpRequest::Method::OPTIONS:
+    curl_easy_setopt(aCurl.get(), CURLOPT_CUSTOMREQUEST, "OPTIONS");
+    break;
   }
 }
 
@@ -288,4 +306,14 @@ std::string CurlHttpClient::methodToString(HttpRequest::Method method) {
   default:
     return "UNKNOWN";
   }
+}
+
+CurlHttpClient::AutoCleanupCurl CurlHttpClient::SetupEasyCurl(const std::string &aUrl) {
+  // Curl Easy Init
+  auto curlEasyCleanup = [](CURL *aFinishedCurl) {
+    curl_easy_cleanup(aFinishedCurl);
+  };
+  CurlHttpClient::AutoCleanupCurl easyCurl(curl_easy_init(), curlEasyCleanup);
+  curl_easy_setopt(easyCurl.get(), CURLOPT_URL, aUrl.c_str());
+  return easyCurl;
 }

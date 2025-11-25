@@ -108,10 +108,17 @@ void RokuHttp::sendKeyPress(const std::string &keyName) {
   }
 
   std::string url = buildRokuUrl("/keypress/" + keyName);
-  mHttpClient->postAsync(url, "")->onError([](const HttpResponse &err) {
-    // TODO: Handle Error Somehow
-    // Handle error silently for now
-  });
+
+  HttpRequest request(HttpRequest::Method::POST, url);
+  // TODO Try and add the other headers from postman here
+  // request.headers["Content-Type"] = "application/x-www-form-urlencoded";
+  request.headers["Expect"] = "";
+  request.headers["Content-Type"] = "application/x-www-form-urlencoded";
+  request.headers["Accept"] = "*/*";
+  request.timeout_ms = 2000;
+
+  mHttpClient->executeAsync(request)
+      ->onReturnCode(200, [](const HttpResponse &sSuccess) {});
 }
 
 void RokuHttp::launchApp(const std::string &appId) {
@@ -121,7 +128,5 @@ void RokuHttp::launchApp(const std::string &appId) {
 
   std::string url = buildRokuUrl("/launch/app");
   std::string body = appId;
-  mHttpClient->postAsync(url, body)->onError([](const HttpResponse &err) {
-    // Handle error silently for now
-  });
+  mHttpClient->postAsync(url, body)->onReturnCode(200, [](const HttpResponse &sSuccess) {});
 }

@@ -13,6 +13,10 @@
 
 class HardwareSimulator : public HardwareAbstract {
 public:
+  static constexpr auto const SimWorkingDir = FS_PATH;
+  static constexpr auto const CheckedInDataDir = "./data";
+  static constexpr auto const BackupDataDir = "./data_backup";
+
   HardwareSimulator();
 
   void init() override;

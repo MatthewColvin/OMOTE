@@ -6,6 +6,10 @@ using namespace UI::Widget;
 Button::Button() : Base(lv_btn_create(UI::Screen::BackgroundScreen::getLvInstance()),
                         ID::Widgets::Button) {}
 
+Button::Button(std::function<void()> aOnShortClickHandler) : Button() {
+  mOnShortClick = aOnShortClickHandler;
+}
+
 Button::Button(std::function<void()> aOnPressHandler,
                std::function<void()> aOnReleaseHandler)
     : Button() {

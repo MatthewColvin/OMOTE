@@ -54,7 +54,7 @@ private:
   }
 
   template <typename... Ms>
-  static constexpr size_t CalculateRequiredObjectSize(const Ms &...ms) {
+  static constexpr size_t CalculateTypeObjectSize(const Ms &...ms) {
     // Properties
     size_t size = 0;
     bool first = true;
@@ -71,7 +71,7 @@ private:
     size += BeginningString.size();
     size += CalculateRequiredListSize(ms...);
     size += PostRequiredMembersArrayString.size();
-    size += CalculateRequiredObjectSize(ms...);
+    size += CalculateTypeObjectSize(ms...);
     size += EndString.size();
 
     constexpr auto THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG = 44;

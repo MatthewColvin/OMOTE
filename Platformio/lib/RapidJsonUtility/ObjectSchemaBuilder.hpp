@@ -15,7 +15,10 @@ struct ObjectSchemaBuilder {
 
   static constexpr std::string_view BeginningString = R"({"type":"object","required":[)";
   static constexpr std::string_view PostRequiredMembersArrayString = R"(],"properties":{)";
-
+  static constexpr std::string_view EndString = R"(}})";
+  static constexpr std::string_view Comma = ",";
+  static constexpr std::string_view Colon = ":";
+  static constexpr std::string_view QuotationMark = "\"";
   struct Member {
     std::string_view key = "";
     std::string_view type = "";
@@ -41,27 +44,38 @@ struct ObjectSchemaBuilder {
     return std::apply([](auto &&...ms) { return ObjectSchemaBuilder<Members..., Member>(ms...); }, newMembers);
   }
 
-  // Calculate size at compile time - helper that works with unpacked members
   template <typename... Ms>
-  static constexpr size_t CalculateSizeHelper(const Ms &...ms) {
-    size_t size = BeginningString.size();
-
+  static constexpr size_t CalculateRequiredListSize(const Ms &...ms) {
     // Required array
+    size_t size = 0;
     bool firstRequired = true;
     ((ms.required ? (firstRequired ? (size += 2 + ms.key.size(), firstRequired = false)
                                    : (size += 3 + ms.key.size(), 0))
                   : 0),
      ...);
+    return size;
+  }
 
-    size += PostRequiredMembersArrayString.size();
-
+  template <typename... Ms>
+  static constexpr size_t CalculateRequiredObjectSize(const Ms &...ms) {
     // Properties
+    size_t size = 0;
     bool first = true;
     ((first ? (size += 1 + ms.key.size() + 12 + ms.type.size() + 2, first = false)
             : (size += 2 + ms.key.size() + 12 + ms.type.size() + 2, 0)),
      ...);
+    return size;
+  }
 
-    size += 2; // }}
+  // Calculate size at compile time - helper that works with unpacked members
+  template <typename... Ms>
+  static constexpr size_t CalculateSizeHelper(const Ms &...ms) {
+    size_t size = 0;
+    size += BeginningString.size();
+    size += CalculateRequiredListSize(ms...);
+    size += PostRequiredMembersArrayString.size();
+    size += CalculateRequiredObjectSize(ms...);
+    size += EndString.size();
 
     constexpr auto THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG = 44;
     return size + THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG;

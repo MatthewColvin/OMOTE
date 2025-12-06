@@ -13,6 +13,9 @@ struct Counter {
 template <typename... Members>
 struct ObjectSchemaBuilder {
 
+  static constexpr std::string_view BeginningString = R"({"type":"object","required":[)";
+  static constexpr std::string_view PostRequiredMembersArrayString = R"(],"properties":{)";
+
   struct Member {
     std::string_view key = "";
     std::string_view type = "";
@@ -41,7 +44,7 @@ struct ObjectSchemaBuilder {
   // Calculate size at compile time - helper that works with unpacked members
   template <typename... Ms>
   static constexpr size_t CalculateSizeHelper(const Ms &...ms) {
-    size_t size = std::string_view{R"({"type":"object","required":[)"}.size();
+    size_t size = BeginningString.size();
 
     // Required array
     bool firstRequired = true;
@@ -50,7 +53,7 @@ struct ObjectSchemaBuilder {
                   : 0),
      ...);
 
-    size += std::string_view{R"(],"properties":{)"}.size();
+    size += PostRequiredMembersArrayString.size();
 
     // Properties
     bool first = true;
@@ -87,7 +90,7 @@ struct ObjectSchemaBuilder {
       }
     };
 
-    append(R"({"type":"object","required":[)");
+    append(BeginningString);
 
     bool firstRequired = true;
     std::apply([&](auto &&...ms) {
@@ -98,7 +101,7 @@ struct ObjectSchemaBuilder {
     },
                members);
 
-    append(R"(],"properties":{)");
+    append(PostRequiredMembersArrayString);
 
     bool first = true;
     std::apply([&](auto &&...ms) {

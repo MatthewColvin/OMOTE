@@ -96,8 +96,7 @@ private:
 
     auto append = [&](std::string_view str) {
       for (char c : str) {
-        result[pos] = c;
-        pos++;
+        result[pos++] = c;
       }
     };
 
@@ -105,8 +104,8 @@ private:
 
     bool firstRequired = true;
     std::apply([&](auto &&...ms) {
-      ((ms.required ? (firstRequired ? (append("\""), append(ms.key), append("\""), firstRequired = false, 0)
-                                     : (append(",\""), append(ms.key), append("\""), 0))
+      ((ms.required ? (firstRequired ? (append(QuotationMark), append(ms.key), append(QuotationMark), firstRequired = false, 0)
+                                     : (append(CommaQuotationMark), append(ms.key), append(QuotationMark), 0))
                     : 0),
        ...);
     },
@@ -116,15 +115,15 @@ private:
 
     bool first = true;
     std::apply([&](auto &&...ms) {
-      ((first ? (append("\""), append(ms.key), append(R"(":{"type":")"),
-                 append(ms.type), append(R"("})"), first = false, 0)
-              : (append(",\""), append(ms.key), append(R"(":{"type":")"),
-                 append(ms.type), append(R"("})"), 0)),
+      ((first ? (append(QuotationMark), append(ms.key), append(MemberTypeString),
+                 append(ms.type), append(EndMemberTypeString), first = false, 0)
+              : (append(CommaQuotationMark), append(ms.key), append(MemberTypeString),
+                 append(ms.type), append(EndMemberTypeString), 0)),
        ...);
     },
                members);
 
-    append("}}");
+    append(EndString);
     result[pos] = '\0';
 
     return result;
@@ -134,10 +133,13 @@ private:
 
   static constexpr std::string_view BeginningString = R"({"type":"object","required":[)";
   static constexpr std::string_view PostRequiredMembersArrayString = R"(],"properties":{)";
+  static constexpr std::string_view MemberTypeString = R"(":{"type":")";
+  static constexpr std::string_view EndMemberTypeString = R"("})";
   static constexpr std::string_view EndString = R"(}})";
   static constexpr std::string_view Comma = ",";
   static constexpr std::string_view Colon = ":";
   static constexpr std::string_view QuotationMark = "\"";
+  static constexpr std::string_view CommaQuotationMark = ",\"";
 };
 
 // Helper to start building

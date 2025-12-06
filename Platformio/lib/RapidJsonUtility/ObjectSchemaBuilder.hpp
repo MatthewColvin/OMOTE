@@ -12,21 +12,7 @@ struct Counter {
 // Immutable builder using variadic templates
 template <typename... Members>
 struct ObjectSchemaBuilder {
-
-  static constexpr std::string_view BeginningString = R"({"type":"object","required":[)";
-  static constexpr std::string_view PostRequiredMembersArrayString = R"(],"properties":{)";
-  static constexpr std::string_view EndString = R"(}})";
-  static constexpr std::string_view Comma = ",";
-  static constexpr std::string_view Colon = ":";
-  static constexpr std::string_view QuotationMark = "\"";
-  struct Member {
-    std::string_view key = "";
-    std::string_view type = "";
-    bool required = false;
-  };
-
-  std::tuple<Members...> members;
-
+public:
   constexpr ObjectSchemaBuilder(Members... ms) : members(ms...) {}
 
   constexpr auto Require(std::string_view key, std::string_view type) {
@@ -36,6 +22,17 @@ struct ObjectSchemaBuilder {
   constexpr auto Optional(std::string_view key, std::string_view type) {
     return AddMember(key, type, false);
   }
+
+  constexpr auto Build() const {
+    return BuildImpl();
+  }
+
+private:
+  struct Member {
+    std::string_view key = "";
+    std::string_view type = "";
+    bool required = false;
+  };
 
   // Add a member - returns NEW builder with added member
   constexpr auto AddMember(std::string_view key, std::string_view type, bool required = false) const {
@@ -133,10 +130,14 @@ struct ObjectSchemaBuilder {
     return result;
   }
 
-  // Public Build() delegates to BuildImpl with deduced size
-  constexpr auto Build() const {
-    return BuildImpl();
-  }
+  std::tuple<Members...> members;
+
+  static constexpr std::string_view BeginningString = R"({"type":"object","required":[)";
+  static constexpr std::string_view PostRequiredMembersArrayString = R"(],"properties":{)";
+  static constexpr std::string_view EndString = R"(}})";
+  static constexpr std::string_view Comma = ",";
+  static constexpr std::string_view Colon = ":";
+  static constexpr std::string_view QuotationMark = "\"";
 };
 
 // Helper to start building

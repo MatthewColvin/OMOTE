@@ -88,6 +88,29 @@ private:
       [](auto &&...ms) { return CalculateSizeHelper(ms...); },
       std::tuple<Members...>{});
 
+  constexpr void AppendRequiredMembers(auto &aAppendFunc) const {
+    bool firstRequired = true;
+    std::apply([&](auto &&...ms) {
+      ((ms.required ? (firstRequired ? (aAppendFunc(QuotationMark), aAppendFunc(ms.key), aAppendFunc(QuotationMark), firstRequired = false, 0)
+                                     : (aAppendFunc(CommaQuotationMark), aAppendFunc(ms.key), aAppendFunc(QuotationMark), 0))
+                    : 0),
+       ...);
+    },
+               members);
+  }
+
+  constexpr void AppendTypeSchema(auto &aAppendFunc) const {
+    bool first = true;
+    std::apply([&](auto &&...ms) {
+      ((first ? (aAppendFunc(QuotationMark), aAppendFunc(ms.key), aAppendFunc(MemberTypeString),
+                 aAppendFunc(ms.type), aAppendFunc(EndMemberTypeString), first = false, 0)
+              : (aAppendFunc(CommaQuotationMark), aAppendFunc(ms.key), aAppendFunc(MemberTypeString),
+                 aAppendFunc(ms.type), aAppendFunc(EndMemberTypeString), 0)),
+       ...);
+    },
+               members);
+  }
+
   // Build the schema string with exact size from template parameter
   template <size_t N = SchemaSize>
   constexpr auto BuildImpl() const {
@@ -101,29 +124,11 @@ private:
     };
 
     append(BeginningString);
-
-    bool firstRequired = true;
-    std::apply([&](auto &&...ms) {
-      ((ms.required ? (firstRequired ? (append(QuotationMark), append(ms.key), append(QuotationMark), firstRequired = false, 0)
-                                     : (append(CommaQuotationMark), append(ms.key), append(QuotationMark), 0))
-                    : 0),
-       ...);
-    },
-               members);
-
+    AppendRequiredMembers(append);
     append(PostRequiredMembersArrayString);
-
-    bool first = true;
-    std::apply([&](auto &&...ms) {
-      ((first ? (append(QuotationMark), append(ms.key), append(MemberTypeString),
-                 append(ms.type), append(EndMemberTypeString), first = false, 0)
-              : (append(CommaQuotationMark), append(ms.key), append(MemberTypeString),
-                 append(ms.type), append(EndMemberTypeString), 0)),
-       ...);
-    },
-               members);
-
+    AppendRequiredMembers(append);
     append(EndString);
+
     result[pos] = '\0';
 
     return result;

@@ -46,14 +46,14 @@ private:
     // Required array
     size_t size = 0;
     bool firstRequired = true;
-    ((ms.required ? (firstRequired ? (size += 2 + ms.key.size(), firstRequired = false)
-                                   : (size += 3 + ms.key.size(), 0))
+    ((ms.required ? (firstRequired ? (size += QuotationMark.size() + ms.key.size() + QuotationMark.size(), firstRequired = false)
+                                   : (size += CommaQuotationMark.size() + ms.key.size() + QuotationMark.size(), 0))
                   : 0),
      ...);
     return size;
   }
 
-  constexpr void AppendRequiredMembers(auto &aAppendFunc) const {
+  constexpr void AppendRequiredMembers(const auto &aAppendFunc) const {
     bool firstRequired = true;
     std::apply([&](auto &&...ms) {
       ((ms.required ? (firstRequired ? (aAppendFunc(QuotationMark), aAppendFunc(ms.key), aAppendFunc(QuotationMark), firstRequired = false, 0)
@@ -69,19 +69,17 @@ private:
     // Properties
     size_t size = 0;
     bool first = true;
-    ((first ? (size += 1 + ms.key.size() + 12 + ms.type.size() + 2, first = false)
-            : (size += 2 + ms.key.size() + 12 + ms.type.size() + 2, 0)),
+    ((first ? (size += QuotationMark.size() + ms.key.size() + MemberTypeString.size() + ms.type.size() + EndMemberTypeString.size(), first = false)
+            : (size += CommaQuotationMark.size() + ms.key.size() + MemberTypeString.size() + ms.type.size() + EndMemberTypeString.size(), 0)),
      ...);
     return size;
   }
 
-  constexpr void AppendTypeSchema(auto &aAppendFunc) const {
+  constexpr void AppendTypeSchema(const auto &aAppendFunc) const {
     bool first = true;
     std::apply([&](auto &&...ms) {
-      ((first ? (aAppendFunc(QuotationMark), aAppendFunc(ms.key), aAppendFunc(MemberTypeString),
-                 aAppendFunc(ms.type), aAppendFunc(EndMemberTypeString), first = false, 0)
-              : (aAppendFunc(CommaQuotationMark), aAppendFunc(ms.key), aAppendFunc(MemberTypeString),
-                 aAppendFunc(ms.type), aAppendFunc(EndMemberTypeString), 0)),
+      ((first ? (aAppendFunc(QuotationMark), aAppendFunc(ms.key), aAppendFunc(MemberTypeString), aAppendFunc(ms.type), aAppendFunc(EndMemberTypeString), first = false, 0)
+              : (aAppendFunc(CommaQuotationMark), aAppendFunc(ms.key), aAppendFunc(MemberTypeString), aAppendFunc(ms.type), aAppendFunc(EndMemberTypeString), 0)),
        ...);
     },
                members);
@@ -96,8 +94,9 @@ private:
     size += PostRequiredMembersArrayString.size();
     size += CalculateTypeObjectSize(ms...);
     size += EndString.size();
+    size += 1; // \0 terminator
 
-    constexpr auto THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG = 44;
+    constexpr auto THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG = 45;
     return size + THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG;
   }
 

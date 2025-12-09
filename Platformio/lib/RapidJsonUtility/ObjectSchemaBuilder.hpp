@@ -53,6 +53,17 @@ private:
     return size;
   }
 
+  constexpr void AppendRequiredMembers(auto &aAppendFunc) const {
+    bool firstRequired = true;
+    std::apply([&](auto &&...ms) {
+      ((ms.required ? (firstRequired ? (aAppendFunc(QuotationMark), aAppendFunc(ms.key), aAppendFunc(QuotationMark), firstRequired = false, 0)
+                                     : (aAppendFunc(CommaQuotationMark), aAppendFunc(ms.key), aAppendFunc(QuotationMark), 0))
+                    : 0),
+       ...);
+    },
+               members);
+  }
+
   template <typename... Ms>
   static constexpr size_t CalculateTypeObjectSize(const Ms &...ms) {
     // Properties
@@ -62,6 +73,18 @@ private:
             : (size += 2 + ms.key.size() + 12 + ms.type.size() + 2, 0)),
      ...);
     return size;
+  }
+
+  constexpr void AppendTypeSchema(auto &aAppendFunc) const {
+    bool first = true;
+    std::apply([&](auto &&...ms) {
+      ((first ? (aAppendFunc(QuotationMark), aAppendFunc(ms.key), aAppendFunc(MemberTypeString),
+                 aAppendFunc(ms.type), aAppendFunc(EndMemberTypeString), first = false, 0)
+              : (aAppendFunc(CommaQuotationMark), aAppendFunc(ms.key), aAppendFunc(MemberTypeString),
+                 aAppendFunc(ms.type), aAppendFunc(EndMemberTypeString), 0)),
+       ...);
+    },
+               members);
   }
 
   // Calculate size at compile time - helper that works with unpacked members
@@ -88,29 +111,6 @@ private:
       [](auto &&...ms) { return CalculateSizeHelper(ms...); },
       std::tuple<Members...>{});
 
-  constexpr void AppendRequiredMembers(auto &aAppendFunc) const {
-    bool firstRequired = true;
-    std::apply([&](auto &&...ms) {
-      ((ms.required ? (firstRequired ? (aAppendFunc(QuotationMark), aAppendFunc(ms.key), aAppendFunc(QuotationMark), firstRequired = false, 0)
-                                     : (aAppendFunc(CommaQuotationMark), aAppendFunc(ms.key), aAppendFunc(QuotationMark), 0))
-                    : 0),
-       ...);
-    },
-               members);
-  }
-
-  constexpr void AppendTypeSchema(auto &aAppendFunc) const {
-    bool first = true;
-    std::apply([&](auto &&...ms) {
-      ((first ? (aAppendFunc(QuotationMark), aAppendFunc(ms.key), aAppendFunc(MemberTypeString),
-                 aAppendFunc(ms.type), aAppendFunc(EndMemberTypeString), first = false, 0)
-              : (aAppendFunc(CommaQuotationMark), aAppendFunc(ms.key), aAppendFunc(MemberTypeString),
-                 aAppendFunc(ms.type), aAppendFunc(EndMemberTypeString), 0)),
-       ...);
-    },
-               members);
-  }
-
   // Build the schema string with exact size from template parameter
   template <size_t N = SchemaSize>
   constexpr auto BuildImpl() const {
@@ -126,7 +126,7 @@ private:
     append(BeginningString);
     AppendRequiredMembers(append);
     append(PostRequiredMembersArrayString);
-    AppendRequiredMembers(append);
+    AppendTypeSchema(append);
     append(EndString);
 
     result[pos] = '\0';

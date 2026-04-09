@@ -1,6 +1,8 @@
 #include "Custom/RokuHttp.hpp"
+#include "ActiveDeviceConfig.hpp"
 #include "DeviceFactory.hpp"
 #include "HardwareFactory.hpp"
+#include "ObjectSchemaBuilder.hpp"
 #include <sstream>
 
 using Ids = KeyPressAbstract::KeyId;
@@ -14,7 +16,33 @@ std::map<Ids, std::string_view> mKeyIdToRokuKeyName{
     {Ids::Home, "Home"},
     {Ids::Play, "Play"}};
 
-auto RokuRegistered = DeviceFactory::RegisterDevice(
+constexpr auto const RokuSchemaBuilder = OMOTE::JSON::ObjectSchema()
+                                             .Require(RokuHttp::IpAddressKey, "string")
+                                             .Require(RokuHttp::NameKey, "string");
+
+constexpr auto const RokuSchemaArray = RokuSchemaBuilder.Build();
+
+static constexpr std::string_view BuiltRokuSchema(RokuSchemaArray.data(), RokuSchemaArray.size() - 1);
+
+static constexpr auto sSize = RokuSchemaBuilder.SchemaSize;
+
+constexpr auto const RokuSchemaArrayy = OMOTE::JSON::ObjectSchema()
+                                            .Require("thisIsATestKey", "string")
+                                            .Require(RokuHttp::NameKey, "string")
+                                            .Build();
+
+static constexpr inline auto &RokuSchema = R"({
+    "type": "object",
+    "required": ["name", "ip_address"],
+    "properties": {
+      "name":   { "type": "string" },
+      "ipaddress": { "type": "string" },
+    }
+  })";
+
+auto RokuConfigSchemaRegistered = ActiveDeviceConfig::ConfigJsonValidator::Register(DeviceId::Roku, BuiltRokuSchema);
+
+auto RokuCreationRegistered = DeviceFactory::RegisterDevice(
     DeviceId::Roku, []() -> IDevice::Ptr {
       static constexpr char defaultName[] = "Roku";
       // TODO: Get IP Address from config or discovery?

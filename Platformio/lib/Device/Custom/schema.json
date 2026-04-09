@@ -1,0 +1,15 @@
+{
+    "type": "object",
+    "required": [
+        "ip_address",
+        "name"
+    ],
+    "properties": {
+        "ip_address": {
+            "type": "string"
+        },
+        "name": {
+            "type": "string"
+        }
+    }
+}

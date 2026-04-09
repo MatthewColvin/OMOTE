@@ -4,16 +4,16 @@
 
 #include <memory>
 
-#include "IProcessMessage.hpp"
+#include "lib/RapidJsonUtility/IProcessMessage.hpp"
 
 namespace HAL::WebSocket::Json {
 
-class MockIProcessMessage : public IProcessMessage {
+class MockIProcessMessage : public ::Json::IProcessMessage {
 public:
-  explicit MockIProcessMessage(std::unique_ptr<IChunkProcessor> processor)
-      : IProcessMessage(nullptr, std::move(processor)) {}
+  explicit MockIProcessMessage(std::unique_ptr<::Json::IChunkProcessor> processor)
+      : ::Json::IProcessMessage(nullptr, std::move(processor)) {}
 
-  using IProcessMessage::GetUnProcessedBufferCapacity;
+  using ::Json::IProcessMessage::GetUnProcessedBufferCapacity;
 };
 
 } // namespace HAL::WebSocket::Json

@@ -99,7 +99,8 @@
         "cerrno": "cpp",
         "cfloat": "cpp",
         "climits": "cpp",
-        "expected": "cpp"
+        "expected": "cpp",
+        "queue": "cpp"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/.pio/libdeps/esp32/Adafruit BusIO",
     "editor.formatOnSave": true,

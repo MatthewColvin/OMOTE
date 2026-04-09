@@ -2,6 +2,7 @@
 
 #include <array>
 #include <string_view>
+#include <tuple>
 
 // Helper to count elements
 template <typename... Args>
@@ -27,7 +28,7 @@ public:
     return BuildImpl();
   }
 
-private:
+  // private:
   struct Member {
     std::string_view key = "";
     std::string_view type = "";
@@ -46,10 +47,9 @@ private:
     // Required array
     size_t size = 0;
     bool firstRequired = true;
-    ((ms.required ? (firstRequired ? (size += QuotationMark.size() + ms.key.size() + QuotationMark.size(), firstRequired = false)
-                                   : (size += CommaQuotationMark.size() + ms.key.size() + QuotationMark.size(), 0))
-                  : 0),
-     ...);
+    (void)std::initializer_list<int>{(ms.required ? (firstRequired ? (size += QuotationMark.size() + ms.key.size() + QuotationMark.size(), firstRequired = false)
+                                                                   : (size += CommaQuotationMark.size() + ms.key.size() + QuotationMark.size(), 0))
+                                                  : 0)...};
     return size;
   }
 
@@ -69,9 +69,8 @@ private:
     // Properties
     size_t size = 0;
     bool first = true;
-    ((first ? (size += QuotationMark.size() + ms.key.size() + MemberTypeString.size() + ms.type.size() + EndMemberTypeString.size(), first = false)
-            : (size += CommaQuotationMark.size() + ms.key.size() + MemberTypeString.size() + ms.type.size() + EndMemberTypeString.size(), 0)),
-     ...);
+    [[maybe_unused]] auto dummy = {(first ? (size += QuotationMark.size() + ms.key.size() + MemberTypeString.size() + ms.type.size() + EndMemberTypeString.size(), first = false)
+                                          : (size += CommaQuotationMark.size() + ms.key.size() + MemberTypeString.size() + ms.type.size() + EndMemberTypeString.size(), 0))...};
     return size;
   }
 
@@ -96,8 +95,9 @@ private:
     size += EndString.size();
     size += 1; // \0 terminator
 
-    constexpr auto THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG = 45;
-    return size + THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG;
+    // constexpr auto THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG = 45;
+    // return size + THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG;
+    return size;
   }
 
   // Calculate size at compile time by unpacking the tuple
@@ -110,6 +110,8 @@ private:
       [](auto &&...ms) { return CalculateSizeHelper(ms...); },
       std::tuple<Members...>{});
 
+  constexpr size_t GetSchemaSize() { return SchemaSize; };
+
   // Build the schema string with exact size from template parameter
   template <size_t N = SchemaSize>
   constexpr auto BuildImpl() const {
@@ -118,7 +120,9 @@ private:
 
     auto append = [&](std::string_view str) {
       for (char c : str) {
-        result[pos++] = c;
+        if (pos < N) { // Ensure we never exceed array bounds
+          result[pos++] = c;
+        }
       }
     };
 
@@ -128,7 +132,9 @@ private:
     AppendTypeSchema(append);
     append(EndString);
 
-    result[pos] = '\0';
+    if (pos < N) { // Ensure null terminator is written, but not beyond bounds
+      result[pos] = '\0';
+    }
 
     return result;
   }

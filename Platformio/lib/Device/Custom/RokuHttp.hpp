@@ -14,6 +14,8 @@
  */
 class RokuHttp : public IDevice {
 public:
+  static constexpr auto const IpAddressKey = "ip_address";
+  static constexpr auto const NameKey = "name";
   /**
    * @brief Constructor
    * @param name Display name for the Roku device

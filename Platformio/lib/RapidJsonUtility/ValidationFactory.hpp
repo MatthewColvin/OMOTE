@@ -2,6 +2,7 @@
 
 namespace OMOTE::JSON {
 
+#include "ObjectSchemaBuilder.hpp"
 #include "RapidJsonUtilty.hpp"
 #include <array>
 #include <concepts>

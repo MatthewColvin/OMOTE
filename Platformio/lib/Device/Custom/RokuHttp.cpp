@@ -26,20 +26,6 @@ static constexpr std::string_view BuiltRokuSchema(RokuSchemaArray.data(), RokuSc
 
 static constexpr auto sSize = RokuSchemaBuilder.SchemaSize;
 
-constexpr auto const RokuSchemaArrayy = OMOTE::JSON::ObjectSchema()
-                                            .Require("thisIsATestKey", "string")
-                                            .Require(RokuHttp::NameKey, "string")
-                                            .Build();
-
-static constexpr inline auto &RokuSchema = R"({
-    "type": "object",
-    "required": ["name", "ip_address"],
-    "properties": {
-      "name":   { "type": "string" },
-      "ipaddress": { "type": "string" },
-    }
-  })";
-
 auto RokuConfigSchemaRegistered = ActiveDeviceConfig::ConfigJsonValidator::Register(DeviceId::Roku, BuiltRokuSchema);
 
 auto RokuCreationRegistered = DeviceFactory::RegisterDevice(

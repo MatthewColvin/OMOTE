@@ -1,4 +1,5 @@
-#include <ObjectSchemaBuilder.hpp>
+#include "ObjectSchemaBuilder.hpp"
+#include <algorithm>
 #include <gtest/gtest.h>
 
 // Simple test for ObjectSchemaBuilder functionality
@@ -9,7 +10,7 @@ TEST(ObjectSchemaBuilderTest, BasicFunctionality) {
                     .Optional("age", "integer")
                     .Build();
 
-  // Test the build worked
+  // Test the build method returns a non-empty schema
   ASSERT_NE(schema.data(), nullptr);
 }
 
@@ -19,18 +20,23 @@ TEST(ObjectSchemaBuilderTest, SizeCalculation) {
                     .Require("id", "string")
                     .Build();
 
-  // This should work without compile errors
   size_t size = schema.size();
   ASSERT_GT(size, 0);
 }
 
-// Test the GetSchemaSize method (newly added)
 TEST(ObjectSchemaBuilderTest, GetSchemaSize) {
-  auto schema = ObjectSchema()
-                    .Require("test", "string")
-                    .Build();
+  static constexpr auto schema = ObjectSchema()
+                                      .Require("aTestKey", "string")
+                                      .Require("aTestIntKey", "integer")
+                                      .Build();
 
-  // This should work without runtime errors
-  size_t size_from_method = schema.size();
-  ASSERT_GT(size_from_method, 0);
+  // Create a string with whitespace to test
+  const char* hardCodeSchema = R"({"type":"object","required":["aTestKey","aTestIntKey"],"properties":{"aTestKey":{"type":"string"},"aTestIntKey":{"type":"integer"}}})";
+
+  // Remove whitespace and compare - using a simple approach without std::remove_if for now
+  std::string cleanSchema = hardCodeSchema;
+  // Just remove spaces, tabs, and newlines manually to simplify test 
+  cleanSchema.erase(std::remove_if(cleanSchema.begin(), cleanSchema.end(), ::isspace), cleanSchema.end());
+
+  ASSERT_STREQ(cleanSchema.c_str(), schema.data());
 }

@@ -120,7 +120,7 @@ public:
 
     auto append = [&](std::string_view str) {
       for (char c : str) {
-        if (pos < N) { // Ensure we never exceed array bounds
+        if (pos < N - 1) { // Ensure we never exceed array bounds (leave one byte for null terminator)
           result[pos++] = c;
         }
       }

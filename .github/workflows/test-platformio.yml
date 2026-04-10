@@ -1,0 +1,37 @@
+name: PlatformIO Test
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+      - name: Set pip constraints for ESP-IDF
+        shell: bash
+        run: echo "PIP_CONSTRAINT=${{ github.workspace }}/Platformio/esp-idf-constraints.txt" >> $GITHUB_ENV
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Prepare PlatformIO environments
+        working-directory: ./Platformio
+        run: pio pkg install
+
+      - name: Run PlatformIO Tests
+        working-directory: ./Platformio
+        run: pio test

@@ -5,12 +5,32 @@
 static constexpr auto schemaBuilderOne = ObjectSchema()
                                              .Require("aTestKey", "string")
                                              .Require("aTestIntKey", "integer");
+
 static constexpr const char *hardCodeSchemaMatchingOne = R"({
   "type":"object",
   "required":["aTestKey","aTestIntKey"],
   "properties":{
     "aTestKey":{"type":"string"},
     "aTestIntKey":{"type":"integer"}
+  }
+})";
+
+static constexpr auto schemaBuilderTwo = ObjectSchema()
+                                             .Require("aTestKey", "string")
+                                             .Require("aTestIntKey", "integer")
+                                             .Optional("aTestOptKey", "boolean")
+                                             .Optional("aTestOptIntKey", "integer")
+                                             .Require("aTestKey2", "string");
+
+static constexpr const char *hardCodeSchemaMatchingTwo = R"({
+  "type":"object",
+  "required":["aTestKey","aTestIntKey","aTestKey2"],
+  "properties":{
+    "aTestKey":{"type":"string"},
+    "aTestIntKey":{"type":"integer"},
+    "aTestOptKey":{"type":"boolean"},
+    "aTestOptIntKey":{"type":"integer"},
+    "aTestKey2":{"type":"string"}
   }
 })";
 
@@ -28,23 +48,23 @@ TEST(ObjectSchemaBuilderTest, BasicFunctionality) {
 
 // Test the size calculation works correctly
 TEST(ObjectSchemaBuilderTest, SizeCalculation) {
-  auto schema = ObjectSchema()
-                    .Require("id", "string")
-                    .Build();
+  auto basicSchema = ObjectSchema()
+                         .Require("id", "string")
+                         .Build();
 
-  size_t size = schema.size();
+  size_t size = basicSchema.size();
   ASSERT_GT(size, 0);
 }
 
 TEST(ObjectSchemaBuilderTest, CalculateRequiredListSizeTest) {
   // Strings keys will be quoted and comma-separated.
-  constexpr ObjectSchemaBuilder<>::Member m1{"testKey", "string", true};
-  constexpr auto expectedSize = ObjectSchemaBuilder<>::CalculateRequiredListSize(m1);
+  constexpr ObjectSchemaBuilderBase::Member m1{"testKey", "string", true};
+  constexpr auto expectedSize = ObjectSchemaBuilderBase::CalculateRequiredListSize(m1);
   ASSERT_EQ(expectedSize, 7 + 2);
   // (7)"testKey" + (2)quotes
 
-  constexpr ObjectSchemaBuilder<>::Member m2{"anotherKey", "integer", true};
-  constexpr auto expectedSizeTwoMems = ObjectSchemaBuilder<>::CalculateRequiredListSize(m1, m2);
+  constexpr ObjectSchemaBuilderBase::Member m2{"anotherKey", "integer", true};
+  constexpr auto expectedSizeTwoMems = ObjectSchemaBuilderBase::CalculateRequiredListSize(m1, m2);
   ASSERT_EQ(expectedSizeTwoMems, 7 + 2 + 1 + 10 + 2);
   // (7)"testKey" + (2)quotes + (1)comma + (10)"anotherKey" + (2)quotes
 }
@@ -53,9 +73,9 @@ TEST(ObjectSchemaBuilderTest, CalculateTypeObjectSizeTest) {
   // Expected format for properties members in test:
   //  "testKey":{"type":"string"},
   //  "anotherKey":{"type":"integer"}
-  constexpr ObjectSchemaBuilder<>::Member m1{"testKey", "string", true};
-  constexpr ObjectSchemaBuilder<>::Member m2{"anotherKey", "integer", true};
-  constexpr auto expectedSize = ObjectSchemaBuilder<>::CalculateTypeObjectSize(m1, m2);
+  constexpr ObjectSchemaBuilderBase::Member m1{"testKey", "string", true};
+  constexpr ObjectSchemaBuilderBase::Member m2{"anotherKey", "integer", true};
+  constexpr auto expectedSize = ObjectSchemaBuilderBase::CalculateTypeObjectSize(m1, m2);
 
   auto firstObject = R"("testKey":{"type":"string"})";
   auto secondObject = R"("anotherKey":{"type":"integer"})";
@@ -63,23 +83,34 @@ TEST(ObjectSchemaBuilderTest, CalculateTypeObjectSizeTest) {
   ASSERT_EQ(expectedSize, strlen(firstObject) + 1 + strlen(secondObject));
 }
 
-TEST(ObjectSchemaBuilderTest, SchemaSizeTest) {
-  std::string cleanSchema = hardCodeSchemaMatchingOne;
+void validateSizeCalculations(auto builder, const char *hardcoded) {
+  std::string cleanSchema = hardcoded;
   cleanSchema.erase(std::remove_if(cleanSchema.begin(), cleanSchema.end(), ::isspace), cleanSchema.end());
-  auto expectedSize = cleanSchema.length() + 1; // +1 for null terminator
+  auto expectedSize = cleanSchema.length();
 
   // Check we can calculate the schema size at compile time.
-  constexpr auto calculatedSize = schemaBuilderOne.CalculateSize();
+  constexpr auto calculatedSize = builder.CalculateSize();
   ASSERT_EQ(calculatedSize, expectedSize);
 
-  // Build the schema into a constexpr array and check its size matches the expected size.
-  constexpr auto builtSchema = schemaBuilderOne.Build();
+  // Check that the built schema size matches the expected size.
+  // Cant be constexpr?
+  auto builtSchema = builder.Build();
   ASSERT_EQ(builtSchema.size(), expectedSize);
 }
 
-TEST(ObjectSchemaBuilderTest, FullSchemaBuildTest) {
-  constexpr auto schema = schemaBuilderOne.Build();
-  std::string cleanSchema = hardCodeSchemaMatchingOne;
+void validateSchemaFormat(auto builder, const char *hardcoded) {
+  std::string cleanSchema = hardcoded;
   cleanSchema.erase(std::remove_if(cleanSchema.begin(), cleanSchema.end(), ::isspace), cleanSchema.end());
-  ASSERT_STREQ(cleanSchema.c_str(), schema.data());
+  std::string schemaStr(builder.Build().data(), builder.Build().size());
+  ASSERT_STREQ(cleanSchema.c_str(), schemaStr.c_str());
+}
+
+TEST(ObjectSchemaBuilderTest, SchemaOneTest) {
+  validateSizeCalculations(schemaBuilderOne, hardCodeSchemaMatchingOne);
+  validateSchemaFormat(schemaBuilderOne, hardCodeSchemaMatchingOne);
+}
+
+TEST(ObjectSchemaBuilderTest, SchemaTwoTest) {
+  validateSizeCalculations(schemaBuilderTwo, hardCodeSchemaMatchingTwo);
+  validateSchemaFormat(schemaBuilderTwo, hardCodeSchemaMatchingTwo);
 }

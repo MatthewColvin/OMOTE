@@ -24,8 +24,6 @@ constexpr auto const RokuSchemaArray = RokuSchemaBuilder.Build();
 
 static constexpr std::string_view BuiltRokuSchema(RokuSchemaArray.data(), RokuSchemaArray.size() - 1);
 
-static constexpr auto sSize = RokuSchemaBuilder.SchemaSize;
-
 auto RokuConfigSchemaRegistered = ActiveDeviceConfig::ConfigJsonValidator::Register(DeviceId::Roku, BuiltRokuSchema);
 
 auto RokuCreationRegistered = DeviceFactory::RegisterDevice(

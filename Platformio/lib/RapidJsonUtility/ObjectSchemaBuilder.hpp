@@ -4,53 +4,100 @@
 #include <string_view>
 #include <tuple>
 
-// Helper to count elements
-template <typename... Args>
-struct Counter {
-  static constexpr size_t value = sizeof...(Args);
-};
-
-// Immutable builder using variadic templates
-template <typename... Members>
-struct ObjectSchemaBuilder {
-public:
-  constexpr ObjectSchemaBuilder(Members... ms) : members(ms...) {}
-
-  constexpr auto Require(std::string_view key, std::string_view type) {
-    return AddMember(key, type, true);
-  }
-
-  constexpr auto Optional(std::string_view key, std::string_view type) {
-    return AddMember(key, type, false);
-  }
-
-  constexpr auto Build() const {
-    return BuildImpl();
-  }
-
-  // private:
+// Base struct holding Member type and static size calculation helpers,
+// independent of N so tests can access them as ObjectSchemaBuilderBase::Member etc.
+struct ObjectSchemaBuilderBase {
   struct Member {
     std::string_view key = "";
     std::string_view type = "";
     bool required = false;
   };
 
-  // Add a member - returns NEW builder with added member
-  constexpr auto AddMember(std::string_view key, std::string_view type, bool required = false) const {
-    Member m{key, type, required};
-    auto newMembers = std::tuple_cat(members, std::make_tuple(m));
-    return std::apply([](auto &&...ms) { return ObjectSchemaBuilder<Members..., Member>(ms...); }, newMembers);
-  }
+  static constexpr std::string_view BeginningString = R"({"type":"object","required":[)";
+  static constexpr std::string_view PostRequiredMembersArrayString = R"(],"properties":{)";
+  static constexpr std::string_view MemberTypeString = R"(":{"type":")";
+  static constexpr std::string_view EndMemberTypeString = R"("})";
+  static constexpr std::string_view EndString = R"(}})";
+  static constexpr std::string_view QuotationMark = "\"";
+  static constexpr std::string_view CommaQuotationMark = ",\"";
 
   template <typename... Ms>
   static constexpr size_t CalculateRequiredListSize(const Ms &...ms) {
-    // Required array
     size_t size = 0;
     bool firstRequired = true;
     (void)std::initializer_list<int>{(ms.required ? (firstRequired ? (size += QuotationMark.size() + ms.key.size() + QuotationMark.size(), firstRequired = false)
                                                                    : (size += CommaQuotationMark.size() + ms.key.size() + QuotationMark.size(), 0))
                                                   : 0)...};
     return size;
+  }
+
+  template <typename... Ms>
+  static constexpr size_t CalculateTypeObjectSize(const Ms &...ms) {
+    size_t size = 0;
+    bool first = true;
+    [[maybe_unused]] auto dummy = {(first ? (size += QuotationMark.size() + ms.key.size() + MemberTypeString.size() + ms.type.size() + EndMemberTypeString.size(), first = false)
+                                          : (size += CommaQuotationMark.size() + ms.key.size() + MemberTypeString.size() + ms.type.size() + EndMemberTypeString.size(), 0))...};
+    return size;
+  }
+};
+
+template <size_t N, typename... Members>
+struct ObjectSchemaBuilder : public ObjectSchemaBuilderBase {
+public:
+  constexpr ObjectSchemaBuilder(Members... ms) : members(ms...) {}
+
+  template <size_t KeyLen, size_t TypeLen>
+  constexpr auto Require(const char (&key)[KeyLen], const char (&type)[TypeLen]) const {
+    return AddMember<KeyLen - 1, TypeLen - 1, true>(key, type);
+  }
+
+  template <size_t KeyLen, size_t TypeLen>
+  constexpr auto Optional(const char (&key)[KeyLen], const char (&type)[TypeLen]) const {
+    return AddMember<KeyLen - 1, TypeLen - 1, false>(key, type);
+  }
+
+  constexpr auto Build() const {
+    return BuildImpl<N>();
+  }
+
+  constexpr size_t CalculateSize() const {
+    return N;
+  }
+
+  template <size_t KeyLen, size_t TypeLen, bool isMemberRequired>
+  constexpr auto AddMember(std::string_view key, std::string_view type) const {
+    Member m{key, type, isMemberRequired};
+    auto newMembers = std::tuple_cat(members, std::make_tuple(m));
+
+    constexpr size_t existingRequired = CountRequired<Members...>();
+    constexpr size_t keyLengthInRequiredArray = existingRequired == 0
+                                                    ? QuotationMark.size() + KeyLen + QuotationMark.size()       // First one just has quotes no need for commas
+                                                    : CommaQuotationMark.size() + KeyLen + QuotationMark.size(); // Subsequent required members need a comma and quotes around the key
+    constexpr size_t reqContrib = isMemberRequired
+                                      ? keyLengthInRequiredArray
+                                      : 0; // Not required then does not go in the required array
+
+    constexpr size_t existingTotal = sizeof...(Members);
+    constexpr size_t propContrib = existingTotal == 0
+                                       ? QuotationMark.size() + KeyLen + MemberTypeString.size() + TypeLen + EndMemberTypeString.size()
+                                       : CommaQuotationMark.size() + KeyLen + MemberTypeString.size() + TypeLen + EndMemberTypeString.size();
+
+    constexpr size_t newN = N + reqContrib + propContrib;
+
+    return std::apply(
+        [](auto &&...ms) { 
+          // Build a new object builder to add the new member and update the total size we need for the schema. 
+          return ObjectSchemaBuilder<newN, Members..., Member>(ms...); },
+        newMembers);
+  }
+
+  template <typename... Ms>
+  static constexpr size_t CountRequired() {
+    if constexpr (sizeof...(Ms) == 0) {
+      return 0;
+    } else {
+      return (size_t{0} + ... + (Ms{}.required ? 1 : 0));
+    }
   }
 
   constexpr void AppendRequiredMembers(const auto &aAppendFunc) const {
@@ -64,16 +111,6 @@ public:
                members);
   }
 
-  template <typename... Ms>
-  static constexpr size_t CalculateTypeObjectSize(const Ms &...ms) {
-    // Properties
-    size_t size = 0;
-    bool first = true;
-    [[maybe_unused]] auto dummy = {(first ? (size += QuotationMark.size() + ms.key.size() + MemberTypeString.size() + ms.type.size() + EndMemberTypeString.size(), first = false)
-                                          : (size += CommaQuotationMark.size() + ms.key.size() + MemberTypeString.size() + ms.type.size() + EndMemberTypeString.size(), 0))...};
-    return size;
-  }
-
   constexpr void AppendTypeSchema(const auto &aAppendFunc) const {
     bool first = true;
     std::apply([&](auto &&...ms) {
@@ -84,45 +121,14 @@ public:
                members);
   }
 
-  // Calculate size at compile time - helper that works with unpacked members
-  template <typename... Ms>
-  static constexpr size_t CalculateSizeHelper(const Ms &...ms) {
-    size_t size = 0;
-    size += BeginningString.size();
-    size += CalculateRequiredListSize(ms...);
-    size += PostRequiredMembersArrayString.size();
-    size += CalculateTypeObjectSize(ms...);
-    size += EndString.size();
-    size += 1; // \0 terminator
-
-    // constexpr auto THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG = 45;
-    // return size + THE_MAGIC_NUMBER_BECAUSE_CALCUATION_ABOVE_IS_WRONG;
-    return size;
-  }
-
-  // Calculate size at compile time by unpacking the tuple
-  constexpr size_t CalculateSize() const {
-    return std::apply([](const auto &...ms) { return CalculateSizeHelper(ms...); }, members);
-  }
-
-  // Calculate size from member types directly (compile-time)
-  static constexpr size_t SchemaSize = std::apply(
-      [](auto &&...ms) { return CalculateSizeHelper(ms...); },
-      std::tuple<Members...>{});
-
-  constexpr size_t GetSchemaSize() { return SchemaSize; };
-
-  // Build the schema string with exact size from template parameter
-  template <size_t N = SchemaSize>
+  template <size_t Sz>
   constexpr auto BuildImpl() const {
-    std::array<char, N> result = {}; // Exact size at compile time
+    std::array<char, Sz> result = {};
     size_t pos = 0;
 
     auto append = [&](std::string_view str) {
       for (char c : str) {
-        if (pos < N - 1) { // Ensure we never exceed array bounds (leave one byte for null terminator)
-          result[pos++] = c;
-        }
+        result[pos++] = c;
       }
     };
 
@@ -132,27 +138,20 @@ public:
     AppendTypeSchema(append);
     append(EndString);
 
-    if (pos < N) { // Ensure null terminator is written, but not beyond bounds
-      result[pos] = '\0';
-    }
-
     return result;
   }
 
   std::tuple<Members...> members;
-
-  static constexpr std::string_view BeginningString = R"({"type":"object","required":[)";
-  static constexpr std::string_view PostRequiredMembersArrayString = R"(],"properties":{)";
-  static constexpr std::string_view MemberTypeString = R"(":{"type":")";
-  static constexpr std::string_view EndMemberTypeString = R"("})";
-  static constexpr std::string_view EndString = R"(}})";
-  static constexpr std::string_view Comma = ",";
-  static constexpr std::string_view Colon = ":";
-  static constexpr std::string_view QuotationMark = "\"";
-  static constexpr std::string_view CommaQuotationMark = ",\"";
 };
 
-// Helper to start building
+// Start with the base size as an empty object schema, then as each member
+// is added we construct a new builder with the updated size based on the passed member.
+static constexpr size_t BaseSize =
+    ObjectSchemaBuilderBase::BeginningString.size() +
+    ObjectSchemaBuilderBase::PostRequiredMembersArrayString.size() +
+    ObjectSchemaBuilderBase::EndString.size() +
+    1; // null terminator
+
 constexpr auto ObjectSchema() {
-  return ObjectSchemaBuilder<>{};
+  return ObjectSchemaBuilder<BaseSize>{};
 }

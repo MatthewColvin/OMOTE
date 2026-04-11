@@ -4,8 +4,6 @@
 #include <string_view>
 #include <tuple>
 
-// Base struct holding Member type and static size calculation helpers,
-// independent of N so tests can access them as ObjectSchemaBuilderBase::Member etc.
 struct ObjectSchemaBuilderBase {
   struct Member {
     std::string_view key = "";
@@ -41,7 +39,7 @@ struct ObjectSchemaBuilderBase {
   }
 };
 
-template <size_t N, typename... Members>
+template <size_t N, size_t RequiredMembersCount, typename... Members>
 struct ObjectSchemaBuilder : public ObjectSchemaBuilderBase {
 public:
   constexpr ObjectSchemaBuilder(Members... ms) : members(ms...) {}
@@ -69,35 +67,29 @@ public:
     Member m{key, type, isMemberRequired};
     auto newMembers = std::tuple_cat(members, std::make_tuple(m));
 
-    constexpr size_t existingRequired = CountRequired<Members...>();
-    constexpr size_t keyLengthInRequiredArray = existingRequired == 0
-                                                    ? QuotationMark.size() + KeyLen + QuotationMark.size()       // First one just has quotes no need for commas
-                                                    : CommaQuotationMark.size() + KeyLen + QuotationMark.size(); // Subsequent required members need a comma and quotes around the key
-    constexpr size_t reqContrib = isMemberRequired
-                                      ? keyLengthInRequiredArray
-                                      : 0; // Not required then does not go in the required array
+    // Comma separated array of required members in the "required" field of the schema, with quotes around each key. Only contributes if the member being added is required.
+    constexpr size_t arrayStringLength = RequiredMembersCount == 0
+                                             ? QuotationMark.size() + KeyLen + QuotationMark.size()       // First one just has quotes no need for commas
+                                             : CommaQuotationMark.size() + KeyLen + QuotationMark.size(); // Subsequent required members need a comma and quotes around the key
+    constexpr size_t reqArrayKeyStringLength = isMemberRequired ? arrayStringLength : 0;
 
     constexpr size_t existingTotal = sizeof...(Members);
-    constexpr size_t propContrib = existingTotal == 0
-                                       ? QuotationMark.size() + KeyLen + MemberTypeString.size() + TypeLen + EndMemberTypeString.size()
-                                       : CommaQuotationMark.size() + KeyLen + MemberTypeString.size() + TypeLen + EndMemberTypeString.size();
 
-    constexpr size_t newN = N + reqContrib + propContrib;
+    // Object schema properties contribution for this member, which will be in the format "key":{"type":"type"}, with a comma if it's not the first property.
+    // Always contributes regardless of whether the member is required or optional, since all members go in the properties object.
+    constexpr size_t propertyObjectStringLength = existingTotal == 0
+                                                      ? QuotationMark.size() + KeyLen + MemberTypeString.size() + TypeLen + EndMemberTypeString.size()
+                                                      : CommaQuotationMark.size() + KeyLen + MemberTypeString.size() + TypeLen + EndMemberTypeString.size();
+
+    constexpr size_t newMemberAdditionSize = reqArrayKeyStringLength + propertyObjectStringLength;
+    constexpr size_t newSchemaSize = N + newMemberAdditionSize;
+    constexpr size_t newRequiredMembersCount = RequiredMembersCount + (isMemberRequired ? 1 : 0);
 
     return std::apply(
-        [](auto &&...ms) { 
-          // Build a new object builder to add the new member and update the total size we need for the schema. 
-          return ObjectSchemaBuilder<newN, Members..., Member>(ms...); },
+        [](auto &&...ms) {
+          return ObjectSchemaBuilder<newSchemaSize, newRequiredMembersCount, Members..., Member>(ms...);
+        },
         newMembers);
-  }
-
-  template <typename... Ms>
-  static constexpr size_t CountRequired() {
-    if constexpr (sizeof...(Ms) == 0) {
-      return 0;
-    } else {
-      return (size_t{0} + ... + (Ms{}.required ? 1 : 0));
-    }
   }
 
   constexpr void AppendRequiredMembers(const auto &aAppendFunc) const {
@@ -144,14 +136,12 @@ public:
   std::tuple<Members...> members;
 };
 
-// Start with the base size as an empty object schema, then as each member
-// is added we construct a new builder with the updated size based on the passed member.
 static constexpr size_t BaseSize =
     ObjectSchemaBuilderBase::BeginningString.size() +
     ObjectSchemaBuilderBase::PostRequiredMembersArrayString.size() +
-    ObjectSchemaBuilderBase::EndString.size() +
-    1; // null terminator
+    ObjectSchemaBuilderBase::EndString.size();
+static constexpr size_t initialRequiredMembersCount = 0;
 
 constexpr auto ObjectSchema() {
-  return ObjectSchemaBuilder<BaseSize>{};
+  return ObjectSchemaBuilder<BaseSize, initialRequiredMembersCount>{};
 }

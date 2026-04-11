@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -20,6 +21,11 @@ const rapidjson::Value *GetNestedField(const rapidjson::Value &aValue,
 rapidjson::Document GetDocument(const std::string &aStringToParse);
 
 rapidjson::Document GetDocument(const std::string_view &aStringToParse);
+
+template <size_t N>
+rapidjson::Document GetDocument(const std::array<char, N> &aStringArray) {
+  return GetDocument(std::string_view(aStringArray.data(), aStringArray.size()));
+}
 
 rapidjson::Document GetDocument(const std::filesystem::path &aPathToJson);
 

@@ -4,6 +4,23 @@
 #include <string_view>
 #include <tuple>
 
+/**
+ * A compile-time builder for JSON schemas that generates a JSON schema string representing an object with specified required and optional members.
+ *
+ * The builder uses template metaprogramming to calculate the size of the resulting schema string at compile time,
+ * allowing it to return a std::array<char, N> containing the schema string without any dynamic memory allocation.
+ *
+ * Usage:
+ * constexpr auto mySchema = OMOTE::JSON::ObjectSchema()
+ *                                 .Require("requiredField", "string")
+ *                                 .Optional("optionalField", "number")
+ *                                 .Build();
+ *
+ * @note: You can delay call to Build() until runtime but this will result in the schema string being generated at runtime instead of compile time.
+ */
+
+namespace OMOTE::JSON {
+
 struct ObjectSchemaBuilderBase {
   struct Member {
     std::string_view key = "";
@@ -130,6 +147,9 @@ public:
     AppendTypeSchema(append);
     append(EndString);
 
+    if (pos == Sz - 1) {
+      result[pos] = '\0'; // Null terminator for safety and cstring compatibility
+    }
     return result;
   }
 
@@ -137,11 +157,14 @@ public:
 };
 
 static constexpr size_t BaseSize =
-    ObjectSchemaBuilderBase::BeginningString.size() +
-    ObjectSchemaBuilderBase::PostRequiredMembersArrayString.size() +
-    ObjectSchemaBuilderBase::EndString.size();
+    OMOTE::JSON::ObjectSchemaBuilderBase::BeginningString.size() +
+    OMOTE::JSON::ObjectSchemaBuilderBase::PostRequiredMembersArrayString.size() +
+    OMOTE::JSON::ObjectSchemaBuilderBase::EndString.size() +
+    1; // +1 for null terminator
+
 static constexpr size_t initialRequiredMembersCount = 0;
 
 constexpr auto ObjectSchema() {
-  return ObjectSchemaBuilder<BaseSize, initialRequiredMembersCount>{};
+  return OMOTE::JSON::ObjectSchemaBuilder<BaseSize, initialRequiredMembersCount>{};
 }
+} // namespace OMOTE::JSON

@@ -1,8 +1,9 @@
 #include "ObjectSchemaBuilder.hpp"
+#include "RapidJsonUtilty.hpp"
 #include <algorithm>
 #include <gtest/gtest.h>
 
-static constexpr auto schemaBuilderOne = ObjectSchema()
+static constexpr auto schemaBuilderOne = OMOTE::JSON::ObjectSchema()
                                              .Require("aTestKey", "string")
                                              .Require("aTestIntKey", "integer");
 
@@ -15,7 +16,7 @@ static constexpr const char *hardCodeSchemaMatchingOne = R"({
   }
 })";
 
-static constexpr auto schemaBuilderTwo = ObjectSchema()
+static constexpr auto schemaBuilderTwo = OMOTE::JSON::ObjectSchema()
                                              .Require("aTestKey", "string")
                                              .Require("aTestIntKey", "integer")
                                              .Optional("aTestOptKey", "boolean")
@@ -37,7 +38,7 @@ static constexpr const char *hardCodeSchemaMatchingTwo = R"({
 // Simple test for ObjectSchemaBuilder functionality
 TEST(ObjectSchemaBuilderTest, BasicFunctionality) {
   // Test that we can create a schema with required and optional fields
-  auto schema = ObjectSchema()
+  auto schema = OMOTE::JSON::ObjectSchema()
                     .Require("name", "string")
                     .Optional("age", "integer")
                     .Build();
@@ -48,7 +49,7 @@ TEST(ObjectSchemaBuilderTest, BasicFunctionality) {
 
 // Test the size calculation works correctly
 TEST(ObjectSchemaBuilderTest, SizeCalculation) {
-  auto basicSchema = ObjectSchema()
+  auto basicSchema = OMOTE::JSON::ObjectSchema()
                          .Require("id", "string")
                          .Build();
 
@@ -58,13 +59,13 @@ TEST(ObjectSchemaBuilderTest, SizeCalculation) {
 
 TEST(ObjectSchemaBuilderTest, CalculateRequiredListSizeTest) {
   // Strings keys will be quoted and comma-separated.
-  constexpr ObjectSchemaBuilderBase::Member m1{"testKey", "string", true};
-  constexpr auto expectedSize = ObjectSchemaBuilderBase::CalculateRequiredListSize(m1);
+  constexpr OMOTE::JSON::ObjectSchemaBuilderBase::Member m1{"testKey", "string", true};
+  constexpr auto expectedSize = OMOTE::JSON::ObjectSchemaBuilderBase::CalculateRequiredListSize(m1);
   ASSERT_EQ(expectedSize, 7 + 2);
   // (7)"testKey" + (2)quotes
 
-  constexpr ObjectSchemaBuilderBase::Member m2{"anotherKey", "integer", true};
-  constexpr auto expectedSizeTwoMems = ObjectSchemaBuilderBase::CalculateRequiredListSize(m1, m2);
+  constexpr OMOTE::JSON::ObjectSchemaBuilderBase::Member m2{"anotherKey", "integer", true};
+  constexpr auto expectedSizeTwoMems = OMOTE::JSON::ObjectSchemaBuilderBase::CalculateRequiredListSize(m1, m2);
   ASSERT_EQ(expectedSizeTwoMems, 7 + 2 + 1 + 10 + 2);
   // (7)"testKey" + (2)quotes + (1)comma + (10)"anotherKey" + (2)quotes
 }
@@ -73,9 +74,9 @@ TEST(ObjectSchemaBuilderTest, CalculateTypeObjectSizeTest) {
   // Expected format for properties members in test:
   //  "testKey":{"type":"string"},
   //  "anotherKey":{"type":"integer"}
-  constexpr ObjectSchemaBuilderBase::Member m1{"testKey", "string", true};
-  constexpr ObjectSchemaBuilderBase::Member m2{"anotherKey", "integer", true};
-  constexpr auto expectedSize = ObjectSchemaBuilderBase::CalculateTypeObjectSize(m1, m2);
+  constexpr OMOTE::JSON::ObjectSchemaBuilderBase::Member m1{"testKey", "string", true};
+  constexpr OMOTE::JSON::ObjectSchemaBuilderBase::Member m2{"anotherKey", "integer", true};
+  constexpr auto expectedSize = OMOTE::JSON::ObjectSchemaBuilderBase::CalculateTypeObjectSize(m1, m2);
 
   auto firstObject = R"("testKey":{"type":"string"})";
   auto secondObject = R"("anotherKey":{"type":"integer"})";
@@ -86,7 +87,7 @@ TEST(ObjectSchemaBuilderTest, CalculateTypeObjectSizeTest) {
 void validateSizeCalculations(auto builder, const char *hardcoded) {
   std::string cleanSchema = hardcoded;
   cleanSchema.erase(std::remove_if(cleanSchema.begin(), cleanSchema.end(), ::isspace), cleanSchema.end());
-  auto expectedSize = cleanSchema.length();
+  auto expectedSize = cleanSchema.length() + 1; // +1 for null terminator on the built schema
 
   // Check we can calculate the schema size at compile time.
   constexpr auto calculatedSize = builder.CalculateSize();

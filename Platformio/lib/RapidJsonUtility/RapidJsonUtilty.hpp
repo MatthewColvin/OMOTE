@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ObjectSchemaBuilder.hpp"
+
 #include <array>
 #include <filesystem>
 #include <string>
@@ -28,6 +30,13 @@ rapidjson::Document GetDocument(const std::array<char, N> &aStringArray) {
 }
 
 rapidjson::Document GetDocument(const std::filesystem::path &aPathToJson);
+
+bool IsJsonValid(const auto &aJsonToValidate, const auto &aSchemaString) {
+  const auto doc = GetDocument(aSchemaString);
+  const auto schemaDoc = rapidjson::SchemaDocument(doc);
+  auto validator = rapidjson::SchemaValidator(schemaDoc);
+  return aJsonToValidate.Accept(validator);
+}
 
 enum class DocumentFileWriteResult {
   Success,

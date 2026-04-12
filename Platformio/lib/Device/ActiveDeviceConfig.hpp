@@ -4,6 +4,7 @@
 #include "DeviceIds.hpp"
 #include "IDevice.hpp"
 #include "Notification.hpp"
+#include "ObjectSchemaBuilder.hpp"
 #include "ValidationFactory.hpp"
 #include "rapidjson/document.h"
 #include <memory>
@@ -13,15 +14,11 @@ class DeviceFactory;
 
 class ActiveDeviceConfig {
 private:
-  static constexpr inline auto &DeviceSchema = R"({
-    "type": "object",
-    "required": ["type", "id", "config"],
-    "properties": {
-      "type":   { "type": "integer" },
-      "config": { "type": "object" },
-      "id" :    { "type": "integer" }
-    }
-  })";
+  static constexpr inline auto &DeviceSchema = OMOTE::JSON::ObjectSchema()
+                                                   .Require("type", "integer")
+                                                   .Require("id", "integer")
+                                                   .Require("config", "object")
+                                                   .Build();
 
 public:
   using ConfigJsonValidator = OMOTE::JSON::ValidationFactory<DeviceId, DeviceSchema>;

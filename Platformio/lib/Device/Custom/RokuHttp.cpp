@@ -16,11 +16,10 @@ std::map<Ids, std::string_view> mKeyIdToRokuKeyName{
     {Ids::Home, "Home"},
     {Ids::Play, "Play"}};
 
-constexpr auto const RokuSchemaBuilder = OMOTE::JSON::ObjectSchema()
-                                             .Require(RokuHttp::IpAddressKey, "string")
-                                             .Require(RokuHttp::NameKey, "string");
-
-constexpr auto const RokuSchemaArray = RokuSchemaBuilder.Build();
+constexpr auto const RokuSchemaArray = OMOTE::JSON::ObjectSchema()
+                                           .Require(RokuHttp::IpAddressKey, "string")
+                                           .Require(RokuHttp::NameKey, "string")
+                                           .Build();
 
 static constexpr std::string_view BuiltRokuSchema(RokuSchemaArray.data(), RokuSchemaArray.size() - 1);
 

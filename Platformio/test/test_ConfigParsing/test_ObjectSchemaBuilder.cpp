@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <gtest/gtest.h>
 
+//////////////// START FUNCTIONAL TEST DATA ///////////////
+
 static constexpr auto schemaBuilderOne = OMOTE::JSON::ObjectSchema()
                                              .Require("aTestKey", "string")
                                              .Require("aTestIntKey", "integer");
@@ -33,6 +35,34 @@ static constexpr const char *hardCodeSchemaMatchingTwo = R"({
     "aTestKey2":{"type":"string"}
   }
 })";
+
+constexpr auto innerSchema = OMOTE::JSON::ObjectSchema()
+                                 .Require("innerField", "string")
+                                 .Optional("innerNumber", "number");
+
+// static constexpr gives the array static storage duration so .data()
+// is a valid constant expression for the string_view constructor
+static constexpr auto outerSchema = OMOTE::JSON::ObjectSchema()
+                                        .Require("outerField", "string")
+                                        .Require("nestedObject", innerSchema);
+
+static constexpr const char *nestedSchemaTruth = R"({
+    "type": "object",
+    "required": ["outerField", "nestedObject"],
+    "properties": {
+      "outerField": { "type": "string" },
+      "nestedObject": { 
+        "type": "object",
+        "required": ["innerField"],
+        "properties": {
+          "innerField": { "type": "string" },
+          "innerNumber": { "type": "number" }
+        }   
+      }
+    }
+  })";
+
+//////////////// END FUNCTIONAL TEST DATA  ///////////////
 
 TEST(ObjectSchemaBuilderTest, BasicFunctionality) {
   auto schema = OMOTE::JSON::ObjectSchema()
@@ -91,6 +121,8 @@ void validateSchemaFormat(auto builder, const char *hardcoded) {
   ASSERT_STREQ(cleanTruthSchema.c_str(), builtSchemaStr.c_str());
 }
 
+/////////////// FUNCTIONAL TEST CASES ///////////////
+
 TEST(ObjectSchemaBuilderTest, SchemaOneTest) {
   validateSizeCalculations(schemaBuilderOne, hardCodeSchemaMatchingOne);
   validateSchemaFormat(schemaBuilderOne, hardCodeSchemaMatchingOne);
@@ -101,34 +133,7 @@ TEST(ObjectSchemaBuilderTest, SchemaTwoTest) {
   validateSchemaFormat(schemaBuilderTwo, hardCodeSchemaMatchingTwo);
 }
 
-static constexpr const char *nestedSchemaTruth = R"({
-    "type": "object",
-    "required": ["outerField", "nestedObject"],
-    "properties": {
-      "outerField": { "type": "string" },
-      "nestedObject": { 
-        "type": "object",
-        "required": ["innerField"],
-        "properties": {
-          "innerField": { "type": "string" },
-          "innerNumber": { "type": "number" }
-        }   
-      }
-    }
-  })";
-
 TEST(ObjectSchemaBuilderTest, NestedSchemaTest) {
-  constexpr auto innerSchema = OMOTE::JSON::ObjectSchema()
-                                   .Require("innerField", "string")
-                                   .Optional("innerNumber", "number");
-
-  // static constexpr gives the array static storage duration so .data()
-  // is a valid constant expression for the string_view constructor
-  static constexpr auto outerSchema = OMOTE::JSON::ObjectSchema()
-                                          .Require("outerField", "string")
-                                          .Require("nestedObject", innerSchema);
-
+  validateSizeCalculations(outerSchema, nestedSchemaTruth);
   validateSchemaFormat(outerSchema, nestedSchemaTruth);
-
-  ASSERT_TRUE(true);
 }

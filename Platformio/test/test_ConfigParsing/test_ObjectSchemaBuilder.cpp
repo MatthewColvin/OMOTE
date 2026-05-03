@@ -84,11 +84,11 @@ void validateSizeCalculations(auto builder, const char *hardcoded) {
 }
 
 void validateSchemaFormat(auto builder, const char *hardcoded) {
-  std::string cleanSchema = hardcoded;
-  cleanSchema.erase(std::remove_if(cleanSchema.begin(), cleanSchema.end(), ::isspace),
-                    cleanSchema.end());
-  std::string schemaStr(builder.Build().data(), builder.Build().size());
-  ASSERT_STREQ(cleanSchema.c_str(), schemaStr.c_str());
+  std::string cleanTruthSchema = hardcoded;
+  cleanTruthSchema.erase(std::remove_if(cleanTruthSchema.begin(), cleanTruthSchema.end(), ::isspace),
+                         cleanTruthSchema.end());
+  std::string builtSchemaStr(builder.Build().data(), builder.Build().size());
+  ASSERT_STREQ(cleanTruthSchema.c_str(), builtSchemaStr.c_str());
 }
 
 TEST(ObjectSchemaBuilderTest, SchemaOneTest) {
@@ -101,7 +101,23 @@ TEST(ObjectSchemaBuilderTest, SchemaTwoTest) {
   validateSchemaFormat(schemaBuilderTwo, hardCodeSchemaMatchingTwo);
 }
 
-TEST(ObjectSchemaBuilderTest, NestedSchemaDesignPrinciple) {
+static constexpr const char *nestedSchemaTruth = R"({
+    "type": "object",
+    "required": ["outerField", "nestedObject"],
+    "properties": {
+      "outerField": { "type": "string" },
+      "nestedObject": { 
+        "type": "object",
+        "required": ["innerField"],
+        "properties": {
+          "innerField": { "type": "string" },
+          "innerNumber": { "type": "number" }
+        }   
+      }
+    }
+  })";
+
+TEST(ObjectSchemaBuilderTest, NestedSchemaTest) {
   constexpr auto innerSchema = OMOTE::JSON::ObjectSchema()
                                    .Require("innerField", "string")
                                    .Optional("innerNumber", "number");
@@ -110,16 +126,9 @@ TEST(ObjectSchemaBuilderTest, NestedSchemaDesignPrinciple) {
   // is a valid constant expression for the string_view constructor
   static constexpr auto outerSchema = OMOTE::JSON::ObjectSchema()
                                           .Require("outerField", "string")
-                                          .Require("nestedObject", innerSchema)
-                                          .Build();
+                                          .Require("nestedObject", innerSchema);
 
-  static constexpr std::string_view sv(outerSchema.data(), outerSchema.size() - 1);
-  static_assert(sv.find("\"nestedObject\"") != std::string_view::npos);
-  static_assert(sv.find("\"innerField\"") != std::string_view::npos);
+  validateSchemaFormat(outerSchema, nestedSchemaTruth);
 
   ASSERT_TRUE(true);
-}
-
-TEST(ObjectSchemaBuilderTest, DISABLED_NestedSchemaFunctionality) {
-  GTEST_SKIP() << "Placeholder for future nested schema edge case tests";
 }

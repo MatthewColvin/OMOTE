@@ -16,7 +16,7 @@ static constexpr auto httpDataSchema =
 
 const auto mHttpActionRegistered = ActionFactory::Register(
     ActionTypes::HttpAction,
-    std::string_view(httpDataSchema),
+    std::string_view(httpDataSchema.data(), httpDataSchema.size()),
     [](const std::string &aActionName, const rapidjson::Value &aDataJson) {
       std::string url = aDataJson["url"].GetString();
       std::string method = "GET";

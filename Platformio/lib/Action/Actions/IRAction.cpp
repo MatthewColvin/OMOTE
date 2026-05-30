@@ -9,7 +9,7 @@ static constexpr auto irDataSchema = OMOTE::JSON::ObjectSchema()
 
 const auto mIRActionRegistered = ActionFactory::Register(
     ActionTypes::IRAction,
-    std::string_view(irDataSchema),
+    std::string_view(irDataSchema.data(), irDataSchema.size()),
     [](const std::string &aActionName, const rapidjson::Value &aDataJson) {
       return std::make_unique<IRAction>(aActionName, aDataJson["protocol"].GetString(), aDataJson["data"].GetString());
     });

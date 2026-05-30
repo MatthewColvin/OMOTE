@@ -14,20 +14,6 @@ static constexpr auto httpDataSchema =
         .Optional("headers", headersSchema)
         .Build();
 
-const auto data = R"({
-    "type": "object",
-    "required": ["url"],
-    "properties": {
-      "url": { "type": "string" },
-      "method": { "type": "string", "default": "GET" },
-      "body": { "type": "string" },
-      "headers": {
-        "type": "object",
-        "additionalProperties": true
-      }
-    }
-  })";
-
 const auto mHttpActionRegistered = ActionFactory::Register(
     ActionTypes::HttpAction,
     std::string_view(httpDataSchema),

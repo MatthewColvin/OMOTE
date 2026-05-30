@@ -67,6 +67,11 @@ void HttpFuture::checkAndInvoke() {
 
   std::lock_guard<std::mutex> aLock(mCallbackMutex);
 
+  // Call the always handler if it exists
+  if (mAlwaysCallback) {
+    mAlwaysCallback(aResponse);
+  }
+
   // Check for specific return code handler
   auto aIt = mReturnCodeCallbacks.find(aResponse.status_code);
   if (aIt != mReturnCodeCallbacks.end()) {
@@ -79,4 +84,11 @@ void HttpFuture::checkAndInvoke() {
     mReturnCodeDefaultCallback(aResponse);
     return;
   }
+}
+
+std::shared_ptr<HttpFuture> HttpFuture::always(std::function<void(const HttpResponse &)> aCallback) {
+  // Add the callback to be called whenever we get a response
+  std::lock_guard<std::mutex> aLock(mCallbackMutex);
+  mAlwaysCallback = aCallback;
+  return shared_from_this();
 }

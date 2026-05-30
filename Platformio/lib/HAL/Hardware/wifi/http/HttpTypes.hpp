@@ -148,6 +148,7 @@ private:
   mutable std::mutex mCallbackMutex;
   std::map<int, ResponseCallback> mReturnCodeCallbacks;
   ResponseCallback mReturnCodeDefaultCallback;
+  ResponseCallback mAlwaysCallback;
 
   /**
    * @brief Check if future is ready and invoke appropriate callback

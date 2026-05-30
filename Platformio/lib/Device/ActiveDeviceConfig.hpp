@@ -14,11 +14,11 @@ class DeviceFactory;
 
 class ActiveDeviceConfig {
 private:
-  static constexpr inline auto &DeviceSchema = OMOTE::JSON::ObjectSchema()
-                                                   .Require("type", "integer")
-                                                   .Require("id", "integer")
-                                                   .Require("config", "object")
-                                                   .Build();
+  static constexpr inline auto DeviceSchema = OMOTE::JSON::ObjectSchema()
+                                                  .Require("type", "integer")
+                                                  .Require("id", "integer")
+                                                  .Require("config", "object")
+                                                  .Build();
 
 public:
   using ConfigJsonValidator = OMOTE::JSON::ValidationFactory<DeviceId, DeviceSchema>;

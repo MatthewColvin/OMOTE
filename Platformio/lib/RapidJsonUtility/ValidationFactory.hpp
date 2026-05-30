@@ -25,6 +25,11 @@ struct StringLiteral {
   constexpr StringLiteral(const char (&str)[N]) {
     std::copy_n(str, N, value);
   }
+
+  constexpr StringLiteral(const std::array<char, N> &str) {
+    std::copy_n(str.data(), N, value);
+  }
+
   char value[N];
 };
 

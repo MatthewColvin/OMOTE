@@ -8,9 +8,15 @@ from platformio import util
 import os
 import shutil
 import re
+import tempfile
 env = DefaultEnvironment()
 
 buildEnv : SCons.Environment.Base = env
+
+# Pin ESP-IDF Python deps. Managed components are vendored (see ensureManagedComponents).
+if buildEnv["PIOENV"] in ("esp32_Rev1", "esp32_Rev5", "esp32_Rev5_3661", "esp32Debug"):
+    buildEnv["ENV"]["PIP_CONSTRAINT"] = os.path.join(buildEnv["PROJECT_DIR"], "esp-idf-constraints.txt")
+    buildEnv["ENV"]["IDF_COMPONENT_MANAGER"] = "0"
 
 LINUX_APT_DEPENDENCES = {"libsdl2-dev","libcurl4-openssl-dev","libboost-all-dev"}
 
@@ -207,10 +213,151 @@ def removeLittleFSArduinoLib():
         print("Removed", littleFsArduinoLibDir)
     else:
         print(littleFsArduinoLibDir,"Already Removed")
-    
+
+MANAGED_COMPONENTS = {
+    "joltwallet__littlefs": {
+        "url": "https://github.com/joltwallet/esp_littlefs.git",
+        "tag": "v1.19.1",
+        "subdir": None,
+    },
+    "espressif__esp_websocket_client": {
+        "url": "https://github.com/espressif/esp-protocols.git",
+        "tag": "websocket-v1.4.0",
+        "subdir": "components/esp_websocket_client",
+    },
+    "espressif__mdns": {
+        "url": "https://github.com/espressif/esp-protocols.git",
+        "tag": "mdns-v1.8.2",
+        "subdir": "components/mdns",
+    },
+}
+
+def ensureManagedComponents():
+    """Vendor IDF managed components (avoids component-manager git errors on Windows)."""
+    applicableBuildEnvs = ["esp32_Rev1", "esp32_Rev5", "esp32_Rev5_3661", "esp32Debug"]
+    if buildEnv["PIOENV"] not in applicableBuildEnvs:
+        return
+
+    # ESP-IDF auto-scans project components/ (PlatformIO overrides EXTRA_COMPONENT_DIRS).
+    components_dir = os.path.join(buildEnv["PROJECT_DIR"], "components")
+    os.makedirs(components_dir, exist_ok=True)
+    for stale in os.listdir(components_dir):
+        if stale.startswith("clone_"):
+            stale_path = os.path.join(components_dir, stale)
+            if os.name == "nt":
+                subprocess.run(["cmd", "/c", "rmdir", "/s", "/q", stale_path], capture_output=True)
+            else:
+                shutil.rmtree(stale_path, ignore_errors=True)
+
+    legacy_managed_dir = os.path.join(buildEnv["PROJECT_DIR"], "managed_components")
+
+    for dest_name, spec in MANAGED_COMPONENTS.items():
+        dest_path = os.path.join(components_dir, dest_name)
+        ready_marker = os.path.join(dest_path, "CMakeLists.txt")
+        if dest_name == "joltwallet__littlefs":
+            ready_marker = os.path.join(dest_path, "src", "littlefs", "lfs.h")
+        if os.path.isfile(ready_marker):
+            continue
+
+        legacy_path = os.path.join(legacy_managed_dir, dest_name)
+        if os.path.isfile(os.path.join(legacy_path, "CMakeLists.txt")):
+            shutil.copytree(legacy_path, dest_path)
+            print(f"Vendored {dest_name} from managed_components cache")
+            continue
+
+        clone_dir = tempfile.mkdtemp(prefix=f"omote_{dest_name}_")
+
+        print(f"Vendoring managed component {dest_name} ({spec['tag']})...")
+        clone_args = ["git", "clone", "--branch", spec["tag"]]
+        if dest_name == "joltwallet__littlefs":
+            clone_args.append("--recurse-submodules")
+        else:
+            clone_args[1:1] = ["--depth", "1"]
+        clone_args.extend([spec["url"], clone_dir])
+        result = subprocess.run(clone_args, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(result.stderr)
+            raise RuntimeError(f"Failed to clone {spec['url']} @ {spec['tag']}")
+
+        src_path = (
+            os.path.join(clone_dir, spec["subdir"]) if spec["subdir"] else clone_dir
+        )
+        if os.path.isdir(dest_path):
+            if os.name == "nt":
+                subprocess.run(
+                    ["cmd", "/c", "rmdir", "/s", "/q", dest_path],
+                    capture_output=True,
+                )
+            else:
+                shutil.rmtree(dest_path, ignore_errors=True)
+        shutil.copytree(src_path, dest_path)
+        shutil.rmtree(clone_dir, ignore_errors=True)
+        print(f"Vendored {dest_name} -> {dest_path}")
+
+def configureExtraComponentDirs():
+    """PlatformIO only adds src/ + Arduino to EXTRA_COMPONENT_DIRS; include components/."""
+    applicableBuildEnvs = ["esp32_Rev1", "esp32_Rev5", "esp32_Rev5_3661", "esp32Debug"]
+    if buildEnv["PIOENV"] not in applicableBuildEnvs:
+        return
+
+    platform = buildEnv.PioPlatform()
+    framework_dir = platform.get_package_dir("framework-arduinoespressif32")
+    if "@" in os.path.basename(framework_dir):
+        renamed = os.path.join(
+            os.path.dirname(framework_dir),
+            os.path.basename(framework_dir).replace("@", "-"),
+        )
+        if os.path.isdir(renamed):
+            framework_dir = renamed
+
+    # components/ is auto-scanned by ESP-IDF; only extend PIO defaults (src + Arduino).
+    project_dir = buildEnv["PROJECT_DIR"]
+    extra = ";".join([os.path.join(project_dir, "src"), framework_dir])
+    buildEnv.Append(BOARDcmake_extra_args=f'-DEXTRA_COMPONENT_DIRS:PATH={extra}')
+
+def patchLvglLittleFsDriver():
+    """Patch LVGL Arduino LittleFS driver for Arduino core 3.x API."""
+    applicableBuildEnvs = ["esp32_Rev1", "esp32_Rev5", "esp32_Rev5_3661", "esp32Debug"]
+    if buildEnv["PIOENV"] not in applicableBuildEnvs:
+        return
+
+    libdeps_dir = buildEnv.subst("$PROJECT_LIBDEPS_DIR")
+    platform = buildEnv.subst("$PIOENV")
+    lv_fs_path = os.path.join(
+        libdeps_dir, platform, "lvgl", "src", "libs", "fsdrv", "lv_fs_arduino_esp_littlefs.cpp"
+    )
+
+    if not os.path.isfile(lv_fs_path):
+        return
+
+    with open(lv_fs_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    original = content
+
+    if '#include "FS.h"' not in content:
+        content = content.replace(
+            '#include "LittleFS.h"',
+            '#include "FS.h"\n#ifndef CONFIG_LITTLEFS_PAGE_SIZE\n#define CONFIG_LITTLEFS_PAGE_SIZE 256\n#endif\n#include "LittleFS.h"',
+        )
+
+    content = content.replace(
+        "    int rc = lf->file.seek(pos, mode);\n\n    return rc < 0 ? LV_FS_RES_UNKNOWN : LV_FS_RES_OK;",
+        "    if(!lf->file.seek(pos, mode)) {\n        return LV_FS_RES_UNKNOWN;\n    }\n\n    return LV_FS_RES_OK;",
+    )
+
+    if content != original:
+        with open(lv_fs_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"Patched LVGL LittleFS driver: {lv_fs_path}")
+
 PrintInfo()
 # PrintEnv()
 EnsureSubmoduleCheckout()
+ensureManagedComponents()
+configureExtraComponentDirs()
+patchLvglLittleFsDriver()
+buildEnv.AddPreAction("buildprog", lambda source, target, env: patchLvglLittleFsDriver())
 
 # Remove the ASIO src folder when building SimulatorHalImpl to avoide trying to build 
 # the asio source files. 

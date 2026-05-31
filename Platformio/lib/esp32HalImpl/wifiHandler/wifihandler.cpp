@@ -8,6 +8,9 @@
 #include "HardwareAbstract.hpp"
 #include "HardwareFactory.hpp"
 #include "WiFi.h"
+#include "captive_portal.hpp"
+#include "config_http.hpp"
+#include "editor_sync_mode.hpp"
 #include "ftp.hpp"
 #include "observerHandles.hpp"
 #include "omoteconfig.h"
@@ -51,6 +54,7 @@ void wifiHandler::WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t aEventInfo) {
     break;
   }
   case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+    mConnectPending = false;
     StoreCredentials();
     WiFi.setAutoReconnect(true);
     UpdateStatus();
@@ -127,7 +131,6 @@ void wifiHandler::scan() {
 
 void wifiHandler::begin() {
   WiFi.setHostname("OMOTE");
-  WiFi.mode(WIFI_STA);
   WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t aEventInfo) {
     mInstance->WiFiEvent(event, aEventInfo);
   });
@@ -138,16 +141,54 @@ void wifiHandler::begin() {
   String password = preferences.getString("password");
   preferences.end();
 
-  // Attempt Connection with stored Credentials
-  if (!ssid.isEmpty()) {
-    connect(ssid.c_str(), password.c_str());
-  } else {
-    mLogger->error("no SSID or password stored");
-    // Serial.println("no SSID or password stored");
-    WiFi.disconnect();
+  if (ssid.isEmpty()) {
+    mLogger->info("No WiFi credentials — starting setup portal");
+    captive_portal::start("OMOTE-Setup");
+    UI::observerHandles::setText(GENERAL_STATUS, captive_portal::statusText());
+    return;
   }
 
+  WiFi.mode(WIFI_STA);
+  connect(ssid.c_str(), password.c_str());
+  mConnectPending = true;
+  mConnectStartMs = millis();
   WiFi.setSleep(true);
+}
+
+bool wifiHandler::hasStoredCredentials() {
+  Preferences preferences;
+  preferences.begin("wifiSettings", false);
+  const bool ok = !preferences.getString("SSID").isEmpty();
+  preferences.end();
+  return ok;
+}
+
+bool wifiHandler::isPortalActive() { return captive_portal::isActive(); }
+
+void wifiHandler::networkSync() {
+  if (captive_portal::isActive()) {
+    captive_portal::loop();
+    return;
+  }
+
+  if (mConnectPending) {
+    if (WiFi.isConnected()) {
+      mConnectPending = false;
+      UpdateStatus();
+    } else if (millis() - mConnectStartMs > kConnectTimeoutMs) {
+      mConnectPending = false;
+      mLogger->error("WiFi connect timeout — starting setup portal");
+      captive_portal::start("OMOTE-Setup");
+      UI::observerHandles::setText(GENERAL_STATUS, captive_portal::statusText());
+    }
+  }
+
+  if (!editor_sync_mode::isActive()) {
+    mqttSync();
+    ftpSync();
+    nptSync();
+  }
+  httpSync();
 }
 
 void wifiHandler::connect(std::string ssid, std::string password) {
@@ -156,12 +197,14 @@ void wifiHandler::connect(std::string ssid, std::string password) {
     ss << "Attempting Wifi Connection To " << ssid;
     mLogger->log(LogLevel::Debug, ss);
   }
-  // Serial.printf("Attempting Wifi Connection To %s \n", ssid.c_str());
 
   mConnectionAttemptPassword = password;
   mConnectionAttemptSSID = ssid;
-  auto status = WiFi.begin(mConnectionAttemptSSID.c_str(),
-                           mConnectionAttemptPassword.c_str());
+  if (!captive_portal::isActive())
+    WiFi.mode(WIFI_STA);
+  WiFi.begin(mConnectionAttemptSSID.c_str(), mConnectionAttemptPassword.c_str());
+  mConnectPending = true;
+  mConnectStartMs = millis();
 }
 
 void wifiHandler::mqttSend(std::string aTopic, std::string aMessage) {
@@ -426,7 +469,6 @@ void wifiHandler::ftpSync() {
       if (((time - mOldFtpTime) > MQTT_RETRY) || mFtpForceConnect) {
         mFtpForceConnect = false;
         mLogger->info("Starting FTP Server");
-        MDNS.begin(mmDNSName.c_str());
         ftp::begin(mFtpUser.c_str(), mFtpPassword.c_str());
         mOldFtpTime = time;
         mFtpInitialised = true;
@@ -435,7 +477,6 @@ void wifiHandler::ftpSync() {
   } else {
     if (mFtpInitialised) {
       mLogger->info("Stopping FTP Server");
-      MDNS.end();
       ftp::end();
       mFtpInitialised = false;
     }
@@ -494,4 +535,8 @@ void wifiHandler::ftpRestoreCredentials() {
     mLogger->debug("mDNS: " + mmDNSName + ", FTP: " + mFtpUser + (mFtpEnabled ? ", FTP enabled" : ", FTP disabled"));
   } else
     mLogger->info("FTP defaults used");
+}
+
+void wifiHandler::httpSync() {
+  config_http::sync();
 }

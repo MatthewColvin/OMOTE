@@ -2,6 +2,7 @@
 #include "magic_enum.hpp"
 #include "omoteconfig.h"
 #include <IRutils.h>
+#include <sstream>
 
 struct callbackStruct {
   MessageBufferHandle_t IRSendHandle;
@@ -463,6 +464,15 @@ void IRTransceiver::loopHandleRx() {
     IRInterface::RawIR received;
     std::string humanReadable(
         resultToHumanReadableBasic(&mCurrentResults).c_str());
+
+    mLastCapture.valid = true;
+    mLastCapture.protocol = std::string(typeToString(mCurrentResults.decode_type, true).c_str());
+    mLastCapture.human = humanReadable;
+    {
+      std::stringstream hex;
+      hex << "0x" << std::uppercase << std::hex << mCurrentResults.value;
+      mLastCapture.dataHex = hex.str();
+    }
 
     // Store protocol
     received.mprotocol =

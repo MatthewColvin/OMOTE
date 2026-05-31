@@ -43,6 +43,19 @@ private:
   bool mIsRxEnabled = false;
   decode_results mCurrentResults;
 
-  std::unique_ptr<LoggingInterface> mLog = nullptr;
+  struct IrCaptureInfo {
+    bool valid = false;
+    std::string protocol;
+    std::string dataHex;
+    std::string human;
+  };
+  IrCaptureInfo mLastCapture;
+
+public:
+  const IrCaptureInfo &lastCapture() const { return mLastCapture; }
+  void clearLastCapture() { mLastCapture = {}; }
+
+private:
   TaskHandle_t mIRSendTask;
+  std::unique_ptr<LoggingInterface> mLog = nullptr;
 };

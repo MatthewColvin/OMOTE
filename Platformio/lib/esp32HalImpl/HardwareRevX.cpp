@@ -2,8 +2,11 @@
 #include "Esp32Logger.hpp"
 #include "Hardware/KeyPressAbstract.hpp"
 #include "IRTransceiver.hpp"
+#include "captive_portal.hpp"
+#include "config_http.hpp"
 #include "display.hpp"
 #include "driver/rtc_io.h"
+#include "editor_sync_mode.hpp"
 #include "esp32WebSocket.hpp"
 #include "observerHandles.hpp"
 #include "wifihandler.hpp"
@@ -107,6 +110,7 @@ void HardwareRevX::init() {
   mWifiHandler->setupNtp();
 
   mWifiHandler->ftpRestoreCredentials();
+  config_http::begin(mWifiHandler->mDNSGetName().c_str());
 
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>(logger());
@@ -453,12 +457,16 @@ void HardwareRevX::startTasks() {}
 void HardwareRevX::loopHandler() {
   static int32_t battVoltage = 0;
 
-  mWifiHandler->mqttSync();
-  mWifiHandler->ftpSync();
+  mWifiHandler->networkSync();
 
-  mWifiHandler->nptSync();
+  const bool keepAwake = captive_portal::isActive() || editor_sync_mode::isActive();
+  if (keepAwake) {
+    mStandbyTimer = mSleepTimeout;
+    mDisplay->wake();
+  }
 
-  mIr->loopHandleRx();
+  if (!keepAwake)
+    mIr->loopHandleRx();
 
   mStandbyTimer < 750 ? mDisplay->sleep() : mDisplay->wake();
 
@@ -509,7 +517,7 @@ void HardwareRevX::loopHandler() {
         mLogger->log(LogLevel::Info, mLogStream);
       }
 
-      if (mStandbyTimer == 0) {
+      if (mStandbyTimer == 0 && !keepAwake) {
         mLogger->setLogModule(LogModule::General);
 
         if (mInScene && mLightSleepEnabled) {

@@ -12,7 +12,9 @@
     ],
     "dependencies": {
         "HAL": "HAL",
-        "LovyanGFX": "lovyan03/LovyanGFX@^1.2.0"
+        "HardwareCreation": "HardwareCreation",
+        "LovyanGFX": "lovyan03/LovyanGFX@^1.2.0",
+        "RapidJsonUtility": "RapidJsonUtility"
     },
     "build": {
         "includeDir": ".",

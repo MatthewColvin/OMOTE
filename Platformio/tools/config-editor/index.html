@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OMOTE Config Editor</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header>
+    <h1>OMOTE Config Editor</h1>
+    <nav id="nav">
+      <button data-tab="connect" class="active">Connect</button>
+      <button data-tab="activities">My setup</button>
+      <button data-tab="remote">Remote</button>
+      <button data-tab="commands" class="nav-advanced hidden">Commands</button>
+      <button data-tab="raw" class="nav-advanced hidden">JSON</button>
+    </nav>
+    <label class="advanced-toggle" title="Show command files and raw JSON">
+      <input type="checkbox" id="advanced-mode" /> Advanced
+    </label>
+    <div id="status-bar">Not connected</div>
+  </header>
+  <main>
+    <section id="tab-connect" class="tab active">
+      <h2>Connect to your OMOTE</h2>
+      <p class="muted">Run this editor on your computer — the remote only needs WiFi and a small API.</p>
+      <pre class="code-hint">cd Platformio/tools/config-editor
+python -m http.server 8080</pre>
+      <label>Device URL <input id="device-url" placeholder="http://omote.local" /></label>
+      <button id="btn-connect" class="primary">Connect &amp; load</button>
+      <p id="connect-msg" class="msg"></p>
+    </section>
+
+    <section id="tab-activities" class="tab">
+      <div class="activities-shell">
+        <aside class="panel sidebar-narrow">
+          <h2>Activities</h2>
+          <p class="muted small">What you pick on the remote home screen — e.g. “Watch TV”, “Movie night”.</p>
+          <ul id="activity-list"></ul>
+          <button type="button" id="btn-new-activity">+ New activity</button>
+        </aside>
+        <div class="panel grow" id="activity-detail">
+          <h2><span id="activity-title">Select an activity</span></h2>
+          <div id="activity-empty" class="muted">Choose an activity on the left, or create one to get started.</div>
+          <div id="activity-editor" class="hidden">
+            <label>Activity name <input id="activity-name" placeholder="Watch TV" /></label>
+            <label class="advanced-field hidden">Screen title on remote <input id="activity-screen-name" /></label>
+            <h3>Devices on this activity</h3>
+            <p class="muted small">Each device becomes a tab at the bottom of the touch screen while you’re in this activity.</p>
+            <div id="device-tab-list"></div>
+            <div class="row">
+              <select id="device-template">
+                <option value="tv">TV (buttons + colors + number pad)</option>
+                <option value="roku">Streaming / Roku shortcuts</option>
+                <option value="avreceiver">AV receiver</option>
+                <option value="blank">Blank — learn everything</option>
+              </select>
+              <button type="button" id="btn-add-device">+ Add device</button>
+              <button type="button" id="btn-configure-remote" class="primary">Configure remote →</button>
+            </div>
+            <details class="advanced-field hidden" id="activity-power-details">
+              <summary>When starting / leaving this activity</summary>
+              <p class="muted small">Optional — e.g. turn on the TV when you open this activity.</p>
+              <h4>When I open this activity</h4>
+              <div id="scene-start-seq"></div>
+              <button type="button" id="btn-add-start-cmd">+ Add action</button>
+              <h4>When I leave</h4>
+              <div id="scene-exit-seq"></div>
+              <button type="button" id="btn-add-exit-cmd">+ Add action</button>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-remote" class="tab">
+      <div class="remote-editor-shell">
+        <aside class="panel sidebar-narrow">
+          <label>Activity <select id="remote-scene-select"></select></label>
+          <h3>Device tab</h3>
+          <ul id="remote-device-list" class="device-list"></ul>
+          <p class="muted small">Swipe tabs on the touch screen preview, or pick here.</p>
+        </aside>
+        <div class="remote-center panel">
+          <h2><span id="remote-device-label">Device</span></h2>
+          <p id="editing-hint" class="muted small">Configure touch buttons above and physical keys below for this device tab.</p>
+          <div class="screen-keymap-stack">
+            <div class="canvas-wrap">
+              <canvas id="preview" width="240" height="320"></canvas>
+            </div>
+            <div id="remote-keymap" class="remote-keymap"></div>
+          </div>
+        </div>
+        <aside class="panel action-sidebar">
+          <div id="selection-empty">
+            <h3>What should it do?</h3>
+            <p class="muted small">Click a touch button or a physical key on the remote face.</p>
+          </div>
+          <div id="selection-editor" class="hidden">
+            <h3 id="selection-title">Selected</h3>
+            <p id="selection-sub" class="muted small"></p>
+            <label>Action
+              <select id="action-type">
+                <option value="ir">Send infrared (TV / receiver / etc.)</option>
+                <option value="ir_existing">Use existing button from this device</option>
+                <option value="widget_only">Touch label only (no IR)</option>
+              </select>
+            </label>
+            <div id="panel-ir">
+              <button type="button" id="btn-action-learn" class="primary">Learn from another remote</button>
+              <p id="action-learn-msg" class="msg muted small">Point any IR remote at OMOTE and press a button.</p>
+              <label class="advanced-field hidden">Command name <input id="action-cmd-name" placeholder="VOL_UP" /></label>
+            </div>
+            <div id="panel-ir-existing" class="hidden">
+              <label>Pick command
+                <select id="action-cmd-pick"></select>
+              </label>
+            </div>
+            <div id="panel-touch-only" class="hidden">
+              <label>Button label <input id="action-touch-label" /></label>
+            </div>
+            <div id="panel-key-advanced" class="advanced-field hidden">
+              <label>Press type <select id="key-press-type">
+                <option>Press</option><option>Release</option><option>Repeat</option><option>Long</option><option>Short</option>
+              </select></label>
+            </div>
+            <div class="row">
+              <button type="button" id="btn-action-apply">Apply</button>
+              <button type="button" id="btn-action-clear">Clear</button>
+            </div>
+            <details class="advanced-field hidden" id="widget-advanced-details">
+              <summary>Touch button layout (advanced)</summary>
+              <label>Type <select id="w-type">
+                <option>Button</option><option>Title</option><option>Label</option>
+                <option>ColorButtons</option><option>NumberPad</option><option>Image</option>
+              </select></label>
+              <label>Height % <input id="w-height" type="number" min="1" max="100" /></label>
+              <label>PosX % <input id="w-posx" type="number" min="0" max="100" /></label>
+              <label>PosY % <input id="w-posy" type="number" min="0" max="100" /></label>
+              <button type="button" id="btn-delete-widget">Delete touch button</button>
+            </details>
+          </div>
+          <hr />
+          <h3>Touch buttons</h3>
+          <ul id="widget-list"></ul>
+          <button type="button" id="btn-add-button">+ Add touch button</button>
+          <p class="muted small advanced-field hidden" id="linked-files-hint"></p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="tab-commands" class="tab nav-advanced">
+      <div class="split">
+        <aside class="panel">
+          <label>Command file <select id="cmd-file-select"></select></label>
+          <button type="button" id="btn-new-cmd-file">New file</button>
+        </aside>
+        <div class="panel grow">
+          <h2>IR &amp; action codes</h2>
+          <p class="muted">Usually managed automatically when you learn buttons on the Remote tab.</p>
+          <table id="cmd-table"><thead><tr><th>Name</th><th>Mode</th><th>Protocol</th><th>Data</th><th></th></tr></thead><tbody></tbody></table>
+          <div class="row">
+            <button type="button" id="btn-add-command">+ Add</button>
+            <button type="button" id="btn-learn-ir">Learn IR</button>
+          </div>
+          <p id="learn-msg" class="msg"></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-raw" class="tab nav-advanced">
+      <label>File <select id="raw-file-select"></select></label>
+      <h2 id="raw-title">JSON</h2>
+      <textarea id="raw-editor" spellcheck="false"></textarea>
+      <button id="btn-apply-raw">Apply</button>
+    </section>
+  </main>
+  <footer>
+    <button id="btn-deploy" class="primary">Save to remote &amp; reboot</button>
+    <span id="deploy-msg" class="msg"></span>
+  </footer>
+  <script src="./app.js"></script>
+</body>
+</html>

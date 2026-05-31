@@ -1,5 +1,5 @@
 # Name,   Type, SubType,  Offset,   Size,    Flags
 nvs,      data, nvs,      0x9000,   0x5000,
 app0,     app,  factory,  0x10000,  2300K,
-spiffs,   data, spiffs,   ,         1500K,
+spiffs,   data, littlefs, ,         1500K,
 coredump, data, coredump, ,         64K,

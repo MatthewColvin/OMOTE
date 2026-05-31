@@ -377,7 +377,7 @@ function saveScenePageTab(idx, pageName, shortName) {
     const sceneLabel = regEntry?.SceneName || scene.ScreenName || 'Scene';
     const hint = $('editing-hint');
     if (hint) {
-      hint.textContent = `Scene: ${sceneLabel} · device tab “${scene.Pages[idx].ShortName || scene.Pages[idx].PageName}” — touch buttons above, physical keys below.`;
+      hint.textContent = `Scene: ${sceneLabel} · “${scene.Pages[idx].ShortName || scene.Pages[idx].PageName}” — edit screen & keys on the remote.`;
     }
   }
   drawCanvas();
@@ -914,7 +914,7 @@ function refreshRemoteTab() {
   const sceneLabel = regEntry?.SceneName || scene?.ScreenName || 'Scene';
   $('remote-device-label').textContent = entry?.PageName || entry?.ShortName || 'Device';
   const hint = $('editing-hint');
-  if (hint) hint.textContent = `Scene: ${sceneLabel} · device tab “${entry?.ShortName || entry?.PageName || '?'}" — touch buttons above, physical keys below.`;
+  if (hint) hint.textContent = `Scene: ${sceneLabel} · “${entry?.ShortName || entry?.PageName || '?'}" — edit screen & keys on the remote.`;
   const pg = currentPage();
   const linkedHint = $('linked-files-hint');
   if (linkedHint) linkedHint.textContent = pg.CommandFile ? `Linked: ${selectedPagePath} → ${pg.CommandFile}` : '';
@@ -930,9 +930,11 @@ function tabLabels() {
 }
 
 function renderRemoteKeymap() {
-  const root = $('remote-keymap');
-  if (!root) return;
-  root.innerHTML = '';
+  const powerRow = $('remote-power-row');
+  const face = $('remote-face');
+  if (!powerRow || !face) return;
+  powerRow.innerHTML = '';
+  face.innerHTML = '';
   const page = currentPage();
 
   const makeBtn = (keyId, label, shape, extra = '') => {
@@ -946,18 +948,7 @@ function renderRemoteKeymap() {
     return btn;
   };
 
-  const powerRow = document.createElement('div');
-  powerRow.className = 'remote-power-row';
   powerRow.appendChild(makeBtn('Power', 'Power', 'shape-power'));
-  root.appendChild(powerRow);
-
-  const screen = document.createElement('div');
-  screen.className = 'remote-screen';
-  screen.textContent = 'Touch screen (above)';
-  root.appendChild(screen);
-
-  const face = document.createElement('div');
-  face.className = 'remote-face';
 
   const media = document.createElement('div');
   media.className = 'remote-media';
@@ -1005,7 +996,6 @@ function renderRemoteKeymap() {
     colors.appendChild(makeBtn(k, l, 'shape-round', ' ' + c));
   });
   face.appendChild(colors);
-  root.appendChild(face);
 }
 
 function clearSelection() {

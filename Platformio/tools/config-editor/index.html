@@ -132,13 +132,16 @@ python -m http.server 8080</pre>
         </aside>
         <div class="remote-center panel">
           <h2><span id="remote-device-label">Device</span></h2>
-          <p id="editing-hint" class="muted small">Configure touch buttons above and physical keys below for this device tab.</p>
-          <p id="canvas-scroll-hint" class="muted small hidden">Scroll the touch preview with the mouse wheel when content extends below the tab bar.</p>
-          <div class="screen-keymap-stack">
-            <div class="canvas-wrap">
-              <canvas id="preview" width="240" height="320"></canvas>
+          <p id="editing-hint" class="muted small">Configure the touch screen and physical keys on the remote below.</p>
+          <p id="canvas-scroll-hint" class="muted small hidden">Scroll the touch screen with the mouse wheel when content extends below the tab bar.</p>
+          <div class="remote-layout-wrap">
+            <div id="remote-keymap" class="remote-keymap">
+              <div id="remote-power-row" class="remote-power-row"></div>
+              <div class="remote-screen">
+                <canvas id="preview" width="240" height="320"></canvas>
+              </div>
+              <div id="remote-face" class="remote-face"></div>
             </div>
-            <div id="remote-keymap" class="remote-keymap"></div>
           </div>
         </div>
         <aside class="panel action-sidebar">

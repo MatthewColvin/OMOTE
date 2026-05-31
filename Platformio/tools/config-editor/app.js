@@ -6,6 +6,78 @@ const TAB_BAR_H = Math.round(SCR_H * 0.1);
 const CONTENT_H = SCR_H - STATUS_H - TAB_BAR_H;
 const ADVANCED_KEY = 'omote_editor_advanced';
 
+/** Match LVGL++ widget constants (NumberPad.hpp, ColorButtons.hpp, JsonPage distBetweenWidgets). */
+const FW_LAYOUT = {
+  gap: 5,
+  padX: 8,
+  colorButtons: { height: 25, btnW: 40, spacingX: 20, marginX: 10 },
+  numberPad: { height: 180, btnW: 60, btnH: 30, spacingX: 20, spacingY: 15, pad: 10, cols: 3 },
+};
+
+const DRAGGABLE_WIDGET_TYPES = new Set(['Button', 'Title', 'Label', 'Image']);
+
+const NUM_PAD_COMMANDS = [
+  'NUM_0', 'NUM_1', 'NUM_2', 'NUM_3', 'NUM_4',
+  'NUM_5', 'NUM_6', 'NUM_7', 'NUM_8', 'NUM_9'
+];
+
+/** Firmware JsonPage widget types and defaults. */
+const WIDGET_TYPES = {
+  Button: {
+    label: 'Button',
+    hint: 'Tappable control — sends an IR or other command when pressed.',
+    create(widgets) {
+      return { Type: 'Button', Text: 'New button', Command: '', HeightPct: 10, AlignTo: widgets.length };
+    }
+  },
+  Title: {
+    label: 'Title',
+    hint: 'Heading bar — shows the device tab name at the top of the page.',
+    create(widgets) {
+      return { Type: 'Title', HeightPct: 10, AlignTo: widgets.length };
+    }
+  },
+  Label: {
+    label: 'Label',
+    hint: 'Text line — static label or MQTT-bound status (Advanced).',
+    create(widgets) {
+      return { Type: 'Label', Text: 'Status', HeightPct: 8, AlignTo: widgets.length };
+    }
+  },
+  Image: {
+    label: 'Image',
+    hint: 'PNG from the Images/ folder on the remote.',
+    create(widgets) {
+      return {
+        Type: 'Image',
+        FileName: 'Images/OMOTE_Logo.png',
+        SizeXYinPixels: [120, 120],
+        AlignTo: widgets.length
+      };
+    }
+  },
+  ColorButtons: {
+    label: 'Color buttons',
+    hint: 'Red / green / yellow / blue row (fixed layout).',
+    create(widgets) {
+      return {
+        Type: 'ColorButtons',
+        Command: ['RED', 'GREEN', 'YELLOW', 'BLUE'],
+        AlignTo: widgets.length
+      };
+    },
+    stubCommands: ['RED', 'GREEN', 'YELLOW', 'BLUE']
+  },
+  NumberPad: {
+    label: 'Number pad',
+    hint: '0–9 dial pad grid (fixed layout).',
+    create(widgets) {
+      return { Type: 'NumberPad', Command: [...NUM_PAD_COMMANDS], AlignTo: widgets.length };
+    },
+    stubCommands: NUM_PAD_COMMANDS
+  }
+};
+
 const KEY_LABELS = {
   Power: 'Power', Stop: 'Stop', Rewind: 'Rewind', Play: 'Play', FastForward: 'Forward',
   Menu: 'Menu', Info: 'Info', Back: 'Back', Source: 'Source',
@@ -72,6 +144,8 @@ let selectedCmdFile = '';
 let selectedRawFile = '';
 let selection = { kind: null, widgetIdx: null, keyName: null };
 let drag = null;
+let canvasScrollY = 0;
+let lastPreviewPagePath = '';
 
 const $ = (id) => document.getElementById(id);
 
@@ -259,15 +333,15 @@ function ensurePageFile(slug, templateKey, cmdPath) {
   return path;
 }
 
-function addDeviceToScene(deviceName, templateKey = 'blank') {
-  const slug = slugify(deviceName);
+function addDeviceToScene(pageName, templateKey = 'blank', shortName) {
+  const slug = slugify(pageName);
   const cmdPath = ensureCommandFile(slug, templateKey);
   const pagePath = ensurePageFile(slug, templateKey, cmdPath);
   const scene = parseJson(selectedScenePath) || { Type: 'Scene', Pages: [] };
   scene.Pages = scene.Pages || [];
   scene.Pages.push({
-    PageName: deviceName,
-    ShortName: deviceName.slice(0, 10),
+    PageName: pageName,
+    ShortName: (shortName || pageName).slice(0, 12),
     FileName: pagePath.replace(/^Pages\//, '')
   });
   if (!scene.ScreenName) scene.ScreenName = $('scene-screen-name')?.value || 'My scene';
@@ -275,6 +349,174 @@ function addDeviceToScene(deviceName, templateKey = 'blank') {
   activeTabIdx = scene.Pages.length - 1;
   selectedPagePath = pagePath;
   refreshAll();
+}
+
+function promptNewDeviceTab() {
+  const pageName = prompt('Device name (shown at top of this tab):', 'Living room TV');
+  if (!pageName?.trim()) return null;
+  const tabLabel = prompt(
+    'Tab label (bottom bar — keep short, e.g. BD, TV, Amp):',
+    pageName.trim().slice(0, 8)
+  );
+  if (tabLabel === null) return null;
+  return {
+    pageName: pageName.trim(),
+    shortName: (tabLabel.trim() || pageName.trim()).slice(0, 12)
+  };
+}
+
+function saveScenePageTab(idx, pageName, shortName) {
+  const scene = parseJson(selectedScenePath);
+  if (!scene?.Pages?.[idx]) return;
+  scene.Pages[idx].PageName = pageName;
+  scene.Pages[idx].ShortName = (shortName || pageName).slice(0, 12);
+  setFile(selectedScenePath, scene);
+  if (idx === activeTabIdx) {
+    $('remote-device-label').textContent = scene.Pages[idx].PageName || scene.Pages[idx].ShortName || 'Device';
+    const regEntry = sceneRegistryEntry();
+    const sceneLabel = regEntry?.SceneName || scene.ScreenName || 'Scene';
+    const hint = $('editing-hint');
+    if (hint) {
+      hint.textContent = `Scene: ${sceneLabel} · device tab “${scene.Pages[idx].ShortName || scene.Pages[idx].PageName}” — touch buttons above, physical keys below.`;
+    }
+  }
+  drawCanvas();
+}
+
+function removeScenePageTab(idx) {
+  const scene = parseJson(selectedScenePath);
+  if (!scene?.Pages?.[idx]) return;
+  const pg = scene.Pages[idx];
+  const label = pg.ShortName || pg.PageName || `Tab ${idx + 1}`;
+  if (!confirm(`Remove tab “${label}” from this scene?\n\nThe page file (${pg.FileName}) stays on the remote.`))
+    return;
+  scene.Pages.splice(idx, 1);
+  setFile(selectedScenePath, scene);
+  activeTabIdx = Math.min(activeTabIdx, Math.max(0, scene.Pages.length - 1));
+  if (scene.Pages[activeTabIdx]) {
+    selectedPagePath = resolvePagePath(scene.Pages[activeTabIdx].FileName);
+  } else {
+    selectedPagePath = '';
+    clearSelection();
+  }
+  refreshAll();
+}
+
+function renderDeviceTabEditor(container, scene, mode = 'scenes') {
+  if (!container) return;
+  container.innerHTML = '';
+  container.classList.add('device-tab-list');
+  const pages = scene?.Pages || [];
+  if (!pages.length) {
+    const empty = document.createElement('div');
+    empty.className = 'device-tab-empty';
+    empty.textContent = scene
+      ? 'No tabs yet — add one below.'
+      : 'Could not load tabs from this scene.';
+    container.appendChild(empty);
+    return;
+  }
+
+  pages.forEach((pg, idx) => {
+    const card = document.createElement('div');
+    card.className = 'device-tab-card';
+    if (mode === 'remote' && idx === activeTabIdx) card.classList.add('is-active');
+
+    const head = document.createElement('div');
+    head.className = 'device-tab-card-head';
+
+    const badge = document.createElement('span');
+    badge.className = 'tab-badge';
+    badge.textContent = (pg.ShortName || pg.PageName || '?').slice(0, 8);
+
+    const title = document.createElement('span');
+    title.className = 'device-tab-card-title';
+    title.textContent = pg.PageName || pg.ShortName || `Tab ${idx + 1}`;
+
+    const actions = document.createElement('div');
+    actions.className = 'device-tab-card-actions';
+
+    const updateHead = () => {
+      badge.textContent = (tabIn.value || nameIn.value || '?').slice(0, 8);
+      title.textContent = nameIn.value || tabIn.value || `Tab ${idx + 1}`;
+    };
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'icon-btn danger';
+    del.textContent = '×';
+    del.title = 'Remove tab';
+    del.setAttribute('aria-label', 'Remove tab');
+    del.onclick = (e) => {
+      e.stopPropagation();
+      removeScenePageTab(idx);
+    };
+    actions.appendChild(del);
+
+    if (mode === 'scenes') {
+      const configure = document.createElement('button');
+      configure.type = 'button';
+      configure.className = 'icon-btn primary-soft';
+      configure.textContent = 'Edit';
+      configure.title = 'Configure remote layout';
+      configure.onclick = (e) => {
+        e.stopPropagation();
+        activeTabIdx = idx;
+        selectedPagePath = resolvePagePath(pg.FileName);
+        showTab('remote');
+      };
+      actions.insertBefore(configure, del);
+    }
+
+    head.append(badge, title, actions);
+
+    const fields = document.createElement('div');
+    fields.className = 'device-tab-fields';
+
+    const tabField = document.createElement('div');
+    tabField.className = 'field-mini';
+    tabField.innerHTML = '<label>Tab label</label>';
+    const tabIn = document.createElement('input');
+    tabIn.value = pg.ShortName || pg.PageName || '';
+    tabIn.placeholder = 'BD, TV, Amp…';
+    tabIn.maxLength = 12;
+    tabField.appendChild(tabIn);
+
+    const nameField = document.createElement('div');
+    nameField.className = 'field-mini';
+    nameField.innerHTML = '<label>Device name</label>';
+    const nameIn = document.createElement('input');
+    nameIn.value = pg.PageName || pg.ShortName || '';
+    nameIn.placeholder = 'Living room TV';
+    nameField.appendChild(nameIn);
+
+    fields.append(tabField, nameField);
+
+    const commit = () => {
+      saveScenePageTab(idx, nameIn.value.trim(), tabIn.value.trim());
+      updateHead();
+    };
+    nameIn.oninput = tabIn.oninput = commit;
+
+    card.append(head, fields);
+
+    if (mode === 'remote') {
+      card.style.cursor = 'pointer';
+      card.onclick = (e) => {
+        if (e.target.closest('input') || e.target.closest('button')) return;
+        activeTabIdx = idx;
+        selectedPagePath = resolvePagePath(pg.FileName);
+        clearSelection();
+        refreshRemoteTab();
+      };
+    }
+
+    container.appendChild(card);
+  });
+}
+
+function renderDeviceTabList(scene) {
+  renderDeviceTabEditor($('device-tab-list'), scene, 'scenes');
 }
 
 function addNewScene(name) {
@@ -525,66 +767,12 @@ function refreshScenesTab() {
   renderCommandSequences(scene);
 }
 
-function renderDeviceTabList(scene) {
-  const box = $('device-tab-list');
-  box.innerHTML = '';
-  const pages = scene?.Pages || [];
-  if (!pages.length) {
-    const empty = document.createElement('p');
-    empty.className = 'muted small';
-    empty.textContent = scene
-      ? 'No device tabs yet — add one below.'
-      : 'Device tabs could not be loaded from this scene file.';
-    box.appendChild(empty);
-    return;
-  }
-  const header = document.createElement('div');
-  header.className = 'device-tab-header muted small';
-  header.textContent = 'Device name · Tab label (shown at bottom of screen)';
-  box.appendChild(header);
-  pages.forEach((pg, idx) => {
-    const row = document.createElement('div');
-    row.className = 'device-tab-row';
-    const name = document.createElement('input');
-    name.value = pg.PageName || pg.ShortName || 'Device';
-    name.placeholder = 'Device name (e.g. Living room TV)';
-    const tab = document.createElement('input');
-    tab.value = pg.ShortName || pg.PageName || '';
-    tab.placeholder = 'Tab label on screen';
-    const tpl = document.createElement('select');
-    tpl.innerHTML = Object.entries(DEVICE_TEMPLATES).map(([k, v]) =>
-      `<option value="${k}">${v.label || k}</option>`).join('');
-    tpl.style.display = 'none';
-    const configure = document.createElement('button');
-    configure.type = 'button';
-    configure.textContent = 'Configure';
-    configure.onclick = () => {
-      activeTabIdx = idx;
-      selectedPagePath = resolvePagePath(pg.FileName);
-      showTab('remote');
-    };
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.textContent = '×';
-    del.onclick = () => {
-      const sc = parseJson(selectedScenePath);
-      sc.Pages.splice(idx, 1);
-      setFile(selectedScenePath, sc);
-      activeTabIdx = Math.min(activeTabIdx, Math.max(0, sc.Pages.length - 1));
-      refreshAll();
-    };
-    const saveRow = () => {
-      const sc = parseJson(selectedScenePath);
-      sc.Pages[idx].PageName = name.value;
-      sc.Pages[idx].ShortName = tab.value || name.value.slice(0, 10);
-      setFile(selectedScenePath, sc);
-      refreshRemoteTab();
-    };
-    name.onchange = name.oninput = saveRow;
-    tab.onchange = tab.oninput = saveRow;
-    row.append(name, tab, configure, del);
-    box.appendChild(row);
-  });
+function addDeviceTabFromUi(templateSelectId) {
+  if (!selectedScenePath) return;
+  const picked = promptNewDeviceTab();
+  if (!picked) return;
+  const tpl = $(templateSelectId)?.value || 'blank';
+  addDeviceToScene(picked.pageName, tpl, picked.shortName);
 }
 
 $('scene-picker-name').oninput = () => {
@@ -630,13 +818,9 @@ $('btn-new-scene').onclick = () => {
 
 $('btn-delete-scene').onclick = deleteSelectedScene;
 
-$('btn-add-device').onclick = () => {
-  if (!selectedScenePath) return;
-  const name = prompt('Device name for this tab:', 'Living room TV');
-  if (!name?.trim()) return;
-  const tpl = $('device-template')?.value || 'tv';
-  addDeviceToScene(name.trim(), tpl);
-};
+$('btn-add-device').onclick = () => addDeviceTabFromUi('device-template');
+
+$('btn-remote-add-tab').onclick = () => addDeviceTabFromUi('remote-device-template');
 
 $('btn-configure-remote').onclick = () => showTab('remote');
 
@@ -716,24 +900,15 @@ function refreshRemoteTab() {
     refreshScenesTab();
   };
 
-  const ul = $('remote-device-list');
-  ul.innerHTML = '';
   const scene = parseJson(selectedScenePath);
-  (scene?.Pages || []).forEach((pg, i) => {
-    const li = document.createElement('li');
-    li.textContent = pg.ShortName || pg.PageName || `Device ${i + 1}`;
-    li.className = i === activeTabIdx ? 'active' : '';
-    li.onclick = () => {
-      activeTabIdx = i;
-      selectedPagePath = resolvePagePath(pg.FileName);
-      clearSelection();
-      refreshRemoteTab();
-    };
-    ul.appendChild(li);
-  });
+  renderDeviceTabEditor($('remote-device-tabs'), scene, 'remote');
 
   const ctx = sceneContext();
   if (ctx.pagePath) selectedPagePath = ctx.pagePath;
+  if (selectedPagePath !== lastPreviewPagePath) {
+    canvasScrollY = 0;
+    lastPreviewPagePath = selectedPagePath;
+  }
   const entry = scene?.Pages?.[activeTabIdx];
   const regEntry = sceneRegistryEntry();
   const sceneLabel = regEntry?.SceneName || scene?.ScreenName || 'Scene';
@@ -862,6 +1037,154 @@ function selectKey(keyId, label) {
   drawCanvas();
 }
 
+function activePageName() {
+  const scene = parseJson(selectedScenePath);
+  const entry = scene?.Pages?.[activeTabIdx];
+  return entry?.PageName || entry?.ShortName || 'Page';
+}
+
+function populateWidgetTypeSelects() {
+  const opts = Object.entries(WIDGET_TYPES)
+    .map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('');
+  if ($('w-type')) $('w-type').innerHTML = opts;
+  if ($('add-widget-type')) $('add-widget-type').innerHTML = opts;
+}
+
+function populateImageFileList() {
+  const dl = $('image-file-list');
+  if (!dl) return;
+  dl.innerHTML = '';
+  listPaths('Images/').forEach((p) => {
+    const o = document.createElement('option');
+    o.value = p;
+    dl.appendChild(o);
+  });
+}
+
+function ensureStubCommands(cmdFile, names) {
+  if (!cmdFile || !names?.length) return;
+  const doc = parseJson(cmdFile) || { Manufacturer: 'Custom', DeviceClass: 'Generic', Commands: [] };
+  doc.Commands = doc.Commands || [];
+  let changed = false;
+  names.forEach((n) => {
+    if (!doc.Commands.some((c) => c.Command === n)) {
+      doc.Commands.push({ Command: n, Mode: 'IR', Protocol: 'NEC', Data: ['0x0'] });
+      changed = true;
+    }
+  });
+  if (changed) setFile(cmdFile, doc);
+}
+
+function widgetSummary(w) {
+  if (w.Type === 'Image') return w.FileName || 'Image';
+  if (w.Type === 'ColorButtons') return 'RGYB keys';
+  if (w.Type === 'NumberPad') return '0–9 pad';
+  if (w.Type === 'Title') return activePageName();
+  const cmd = Array.isArray(w.Command) ? w.Command[0] : w.Command;
+  const text = w.Text || w.Type;
+  return cmd ? `${text} → ${cmd}` : text;
+}
+
+function deleteWidgetAt(idx) {
+  const page = currentPage();
+  const w = page.Widgets?.[idx];
+  if (!w) return;
+  const label = widgetSummary(w);
+  if (!confirm(`Delete widget “${label}”?`)) return;
+  page.Widgets.splice(idx, 1);
+  page.Widgets.forEach((wg, i) => {
+    if (wg.AlignTo != null && wg.AlignTo > idx) wg.AlignTo -= 1;
+  });
+  savePage(page);
+  clearSelection();
+  refreshRemoteTab();
+}
+
+function addWidgetOfType(type) {
+  const spec = WIDGET_TYPES[type];
+  if (!spec) return;
+  const page = currentPage();
+  page.Widgets = page.Widgets || [];
+  const widget = spec.create(page.Widgets);
+  if (spec.stubCommands) {
+    const cf = ensurePageCommandFile();
+    ensureStubCommands(cf, spec.stubCommands);
+  }
+  page.Widgets.push(widget);
+  savePage(page);
+  selectWidget(page.Widgets.length - 1);
+}
+
+function syncWidgetEditor() {
+  const w = selection.kind === 'widget' ? currentPage().Widgets?.[selection.widgetIdx] : null;
+  const type = w?.Type || 'Button';
+  const spec = WIDGET_TYPES[type];
+
+  $('panel-key-editor')?.classList.toggle('hidden', selection.kind !== 'key');
+  $('panel-widget-editor')?.classList.toggle('hidden', selection.kind !== 'widget');
+
+  if (selection.kind !== 'widget' || !w) return;
+
+  if ($('w-type-hint')) $('w-type-hint').textContent = spec?.hint || '';
+
+  const isButton = type === 'Button';
+  const isLabel = type === 'Label';
+  const isTitle = type === 'Title';
+  const isImage = type === 'Image';
+  const isColor = type === 'ColorButtons';
+  const isPad = type === 'NumberPad';
+
+  $('w-fields-text')?.classList.toggle('hidden', isTitle || isImage || isColor || isPad);
+  $('w-fields-command')?.classList.toggle('hidden', !(isButton || isLabel));
+  $('w-fields-image')?.classList.toggle('hidden', !isImage);
+  $('w-fields-color')?.classList.toggle('hidden', !isColor);
+  $('w-fields-numpad')?.classList.toggle('hidden', !isPad);
+  $('w-fields-layout')?.classList.toggle('hidden', isColor || isPad);
+
+  if ($('w-text-label')) {
+    $('w-text-label').firstChild.textContent = isLabel ? 'Text ' : 'Label ';
+  }
+
+  if (isTitle && $('w-fields-layout')) {
+    $('w-fields-layout').classList.remove('hidden');
+    $('w-height').parentElement.classList.remove('hidden');
+  }
+
+  if (isButton || isLabel) {
+    const hasCmd = !!(w.Command && (typeof w.Command === 'string' ? w.Command : w.Command[0]));
+    $('widget-action-type').value = hasCmd ? 'ir_existing' : (w.Text && !hasCmd ? 'none' : 'ir');
+    if (isLabel && hasCmd) $('widget-action-type').value = 'ir_existing';
+  }
+
+  $('widget-panel-ir')?.classList.toggle('hidden', $('widget-action-type')?.value !== 'ir');
+  $('widget-panel-existing')?.classList.toggle('hidden', $('widget-action-type')?.value !== 'ir_existing');
+
+  if (isImage) {
+    $('w-image-file').value = w.FileName || '';
+    $('w-image-w').value = w.SizeXYinPixels?.[0] ?? 120;
+    $('w-image-h').value = w.SizeXYinPixels?.[1] ?? 120;
+    populateImageFileList();
+  }
+
+  if (isColor && Array.isArray(w.Command)) {
+    $('w-cmd-red').value = w.Command[0] || 'RED';
+    $('w-cmd-green').value = w.Command[1] || 'GREEN';
+    $('w-cmd-yellow').value = w.Command[2] || 'YELLOW';
+    $('w-cmd-blue').value = w.Command[3] || 'BLUE';
+  }
+
+  const showHeight = isButton || isLabel || isTitle;
+  if ($('w-height')?.parentElement) {
+    $('w-height').parentElement.classList.toggle('hidden', !showHeight);
+  }
+  if (showHeight) $('w-height').value = w.HeightPct ?? 10;
+
+  if ($('w-sizex')) $('w-sizex').value = w.SizeXY?.[0] ?? '';
+  if ($('w-sizey')) $('w-sizey').value = w.SizeXY?.[1] ?? '';
+  if ($('w-posx')) $('w-posx').value = w.PosX ?? '';
+  if ($('w-posy')) $('w-posy').value = w.PosY ?? '';
+}
+
 function updateSelectionPanel(friendlyLabel) {
   const empty = $('selection-empty');
   const editor = $('selection-editor');
@@ -875,16 +1198,19 @@ function updateSelectionPanel(friendlyLabel) {
 
   if (selection.kind === 'widget') {
     const w = currentPage().Widgets?.[selection.widgetIdx];
-    $('selection-title').textContent = 'Touch button';
-    $('selection-sub').textContent = w?.Text || w?.Type || '';
-    const hasCmd = !!(w?.Command && w.Type === 'Button');
-    $('action-type').value = w?.Type === 'Title' || w?.Type === 'Label' ? 'widget_only' : (hasCmd ? 'ir_existing' : 'ir');
-    $('action-touch-label').value = w?.Text || '';
+    const typeLabel = WIDGET_TYPES[w?.Type]?.label || w?.Type || 'Widget';
+    $('selection-title').textContent = typeLabel;
+    if (w?.Type === 'NumberPad' || w?.Type === 'ColorButtons') {
+      $('selection-sub').textContent = 'Fixed layout · drag to reorder via widget list';
+    } else if (DRAGGABLE_WIDGET_TYPES.has(w?.Type)) {
+      $('selection-sub').textContent = `${widgetSummary(w)} · drag on preview to move`;
+    } else {
+      $('selection-sub').textContent = widgetSummary(w);
+    }
     if ($('w-type')) $('w-type').value = w?.Type || 'Button';
-    if ($('w-height')) $('w-height').value = w?.HeightPct ?? 10;
-    if ($('w-posx')) $('w-posx').value = w?.PosX ?? '';
-    if ($('w-posy')) $('w-posy').value = w?.PosY ?? '';
-    populateActionCmdPick(Array.isArray(w?.Command) ? w.Command[0] : w?.Command);
+    $('action-touch-label').value = w?.Text || '';
+    populateWidgetCmdPick(w);
+    syncWidgetEditor();
   } else {
     $('selection-title').textContent = 'Physical key';
     $('selection-sub').textContent = friendlyLabel || KEY_LABELS[selection.keyName] || selection.keyName;
@@ -892,8 +1218,24 @@ function updateSelectionPanel(friendlyLabel) {
     $('action-type').value = mapped ? 'ir_existing' : 'ir';
     populateActionCmdPick(mapped);
     $('action-cmd-name').value = DEFAULT_CMD_FOR_KEY[selection.keyName] || selection.keyName.toUpperCase();
+    syncWidgetEditor();
   }
   syncActionPanels();
+}
+
+function populateWidgetCmdPick(w) {
+  const sel = $('widget-cmd-pick');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— pick —</option>';
+  const cf = ensurePageCommandFile();
+  const selected = typeof w?.Command === 'string' ? w.Command : '';
+  commandNamesFromFile(cf).forEach((n) => {
+    const o = document.createElement('option');
+    o.value = n;
+    o.textContent = describeCommand(n, selectedPagePath);
+    if (n === selected) o.selected = true;
+    sel.appendChild(o);
+  });
 }
 
 function populateActionCmdPick(selected) {
@@ -910,60 +1252,145 @@ function populateActionCmdPick(selected) {
 }
 
 function syncActionPanels() {
-  const t = $('action-type').value;
-  $('panel-ir').classList.toggle('hidden', t !== 'ir');
-  $('panel-ir-existing').classList.toggle('hidden', t !== 'ir_existing');
-  $('panel-touch-only').classList.toggle('hidden', t !== 'widget_only');
-  $('panel-key-advanced').classList.toggle('hidden', selection.kind !== 'key');
+  const t = $('action-type')?.value;
+  $('panel-ir')?.classList.toggle('hidden', t !== 'ir');
+  $('panel-ir-existing')?.classList.toggle('hidden', t !== 'ir_existing');
+  $('panel-key-advanced')?.classList.toggle('hidden', selection.kind !== 'key');
 }
 
-$('action-type').onchange = syncActionPanels;
+$('action-type')?.addEventListener('change', syncActionPanels);
+$('widget-action-type')?.addEventListener('change', () => {
+  $('widget-panel-ir')?.classList.toggle('hidden', $('widget-action-type').value !== 'ir');
+  $('widget-panel-existing')?.classList.toggle('hidden', $('widget-action-type').value !== 'ir_existing');
+});
 
-$('btn-action-apply').onclick = () => {
-  const t = $('action-type').value;
-  if (selection.kind === 'widget') {
-    const page = currentPage();
-    const w = page.Widgets?.[selection.widgetIdx];
-    if (!w) return;
-    if (t === 'widget_only') {
-      w.Text = $('action-touch-label').value;
-    } else if (t === 'ir_existing') {
-      w.Command = $('action-cmd-pick').value;
-      if (!w.Text) w.Text = $('action-cmd-pick').value;
-    }
-    w.Type = $('w-type')?.value || w.Type || 'Button';
-    const h = parseInt($('w-height')?.value, 10);
-    if (h) w.HeightPct = h;
-    savePage(page);
-  } else if (selection.kind === 'key') {
-    const page = currentPage();
-    page.ButtonMaps = page.ButtonMaps || {};
-    const pt = $('key-press-type').value;
-    const cmd = t === 'ir_existing' ? $('action-cmd-pick').value : $('action-cmd-name').value.trim();
-    if (!cmd) return;
-    page.ButtonMaps[selection.keyName] = page.ButtonMaps[selection.keyName] || {};
-    page.ButtonMaps[selection.keyName][pt] = cmd;
-    savePage(page);
+$('w-type')?.addEventListener('change', () => {
+  if (selection.kind !== 'widget') return;
+  const page = currentPage();
+  const w = page.Widgets?.[selection.widgetIdx];
+  if (!w) return;
+  const newType = $('w-type').value;
+  const fresh = WIDGET_TYPES[newType]?.create(page.Widgets.filter((_, i) => i !== selection.widgetIdx)) || { Type: newType };
+  fresh.AlignTo = w.AlignTo ?? selection.widgetIdx;
+  page.Widgets[selection.widgetIdx] = fresh;
+  if (WIDGET_TYPES[newType]?.stubCommands) {
+    ensureStubCommands(ensurePageCommandFile(), WIDGET_TYPES[newType].stubCommands);
   }
+  savePage(page);
+  updateSelectionPanel();
+  drawCanvas();
+  renderWidgetList(page);
+});
+
+function applyWidgetEdits() {
+  const page = currentPage();
+  const w = page.Widgets?.[selection.widgetIdx];
+  if (!w) return;
+
+  const type = w.Type || 'Button';
+  if (type === 'Button' || type === 'Label') {
+    w.Text = $('action-touch-label').value.trim();
+    const wa = $('widget-action-type').value;
+    if (wa === 'none') delete w.Command;
+    else if (wa === 'ir_existing') w.Command = $('widget-cmd-pick').value;
+  }
+
+  if (type === 'Image') {
+    w.FileName = $('w-image-file').value.trim() || 'Images/OMOTE_Logo.png';
+    const iw = parseInt($('w-image-w').value, 10);
+    const ih = parseInt($('w-image-h').value, 10);
+    w.SizeXYinPixels = [iw || 120, ih || 120];
+  }
+
+  if (type === 'ColorButtons') {
+    w.Command = [
+      $('w-cmd-red').value.trim() || 'RED',
+      $('w-cmd-green').value.trim() || 'GREEN',
+      $('w-cmd-yellow').value.trim() || 'YELLOW',
+      $('w-cmd-blue').value.trim() || 'BLUE'
+    ];
+    ensureStubCommands(ensurePageCommandFile(), w.Command);
+  }
+
+  if (type === 'Button' || type === 'Label' || type === 'Title') {
+    const h = parseInt($('w-height').value, 10);
+    if (h) w.HeightPct = h;
+  }
+
+  if (type === 'Button') {
+    const sx = parseInt($('w-sizex')?.value, 10);
+    const sy = parseInt($('w-sizey')?.value, 10);
+    if (sx && sy) w.SizeXY = [sx, sy];
+    else delete w.SizeXY;
+  }
+
+  const px = parseInt($('w-posx')?.value, 10);
+  const py = parseInt($('w-posy')?.value, 10);
+  if (!Number.isNaN(px) && $('w-posx')?.value !== '') {
+    w.PosX = Math.round(clampWidgetX(SCR_W * px / 100, widgetLayoutWidth(w)) / SCR_W * 100);
+    delete w.AlignTo;
+  }
+  if (!Number.isNaN(py) && $('w-posy')?.value !== '') {
+    w.PosY = Math.max(0, py);
+    delete w.AlignTo;
+  }
+
+  savePage(page);
+  refreshRemoteTab();
+}
+
+$('btn-widget-apply').onclick = applyWidgetEdits;
+
+$('btn-key-apply').onclick = () => {
+  const t = $('action-type').value;
+  const page = currentPage();
+  page.ButtonMaps = page.ButtonMaps || {};
+  const pt = $('key-press-type').value;
+  const cmd = t === 'ir_existing' ? $('action-cmd-pick').value : $('action-cmd-name').value.trim();
+  if (!cmd) return;
+  page.ButtonMaps[selection.keyName] = page.ButtonMaps[selection.keyName] || {};
+  page.ButtonMaps[selection.keyName][pt] = cmd;
+  savePage(page);
   refreshRemoteTab();
 };
 
-$('btn-action-clear').onclick = () => {
-  if (selection.kind === 'widget') {
-    const page = currentPage();
-    const w = page.Widgets?.[selection.widgetIdx];
-    if (w) delete w.Command;
-    savePage(page);
-  } else if (selection.kind === 'key') {
-    const page = currentPage();
-    const pt = $('key-press-type').value;
-    if (page.ButtonMaps?.[selection.keyName]?.[pt]) {
-      delete page.ButtonMaps[selection.keyName][pt];
-      if (!Object.keys(page.ButtonMaps[selection.keyName]).length) delete page.ButtonMaps[selection.keyName];
-    }
-    savePage(page);
+$('btn-key-clear').onclick = () => {
+  const page = currentPage();
+  const pt = $('key-press-type').value;
+  if (page.ButtonMaps?.[selection.keyName]?.[pt]) {
+    delete page.ButtonMaps[selection.keyName][pt];
+    if (!Object.keys(page.ButtonMaps[selection.keyName]).length) delete page.ButtonMaps[selection.keyName];
   }
+  savePage(page);
   refreshRemoteTab();
+};
+
+$('btn-delete-widget').onclick = () => {
+  if (selection.kind !== 'widget') return;
+  deleteWidgetAt(selection.widgetIdx);
+};
+
+$('btn-widget-learn').onclick = async () => {
+  const msg = $('widget-learn-msg');
+  try {
+    const cap = await learnIr(msg);
+    const cf = ensurePageCommandFile();
+    const page = currentPage();
+    const w = page.Widgets[selection.widgetIdx];
+    if (!w) return;
+    const cmdName = (w.Text || 'BTN').toUpperCase().replace(/\s+/g, '_');
+    w.Command = cmdName;
+    upsertCommand(cf, cmdName, cap.protocol, cap.code);
+    populateCmdFileSelect();
+    populateWidgetCmdPick(w);
+    $('widget-action-type').value = 'ir_existing';
+    syncWidgetEditor();
+    savePage(page);
+    refreshRemoteTab();
+  } catch (e) {
+    msg.textContent = e.message;
+    msg.className = 'msg err small';
+  }
 };
 
 $('btn-action-learn').onclick = async () => {
@@ -980,12 +1407,6 @@ $('btn-action-learn').onclick = async () => {
       page.ButtonMaps[selection.keyName] = page.ButtonMaps[selection.keyName] || {};
       page.ButtonMaps[selection.keyName][pt] = cmdName;
       savePage(page);
-    } else if (selection.kind === 'widget') {
-      const page = currentPage();
-      const w = page.Widgets[selection.widgetIdx];
-      cmdName = (w?.Text || 'BTN').toUpperCase().replace(/\s+/g, '_');
-      w.Command = cmdName;
-      savePage(page);
     } else return;
     upsertCommand(cf, cmdName, cap.protocol, cap.code);
     populateCmdFileSelect();
@@ -998,61 +1419,195 @@ $('btn-action-learn').onclick = async () => {
 
 function renderWidgetList(page) {
   const ul = $('widget-list');
+  if (!ul) return;
   ul.innerHTML = '';
   (page?.Widgets || []).forEach((w, i) => {
     const li = document.createElement('li');
-    const cmd = Array.isArray(w.Command) ? w.Command.join(',') : (w.Command || '');
-    li.textContent = `${w.Text || w.Type}${cmd ? ' → ' + cmd : ''}`;
-    li.className = selection.kind === 'widget' && selection.widgetIdx === i ? 'selected' : '';
+    li.className = 'widget-list-item';
+    if (selection.kind === 'widget' && selection.widgetIdx === i) li.classList.add('selected');
+
+    const badge = document.createElement('span');
+    badge.className = 'widget-type-badge';
+    badge.textContent = (w.Type || '?').replace('ColorButtons', 'Colors').replace('NumberPad', 'Numpad');
+
+    const text = document.createElement('span');
+    text.className = 'widget-list-label';
+    text.textContent = widgetSummary(w);
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'icon-btn danger';
+    del.textContent = '×';
+    del.title = 'Delete widget';
+    del.onclick = (e) => {
+      e.stopPropagation();
+      deleteWidgetAt(i);
+    };
+
+    li.append(badge, text, del);
     li.onclick = () => selectWidget(i);
     ul.appendChild(li);
   });
 }
 
-$('btn-add-button').onclick = () => {
-  const page = currentPage();
-  page.Widgets = page.Widgets || [];
-  page.Widgets.push({ Type: 'Button', Text: 'New button', HeightPct: 10, AlignTo: page.Widgets.length });
-  savePage(page);
-  selectWidget(page.Widgets.length - 1);
+$('btn-add-widget').onclick = () => {
+  const type = $('add-widget-type')?.value || 'Button';
+  addWidgetOfType(type);
 };
 
-$('btn-delete-widget').onclick = () => {
-  if (selection.kind !== 'widget') return;
-  const page = currentPage();
-  page.Widgets.splice(selection.widgetIdx, 1);
-  savePage(page);
-  clearSelection();
-  refreshRemoteTab();
-};
+populateWidgetTypeSelects();
 
-/* ── Canvas ── */
-function layoutFlowRects(widgets) {
-  const rects = [];
-  let y = STATUS_H + 4;
-  (widgets || []).forEach((w, i) => {
-    const hp = w.HeightPct || 10;
-    const h = Math.round((CONTENT_H - 8) * hp / 100);
-    if (w.PosX != null && w.PosY != null) {
-      rects.push({
-        i, x: Math.round(SCR_W * w.PosX / 100),
-        y: STATUS_H + Math.round(CONTENT_H * w.PosY / 100),
-        w: w.SizeXY ? Math.round(SCR_W * w.SizeXY[0] / 100) : SCR_W - 16,
-        h: w.SizeXY ? Math.round(CONTENT_H * w.SizeXY[1] / 100) : h,
-        widget: w
-      });
+/* ── Canvas (layout mirrors JsonPage + LVGL++ widget sizes) ── */
+function widgetLayoutHeight(w) {
+  if (w.Type === 'ColorButtons') return FW_LAYOUT.colorButtons.height;
+  if (w.Type === 'NumberPad') return FW_LAYOUT.numberPad.height;
+  if (w.Type === 'Image' && w.SizeXYinPixels?.[1]) return w.SizeXYinPixels[1];
+  const hp = w.HeightPct || 10;
+  return Math.max(16, Math.round((CONTENT_H - FW_LAYOUT.gap * 2) * hp / 100));
+}
+
+function widgetLayoutWidth(w) {
+  if (w.Type === 'ColorButtons') {
+    const c = FW_LAYOUT.colorButtons;
+    return c.marginX * 2 + c.btnW * 4 + c.spacingX * 3;
+  }
+  if (w.Type === 'NumberPad') {
+    const n = FW_LAYOUT.numberPad;
+    return n.pad * 2 + n.btnW * n.cols + n.spacingX * (n.cols - 1);
+  }
+  if (w.SizeXY?.[0]) return Math.round(SCR_W * w.SizeXY[0] / 100);
+  if (w.Type === 'Image' && w.SizeXYinPixels?.[0]) return w.SizeXYinPixels[0];
+  return SCR_W - FW_LAYOUT.padX * 2;
+}
+
+function clampWidgetX(x, width) {
+  return Math.max(0, Math.min(SCR_W - width, x));
+}
+
+function computeWidgetLayout(widgets) {
+  const flowBottoms = [];
+  const items = (widgets || []).map((w, i) => {
+    const h = widgetLayoutHeight(w);
+    const width = widgetLayoutWidth(w);
+    const alignTo = w.AlignTo != null ? w.AlignTo : 0;
+    let flowY;
+    if (alignTo === 0) {
+      flowY = STATUS_H + FW_LAYOUT.gap;
     } else {
-      rects.push({ i, x: 8, y, w: SCR_W - 16, h, widget: w });
-      y += h + 4;
+      const refIdx = Math.min(alignTo - 1, i - 1);
+      flowY = (flowBottoms[refIdx] ?? STATUS_H + FW_LAYOUT.gap) + FW_LAYOUT.gap;
     }
+    flowBottoms[i] = flowY + h;
+    const flowX = clampWidgetX(Math.round((SCR_W - width) / 2), width);
+    const positioned = w.PosX != null && w.PosY != null;
+    return { i, w, h, width, flowX, flowY, positioned };
   });
-  return rects;
+
+  const virtualH = Math.max(
+    CONTENT_H,
+    (flowBottoms.length ? flowBottoms[flowBottoms.length - 1] : STATUS_H + FW_LAYOUT.gap) - STATUS_H + FW_LAYOUT.gap
+  );
+
+  return items.map((item) => {
+    let x;
+    let y;
+    if (item.positioned) {
+      x = clampWidgetX(Math.round(SCR_W * item.w.PosX / 100), item.width);
+      y = STATUS_H + Math.round(virtualH * item.w.PosY / 100);
+    } else {
+      x = item.flowX;
+      y = item.flowY;
+    }
+    return {
+      i: item.i,
+      x,
+      y,
+      rawY: y,
+      w: item.width,
+      h: item.h,
+      widget: item.w
+    };
+  });
+}
+
+function layoutFlowRects(widgets, applyScroll = false) {
+  const scroll = applyScroll ? canvasScrollY : 0;
+  return computeWidgetLayout(widgets).map((r) => ({
+    ...r,
+    y: r.y - scroll
+  }));
+}
+
+function layoutVirtualHeight(widgets) {
+  const items = computeWidgetLayout(widgets);
+  if (!items.length) return CONTENT_H;
+  const last = items[items.length - 1];
+  return Math.max(CONTENT_H, last.y + last.h - STATUS_H + FW_LAYOUT.gap);
+}
+
+function maxCanvasScroll(widgets) {
+  const items = computeWidgetLayout(widgets);
+  if (!items.length) return 0;
+  const last = items[items.length - 1];
+  const visibleBottom = SCR_H - TAB_BAR_H;
+  return Math.max(0, last.y + last.h - visibleBottom + FW_LAYOUT.gap);
+}
+
+function updateCanvasScrollHint(widgets) {
+  const hint = $('canvas-scroll-hint');
+  if (!hint) return;
+  hint.classList.toggle('hidden', maxCanvasScroll(widgets) <= 0);
+}
+
+function drawMiniButton(ctx, x, y, w, h, label) {
+  ctx.fillStyle = '#555';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#888';
+  ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = '#eee';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(label, x + w / 2, y + h / 2 + 4);
+  ctx.textAlign = 'left';
+}
+
+function drawColorButtonsWidget(ctx, r) {
+  const c = FW_LAYOUT.colorButtons;
+  const colors = ['#c0392b', '#27ae60', '#f1c40f', '#2980b9'];
+  ctx.strokeStyle = '#444';
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  colors.forEach((col, ci) => {
+    const bx = r.x + c.marginX + ci * (c.btnW + c.spacingX);
+    ctx.fillStyle = col;
+    ctx.fillRect(bx, r.y, c.btnW, r.h);
+    ctx.strokeStyle = '#333';
+    ctx.strokeRect(bx, r.y, c.btnW, r.h);
+  });
+}
+
+function drawNumberPadWidget(ctx, r) {
+  const n = FW_LAYOUT.numberPad;
+  ctx.strokeStyle = '#444';
+  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  for (let num = 1; num <= 9; num++) {
+    const idx = num - 1;
+    const col = idx % n.cols;
+    const row = Math.floor(idx / n.cols);
+    const bx = r.x + n.pad + col * (n.btnW + n.spacingX);
+    const by = r.y + n.pad + row * (n.btnH + n.spacingY);
+    drawMiniButton(ctx, bx, by, n.btnW, n.btnH, String(num));
+  }
+  const bx0 = r.x + n.pad + 1 * (n.btnW + n.spacingX);
+  const by0 = r.y + n.pad + 3 * (n.btnH + n.spacingY);
+  drawMiniButton(ctx, bx0, by0, n.btnW, n.btnH, '0');
 }
 
 function drawCanvas() {
   const c = $('preview');
   if (!c) return;
   const ctx = c.getContext('2d');
+  const widgets = currentPage().Widgets || [];
+
   ctx.fillStyle = '#111';
   ctx.fillRect(0, 0, SCR_W, SCR_H);
   ctx.fillStyle = '#222';
@@ -1062,26 +1617,74 @@ function drawCanvas() {
   const scene = parseJson(selectedScenePath);
   ctx.fillText(scene?.ScreenName ? `Scene:${scene.ScreenName}` : 'OMOTE', 8, 15);
 
-  const rects = layoutFlowRects(currentPage().Widgets || []);
+  const contentTop = STATUS_H;
+  const contentBottom = SCR_H - TAB_BAR_H;
+  const rects = layoutFlowRects(widgets, true);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, contentTop, SCR_W, contentBottom - contentTop);
+  ctx.clip();
+
   rects.forEach((r) => {
     const w = r.widget;
     const sel = selection.kind === 'widget' && selection.widgetIdx === r.i;
-    ctx.strokeStyle = sel ? '#58a6ff' : '#555';
     ctx.lineWidth = sel ? 2 : 1;
+    ctx.strokeStyle = sel ? '#58a6ff' : '#555';
+
     if (w.Type === 'ColorButtons') {
-      ['#c0392b', '#27ae60', '#f1c40f', '#2980b9'].forEach((col, ci) => {
-        ctx.fillStyle = col;
-        ctx.fillRect(r.x + ci * (r.w / 4), r.y, r.w / 4 - 2, r.h);
-      });
+      drawColorButtonsWidget(ctx, r);
+    } else if (w.Type === 'NumberPad') {
+      drawNumberPadWidget(ctx, r);
+    } else if (w.Type === 'Image') {
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.strokeStyle = sel ? '#58a6ff' : '#555';
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = '#888';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      const fname = (w.FileName || 'image').split('/').pop();
+      ctx.fillText('IMG ' + fname.slice(0, 14), r.x + r.w / 2, r.y + r.h / 2 + 3);
+      ctx.textAlign = 'left';
+    } else if (w.Type === 'Title') {
+      ctx.fillStyle = '#1e3a5f';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = '#eee';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(activePageName().slice(0, 22), r.x + r.w / 2, r.y + r.h / 2 + 4);
+      ctx.textAlign = 'left';
+      ctx.strokeStyle = sel ? '#58a6ff' : '#555';
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+    } else if (w.Type === 'Label') {
+      ctx.fillStyle = '#252530';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = '#ccc';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText((w.Text || 'Label').slice(0, 24), r.x + r.w / 2, r.y + r.h / 2 + 4);
+      ctx.textAlign = 'left';
+      ctx.strokeStyle = sel ? '#58a6ff' : '#555';
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
     } else {
       ctx.fillStyle = '#2a3548';
       ctx.fillRect(r.x, r.y, r.w, r.h);
       ctx.fillStyle = '#eee';
       ctx.font = '12px sans-serif';
-      ctx.fillText((w.Text || w.Type || '').slice(0, 18), r.x + 6, r.y + r.h / 2 + 4);
+      const label = (w.Text || w.Type || '').slice(0, 22);
+      ctx.fillText(label, r.x + 6, r.y + r.h / 2 + 4);
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
     }
-    ctx.strokeRect(r.x, r.y, r.w, r.h);
+
+    if (w.Type === 'ColorButtons' || w.Type === 'NumberPad') {
+      ctx.strokeStyle = sel ? '#58a6ff' : '#555';
+      ctx.lineWidth = sel ? 2 : 1;
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+    }
   });
+
+  ctx.restore();
 
   const labels = tabLabels();
   const tabY = SCR_H - TAB_BAR_H;
@@ -1099,6 +1702,28 @@ function drawCanvas() {
     });
     ctx.textAlign = 'left';
   }
+
+  const maxScroll = maxCanvasScroll(widgets);
+  if (maxScroll > 0) {
+    const trackH = contentBottom - contentTop - 8;
+    const thumbH = Math.max(18, trackH * (CONTENT_H / (CONTENT_H + maxScroll)));
+    const thumbY = contentTop + 4 + (trackH - thumbH) * (canvasScrollY / maxScroll);
+    ctx.fillStyle = '#ffffff22';
+    ctx.fillRect(SCR_W - 5, contentTop + 4, 3, trackH);
+    ctx.fillStyle = '#58a6ff88';
+    ctx.fillRect(SCR_W - 5, thumbY, 3, thumbH);
+  }
+
+  updateCanvasScrollHint(widgets);
+}
+
+function canvasCoords(ev) {
+  const c = $('preview');
+  const rect = c.getBoundingClientRect();
+  return {
+    x: (ev.clientX - rect.left) * (SCR_W / rect.width),
+    y: (ev.clientY - rect.top) * (SCR_H / rect.height)
+  };
 }
 
 function canvasHitTab(x, y) {
@@ -1108,11 +1733,23 @@ function canvasHitTab(x, y) {
   return Math.min(labels.length - 1, Math.floor(x / (SCR_W / labels.length)));
 }
 
+function findWidgetHit(x, y) {
+  const widgets = currentPage().Widgets || [];
+  return layoutFlowRects(widgets, true).slice().reverse()
+    .find((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+}
+
+function applyWidgetDragPos(w, x, y, width, height, widgets) {
+  const virtualH = layoutVirtualHeight(widgets);
+  const px = clampWidgetX(x, width);
+  const py = Math.max(0, y - STATUS_H);
+  w.PosX = Math.round(px / SCR_W * 100);
+  w.PosY = Math.round(py / virtualH * 100);
+  delete w.AlignTo;
+}
+
 $('preview').onmousedown = (ev) => {
-  const c = $('preview');
-  const rect = c.getBoundingClientRect();
-  const x = (ev.clientX - rect.left) * (SCR_W / rect.width);
-  const y = (ev.clientY - rect.top) * (SCR_H / rect.height);
+  const { x, y } = canvasCoords(ev);
   const tabHit = canvasHitTab(x, y);
   if (tabHit >= 0) {
     activeTabIdx = tabHit;
@@ -1121,27 +1758,44 @@ $('preview').onmousedown = (ev) => {
     refreshRemoteTab();
     return;
   }
-  if (y > SCR_H - TAB_BAR_H) return;
-  const hit = layoutFlowRects(currentPage().Widgets || []).slice().reverse()
-    .find((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+  if (y > SCR_H - TAB_BAR_H || y < STATUS_H) return;
+
+  const hit = findWidgetHit(x, y);
   if (!hit) { clearSelection(); return; }
   selectWidget(hit.i);
-  if (hit.widget.Type === 'Button') drag = { idx: hit.i, ox: x - hit.x, oy: y - hit.y };
+
+  if (DRAGGABLE_WIDGET_TYPES.has(hit.widget.Type)) {
+    drag = {
+      idx: hit.i,
+      ox: x - hit.x,
+      oy: y - hit.y,
+      width: hit.w,
+      height: hit.h
+    };
+  }
 };
 
 $('preview').onmousemove = (ev) => {
   if (!drag) return;
-  const c = $('preview');
-  const rect = c.getBoundingClientRect();
-  const x = (ev.clientX - rect.left) * (SCR_W / rect.width);
-  const y = (ev.clientY - rect.top) * (SCR_H / rect.height);
+  const { x, y } = canvasCoords(ev);
   const page = currentPage();
   const w = page.Widgets[drag.idx];
-  w.PosX = Math.max(0, Math.min(100, Math.round((x - drag.ox) / SCR_W * 100)));
-  w.PosY = Math.max(0, Math.min(100, Math.round((y - drag.oy - STATUS_H) / CONTENT_H * 100)));
+  const nx = clampWidgetX(x - drag.ox, drag.width);
+  const ny = y - drag.oy + canvasScrollY;
+  applyWidgetDragPos(w, nx, ny, drag.width, drag.height, page.Widgets);
   savePage(page);
   drawCanvas();
 };
+
+$('preview').addEventListener('wheel', (ev) => {
+  const widgets = currentPage().Widgets || [];
+  const maxScroll = maxCanvasScroll(widgets);
+  if (maxScroll <= 0) return;
+  ev.preventDefault();
+  canvasScrollY = Math.max(0, Math.min(maxScroll, canvasScrollY + ev.deltaY));
+  drawCanvas();
+}, { passive: false });
+
 window.addEventListener('mouseup', () => { drag = null; });
 
 /* ── Advanced: commands + raw ── */

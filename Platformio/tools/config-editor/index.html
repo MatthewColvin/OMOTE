@@ -81,18 +81,20 @@ python -m http.server 8080</pre>
                 </select>
               </label>
             </details>
-            <h3>Device tabs</h3>
-            <p class="muted small">Each device becomes a tab at the bottom of the touch screen while you’re in this scene.</p>
-            <div id="device-tab-list"></div>
-            <div class="row">
-              <select id="device-template">
-                <option value="tv">TV (buttons + colors + number pad)</option>
-                <option value="roku">Streaming / Roku shortcuts</option>
-                <option value="avreceiver">AV receiver</option>
-                <option value="blank">Blank — learn everything</option>
-              </select>
-              <button type="button" id="btn-add-device">+ Add device tab</button>
-              <button type="button" id="btn-configure-remote" class="primary">Configure remote layout →</button>
+            <h3 class="section-title">Device tabs</h3>
+            <p class="muted small section-lead">Each device becomes a tab at the bottom of the touch screen.</p>
+            <div id="device-tab-list" class="device-tab-list"></div>
+            <div class="tab-toolbar">
+              <div class="tab-toolbar-row">
+                <select id="device-template" title="Template for new device tab">
+                  <option value="tv">TV (buttons + numpad)</option>
+                  <option value="roku">Streaming / Roku</option>
+                  <option value="avreceiver">AV receiver</option>
+                  <option value="blank">Blank — learn everything</option>
+                </select>
+                <button type="button" id="btn-add-device">+ Add tab</button>
+              </div>
+              <button type="button" id="btn-configure-remote" class="primary" style="width:100%;margin:0">Configure remote layout →</button>
             </div>
             <details id="scene-power-details">
               <summary>When starting / leaving this scene</summary>
@@ -111,15 +113,27 @@ python -m http.server 8080</pre>
 
     <section id="tab-remote" class="tab">
       <div class="remote-editor-shell">
-        <aside class="panel sidebar-narrow">
-          <label>Scene <select id="remote-scene-select"></select></label>
-          <h3>Device tab</h3>
-          <ul id="remote-device-list" class="device-list"></ul>
-          <p class="muted small">Swipe tabs on the touch screen preview, or pick here.</p>
+        <aside class="panel remote-sidebar">
+          <label class="field-block">Scene <select id="remote-scene-select"></select></label>
+          <h3 class="section-title">Device tabs</h3>
+          <p class="muted small section-lead">Bottom-bar tabs for this scene.</p>
+          <div id="remote-device-tabs" class="device-tab-list"></div>
+          <div class="tab-toolbar">
+            <div class="tab-toolbar-row">
+              <select id="remote-device-template" title="Template for new tab">
+                <option value="tv">TV template</option>
+                <option value="roku">Roku template</option>
+                <option value="avreceiver">AV receiver</option>
+                <option value="blank">Blank page</option>
+              </select>
+              <button type="button" id="btn-remote-add-tab" class="primary">+ Add</button>
+            </div>
+          </div>
         </aside>
         <div class="remote-center panel">
           <h2><span id="remote-device-label">Device</span></h2>
           <p id="editing-hint" class="muted small">Configure touch buttons above and physical keys below for this device tab.</p>
+          <p id="canvas-scroll-hint" class="muted small hidden">Scroll the touch preview with the mouse wheel when content extends below the tab bar.</p>
           <div class="screen-keymap-stack">
             <div class="canvas-wrap">
               <canvas id="preview" width="240" height="320"></canvas>
@@ -130,56 +144,106 @@ python -m http.server 8080</pre>
         <aside class="panel action-sidebar">
           <div id="selection-empty">
             <h3>What should it do?</h3>
-            <p class="muted small">Click a touch button or a physical key on the remote face.</p>
+            <p class="muted small">Click a screen widget or a physical key on the remote face.</p>
           </div>
           <div id="selection-editor" class="hidden">
             <h3 id="selection-title">Selected</h3>
             <p id="selection-sub" class="muted small"></p>
-            <label>Action
-              <select id="action-type">
-                <option value="ir">Send infrared (TV / receiver / etc.)</option>
-                <option value="ir_existing">Use existing button from this device</option>
-                <option value="widget_only">Touch label only (no IR)</option>
-              </select>
-            </label>
-            <div id="panel-ir">
-              <button type="button" id="btn-action-learn" class="primary">Learn from another remote</button>
-              <p id="action-learn-msg" class="msg muted small">Point any IR remote at OMOTE and press a button.</p>
-              <label class="advanced-field hidden">Command name <input id="action-cmd-name" placeholder="VOL_UP" /></label>
-            </div>
-            <div id="panel-ir-existing" class="hidden">
-              <label>Pick command
-                <select id="action-cmd-pick"></select>
+
+            <div id="panel-key-editor">
+              <label>Action
+                <select id="action-type">
+                  <option value="ir">Send infrared (TV / receiver / etc.)</option>
+                  <option value="ir_existing">Use existing button from this device</option>
+                </select>
               </label>
+              <div id="panel-ir">
+                <button type="button" id="btn-action-learn" class="primary">Learn from another remote</button>
+                <p id="action-learn-msg" class="msg muted small">Point any IR remote at OMOTE and press a button.</p>
+                <label class="advanced-field hidden">Command name <input id="action-cmd-name" placeholder="VOL_UP" /></label>
+              </div>
+              <div id="panel-ir-existing" class="hidden">
+                <label>Pick command
+                  <select id="action-cmd-pick"></select>
+                </label>
+              </div>
+              <div id="panel-key-advanced" class="advanced-field hidden">
+                <label>Press type <select id="key-press-type">
+                  <option>Press</option><option>Release</option><option>Repeat</option><option>Long</option><option>Short</option>
+                </select></label>
+              </div>
+              <div class="row widget-action-row">
+                <button type="button" id="btn-key-apply">Apply</button>
+                <button type="button" id="btn-key-clear">Clear mapping</button>
+              </div>
             </div>
-            <div id="panel-touch-only" class="hidden">
-              <label>Button label <input id="action-touch-label" /></label>
+
+            <div id="panel-widget-editor" class="hidden">
+              <label>Widget type
+                <select id="w-type"></select>
+              </label>
+              <p id="w-type-hint" class="muted small"></p>
+
+              <div id="w-fields-text">
+                <label id="w-text-label">Label <input id="action-touch-label" placeholder="Button text" /></label>
+              </div>
+              <div id="w-fields-command" class="hidden">
+                <label>Action
+                  <select id="widget-action-type">
+                    <option value="ir">Learn new IR command</option>
+                    <option value="ir_existing">Use existing command</option>
+                    <option value="none">No command (label only)</option>
+                  </select>
+                </label>
+                <div id="widget-panel-ir">
+                  <button type="button" id="btn-widget-learn" class="primary">Learn from remote</button>
+                  <p id="widget-learn-msg" class="msg muted small"></p>
+                </div>
+                <div id="widget-panel-existing" class="hidden">
+                  <label>Command <select id="widget-cmd-pick"></select></label>
+                </div>
+              </div>
+              <div id="w-fields-image" class="hidden">
+                <label>Image file <input id="w-image-file" placeholder="Images/OMOTE_Logo.png" list="image-file-list" /></label>
+                <datalist id="image-file-list"></datalist>
+                <div class="row">
+                  <label>Width px <input id="w-image-w" type="number" min="1" max="240" style="width:5em" /></label>
+                  <label>Height px <input id="w-image-h" type="number" min="1" max="320" style="width:5em" /></label>
+                </div>
+              </div>
+              <div id="w-fields-color" class="hidden">
+                <p class="muted small">Assign IR commands for each color key (must exist in this page’s command file).</p>
+                <label>Red <input id="w-cmd-red" placeholder="RED" /></label>
+                <label>Green <input id="w-cmd-green" placeholder="GREEN" /></label>
+                <label>Yellow <input id="w-cmd-yellow" placeholder="YELLOW" /></label>
+                <label>Blue <input id="w-cmd-blue" placeholder="BLUE" /></label>
+              </div>
+              <div id="w-fields-numpad" class="hidden">
+                <p class="muted small">Uses commands NUM_0 … NUM_9 from this page’s command file. Learn or add them on the Commands tab.</p>
+              </div>
+              <div id="w-fields-layout">
+                <label>Height % <input id="w-height" type="number" min="1" max="100" /></label>
+                <details class="advanced-field hidden" id="widget-layout-advanced">
+                  <summary>Position &amp; size (advanced)</summary>
+                  <label>Width % / Height % <input id="w-sizex" type="number" min="1" max="100" placeholder="W" style="width:4em;display:inline" />
+                    <input id="w-sizey" type="number" min="1" max="100" placeholder="H" style="width:4em;display:inline" /></label>
+                  <label>PosX % <input id="w-posx" type="number" min="0" max="100" /></label>
+                  <label>PosY % <input id="w-posy" type="number" min="0" max="100" /></label>
+                </details>
+              </div>
+              <div class="row widget-action-row">
+                <button type="button" id="btn-widget-apply" class="primary">Apply</button>
+                <button type="button" id="btn-delete-widget" class="danger-btn">Delete</button>
+              </div>
             </div>
-            <div id="panel-key-advanced" class="advanced-field hidden">
-              <label>Press type <select id="key-press-type">
-                <option>Press</option><option>Release</option><option>Repeat</option><option>Long</option><option>Short</option>
-              </select></label>
-            </div>
-            <div class="row">
-              <button type="button" id="btn-action-apply">Apply</button>
-              <button type="button" id="btn-action-clear">Clear</button>
-            </div>
-            <details class="advanced-field hidden" id="widget-advanced-details">
-              <summary>Touch button layout (advanced)</summary>
-              <label>Type <select id="w-type">
-                <option>Button</option><option>Title</option><option>Label</option>
-                <option>ColorButtons</option><option>NumberPad</option><option>Image</option>
-              </select></label>
-              <label>Height % <input id="w-height" type="number" min="1" max="100" /></label>
-              <label>PosX % <input id="w-posx" type="number" min="0" max="100" /></label>
-              <label>PosY % <input id="w-posy" type="number" min="0" max="100" /></label>
-              <button type="button" id="btn-delete-widget">Delete touch button</button>
-            </details>
           </div>
           <hr />
-          <h3>Touch buttons</h3>
-          <ul id="widget-list"></ul>
-          <button type="button" id="btn-add-button">+ Add touch button</button>
+          <h3 class="section-title">Screen widgets</h3>
+          <ul id="widget-list" class="widget-list"></ul>
+          <div class="tab-toolbar-row">
+            <select id="add-widget-type" title="Widget type to add"></select>
+            <button type="button" id="btn-add-widget" class="primary">+ Add</button>
+          </div>
           <p class="muted small advanced-field hidden" id="linked-files-hint"></p>
         </aside>
       </div>

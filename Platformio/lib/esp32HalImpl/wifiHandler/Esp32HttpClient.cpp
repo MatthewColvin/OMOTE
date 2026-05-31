@@ -37,7 +37,7 @@ std::shared_ptr<HttpFuture> Esp32HttpClient::executeAsync(const HttpRequest &req
 }
 
 std::shared_ptr<HttpFuture> Esp32HttpClient::getAsync(const std::string &url, int timeout_ms) {
-  HttpRequest request(HttpRequest::Method::GET, url);
+  HttpRequest request(HttpRequest::Method::Get, url);
   request.timeout_ms = timeout_ms;
   return executeAsync(request);
 }
@@ -46,7 +46,7 @@ std::shared_ptr<HttpFuture> Esp32HttpClient::postAsync(
     const std::string &url,
     const std::string &body,
     int timeout_ms) {
-  HttpRequest request(HttpRequest::Method::POST, url, body);
+  HttpRequest request(HttpRequest::Method::Post, url, body);
   request.timeout_ms = timeout_ms;
   return executeAsync(request);
 }
@@ -55,7 +55,7 @@ std::shared_ptr<HttpFuture> Esp32HttpClient::putAsync(
     const std::string &url,
     const std::string &body,
     int timeout_ms) {
-  HttpRequest request(HttpRequest::Method::PUT, url, body);
+  HttpRequest request(HttpRequest::Method::Put, url, body);
   request.timeout_ms = timeout_ms;
   return executeAsync(request);
 }

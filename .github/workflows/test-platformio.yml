@@ -28,6 +28,18 @@ jobs:
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
 
+      - name: Setup MSYS2 for Windows
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-python
+            mingw-w64-x86_64-curl
+            python3-pip
+
       - name: Prepare PlatformIO environments
         working-directory: ./Platformio
         run: pio pkg install

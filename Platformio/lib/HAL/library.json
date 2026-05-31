@@ -10,6 +10,16 @@
             "maintainer": true
         }
     ],
+    "build": {
+        "includeDir": ".",
+        "flags": [
+            "-I ",
+            "-I Hardware",
+            "-I Hardware/wifi",
+            "-I Hardware/wifi/http",
+            "-I Hardware/wifi/websockets"
+        ]
+    },
     "frameworks": "*",
     "platforms": "*"
 }

@@ -1,4 +1,5 @@
 #include "CurlHttpClient.hpp"
+#include "HttpTypes.hpp"
 #include <iostream>
 #include <sstream>
 

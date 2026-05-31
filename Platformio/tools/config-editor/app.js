@@ -5,6 +5,7 @@ const STATUS_H = 22;
 const TAB_BAR_H = Math.round(SCR_H * 0.1);
 const CONTENT_H = SCR_H - STATUS_H - TAB_BAR_H;
 const ADVANCED_KEY = 'omote_editor_advanced';
+const OMOTE_PACK_VERSION = 1;
 
 /** Match LVGL++ widget constants (NumberPad.hpp, ColorButtons.hpp, JsonPage distBetweenWidgets). */
 const FW_LAYOUT = {
@@ -242,6 +243,104 @@ function setFile(path, content, dirty = true) {
 
 function listPaths(prefix) {
   return [...files.keys()].filter((p) => p.startsWith(prefix)).sort();
+}
+
+function normalizePackPath(path) {
+  return path.replace(/\\/g, '/').replace(/^\/+/, '');
+}
+
+function isPackConfigPath(path) {
+  const p = normalizePackPath(path);
+  if (!p || p.endsWith('/')) return false;
+  if (p === 'manifest.json') return false;
+  if (p.startsWith('__MACOSX/') || p.includes('/__MACOSX/')) return false;
+  if (p.endsWith('.DS_Store')) return false;
+  return p.endsWith('.json');
+}
+
+function packFileEntries() {
+  return [...files.entries()]
+    .map(([path, entry]) => [normalizePackPath(path), entry.content])
+    .filter(([path]) => isPackConfigPath(path))
+    .sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+function setConnectMsg(text, kind = '') {
+  const el = $('connect-msg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'msg' + (kind ? ' ' + kind : '');
+}
+
+async function exportOmotePack() {
+  if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded — refresh the page.');
+  const entries = packFileEntries();
+  if (!entries.length) throw new Error('Nothing to export — connect to a remote or import a backup first.');
+
+  const zip = new JSZip();
+  zip.file('manifest.json', JSON.stringify({
+    omote_pack_version: OMOTE_PACK_VERSION,
+    format: 'omote-config-pack',
+    exported_at: new Date().toISOString(),
+    source_api: API || null,
+    file_count: entries.length
+  }, null, 2));
+
+  entries.forEach(([path, content]) => zip.file(path, content));
+
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  const stamp = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `omote-config-${stamp}.omote`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  return entries.length;
+}
+
+async function importOmotePack(file) {
+  if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded — refresh the page.');
+  if (!file) return 0;
+
+  const zip = await JSZip.loadAsync(await file.arrayBuffer());
+  const paths = Object.keys(zip.files)
+    .filter((path) => isPackConfigPath(path))
+    .sort();
+
+  if (!paths.length) throw new Error('No JSON config files found in this .omote archive.');
+
+  const dirtyCount = [...files.values()].filter((v) => v.dirty).length;
+  if (files.size && (dirtyCount || paths.length)) {
+    const ok = confirm('Replace the current editor files with this backup? Unsaved changes will be lost.');
+    if (!ok) return 0;
+  }
+
+  files.clear();
+  for (const path of paths) {
+    const content = await zip.file(path).async('string');
+    setFile(normalizePackPath(path), content, true);
+  }
+
+  if (!files.has('Scenes.json')) setFile('Scenes.json', { Scenes: [] }, true);
+  syncOrphanSceneFiles();
+  initAfterLoad();
+  $('status-bar').textContent = `Offline · ${files.size} files from backup`;
+  showTab('scenes');
+  return paths.length;
+}
+
+async function handleExportOmotePack() {
+  setConnectMsg('Creating backup…');
+  try {
+    const count = await exportOmotePack();
+    setConnectMsg(`Exported ${count} file(s) to .omote backup.`, 'ok');
+    $('deploy-msg').textContent = `Exported ${count} file(s).`;
+    $('deploy-msg').className = 'msg ok';
+  } catch (e) {
+    setConnectMsg(e.message, 'err');
+    $('deploy-msg').textContent = e.message;
+    $('deploy-msg').className = 'msg err';
+  }
 }
 
 function resolvePagePath(fileName) {
@@ -675,6 +774,23 @@ async function connectAndLoad() {
 }
 
 $('btn-connect').onclick = connectAndLoad;
+
+$('btn-export-omote')?.addEventListener('click', handleExportOmotePack);
+$('btn-export-omote-footer')?.addEventListener('click', handleExportOmotePack);
+$('omote-import-file')?.addEventListener('change', async (ev) => {
+  const input = ev.target;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) return;
+  setConnectMsg('Importing backup…');
+  try {
+    const count = await importOmotePack(file);
+    if (!count) return;
+    setConnectMsg(`Loaded ${count} file(s) from backup. Edit offline or Save to remote when ready.`, 'ok');
+  } catch (e) {
+    setConnectMsg('Import failed: ' + e.message, 'err');
+  }
+});
 
 $('btn-enter-sync').onclick = async () => {
   try {

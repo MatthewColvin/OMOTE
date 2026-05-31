@@ -387,7 +387,17 @@ footer {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+  align-items: center;
+}
+.backup-actions input[type="file"] { max-width: 240px; }
 
 .remote-face {
   display: flex;

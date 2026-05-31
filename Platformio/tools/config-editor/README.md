@@ -21,6 +21,15 @@ Open http://localhost:8080 → connect to `http://omote.local` → use **Scenes*
 
 The editor **auto-creates and links** the JSON files (`Pages/…`, `Commands/…`, scene entries). You don’t need to know the file structure.
 
+## Backup (.omote)
+
+On the **Connect** tab (or **Export backup** in the footer):
+
+- **Export .omote backup** — zips every JSON config file into one `.omote` file (same layout as on the remote: `Scenes.json`, `Pages/…`, `Commands/…`, etc.).
+- **Import .omote** — loads that archive into the editor for offline editing or to copy a setup to another remote. Nothing is sent to the device until you click **Save to remote & reboot**.
+
+Use this before a risky deploy, when the remote is offline, or to clone config to a second OMOTE.
+
 ## Advanced mode
 
 Toggle **Advanced** in the header to show:

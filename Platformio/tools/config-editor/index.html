@@ -34,6 +34,14 @@ python -m http.server 8080</pre>
         <button type="button" id="btn-exit-sync">Exit sync mode (reboot)</button>
       </div>
       <p class="muted small">On the remote: Settings → <strong>Editor sync</strong>. Or use the buttons above. Exit with the <strong>Power</strong> button after saving.</p>
+      <h3 class="section-title">Backup &amp; restore</h3>
+      <p class="muted small">Package every JSON config file into one <code>.omote</code> file (zip). Use it before a risky deploy, for offline editing, or to copy your setup to another remote.</p>
+      <div class="backup-actions">
+        <button type="button" id="btn-export-omote">Export .omote backup</button>
+        <label>Import .omote
+          <input type="file" id="omote-import-file" accept=".omote,.zip,application/zip" />
+        </label>
+      </div>
       <p id="connect-msg" class="msg"></p>
     </section>
 
@@ -279,9 +287,11 @@ python -m http.server 8080</pre>
     </section>
   </main>
   <footer>
+    <button id="btn-export-omote-footer" type="button">Export backup</button>
     <button id="btn-deploy" class="primary">Save to remote &amp; reboot</button>
     <span id="deploy-msg" class="msg"></span>
   </footer>
+  <script src="./jszip.min.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

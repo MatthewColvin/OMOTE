@@ -40,6 +40,10 @@ jobs:
             mingw-w64-x86_64-curl
             python3-pip
 
+      - name: Put MSYS2_MinGW64 on PATH for Windows
+        if: matrix.os == 'windows-latest'
+        run: echo "${{ runner.temp }}/msys64/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Prepare PlatformIO environments
         working-directory: ./Platformio
         run: pio pkg install

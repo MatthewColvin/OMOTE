@@ -28,6 +28,8 @@ On the **Connect** tab (or **Export backup** in the footer):
 - **Export .omote backup** — zips every JSON config file into one `.omote` file (same layout as on the remote: `Scenes.json`, `Pages/…`, `Commands/…`, etc.).
 - **Import .omote** — loads that archive into the editor for offline editing or to copy a setup to another remote. Nothing is sent to the device until you click **Save to remote & reboot**.
 
+When you **Connect & load** while already editing (e.g. after importing a backup), the editor compares your files to the remote. If they differ, you choose **Keep editor config**, **Load from remote**, or **Cancel** — your offline work is never silently overwritten.
+
 Use this before a risky deploy, when the remote is offline, or to clone config to a second OMOTE.
 
 ## Advanced mode

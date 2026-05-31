@@ -272,6 +272,131 @@ function setConnectMsg(text, kind = '') {
   el.className = 'msg' + (kind ? ' ' + kind : '');
 }
 
+function localFileMap() {
+  const m = new Map();
+  for (const [path, { content }] of files.entries()) {
+    if (isPackConfigPath(path)) m.set(normalizePackPath(path), content);
+  }
+  return m;
+}
+
+function normalizeContentForCompare(content) {
+  const parsed = parseJsonText(content);
+  if (parsed !== null) return JSON.stringify(parsed);
+  return (content || '').trim();
+}
+
+function diffEditorVsRemote(localMap, remoteMap) {
+  const onlyLocal = [];
+  const onlyRemote = [];
+  const changed = [];
+  const paths = new Set([...localMap.keys(), ...remoteMap.keys()]);
+  for (const p of [...paths].sort()) {
+    const local = localMap.get(p);
+    const remote = remoteMap.get(p);
+    if (local === undefined) {
+      onlyRemote.push(p);
+      continue;
+    }
+    if (remote === undefined) {
+      onlyLocal.push(p);
+      continue;
+    }
+    if (normalizeContentForCompare(local) !== normalizeContentForCompare(remote)) changed.push(p);
+  }
+  return { onlyLocal, onlyRemote, changed, hasDiff: !!(onlyLocal.length || onlyRemote.length || changed.length) };
+}
+
+async function fetchRemoteFileMap(tree) {
+  const remote = new Map();
+  for (const p of tree.files || []) {
+    if (!isPackConfigPath(p)) continue;
+    const r = await api('/api/fs/read?path=' + encodeURIComponent(p));
+    remote.set(normalizePackPath(p), r.content);
+  }
+  return remote;
+}
+
+async function loadRemoteIntoEditor(tree) {
+  files.clear();
+  for (const p of tree.files || []) {
+    const r = await api('/api/fs/read?path=' + encodeURIComponent(p));
+    setFile(p, r.content, false);
+  }
+  if (!files.has('Scenes.json')) setFile('Scenes.json', { Scenes: [] }, false);
+  syncOrphanSceneFiles();
+  initAfterLoad();
+}
+
+function formatStatusBar(st, note = '') {
+  const base = `${st.connected ? 'Connected' : 'Offline'} · ${st.ip || '?'} · ${st.hostname}.local${st.editor_sync ? ' · sync' : ''}`;
+  return note ? `${base}${note}` : base;
+}
+
+function unsavedFileCount() {
+  return [...files.values()].filter((v) => v.dirty).length;
+}
+
+function summarizeConfigDiff(diff) {
+  const parts = [];
+  if (diff.changed.length) parts.push(`${diff.changed.length} changed`);
+  if (diff.onlyLocal.length) parts.push(`${diff.onlyLocal.length} only in editor`);
+  if (diff.onlyRemote.length) parts.push(`${diff.onlyRemote.length} only on remote`);
+  return parts.join(' · ') || 'differences found';
+}
+
+function diffPreviewLines(diff, limit = 10) {
+  const lines = [];
+  diff.changed.forEach((p) => lines.push({ kind: 'changed', path: p }));
+  diff.onlyLocal.forEach((p) => lines.push({ kind: 'local', path: p }));
+  diff.onlyRemote.forEach((p) => lines.push({ kind: 'remote', path: p }));
+  return lines.slice(0, limit);
+}
+
+function askConnectConflictChoice(diff) {
+  return new Promise((resolve) => {
+    const modal = $('connect-conflict-modal');
+    const summary = $('connect-conflict-summary');
+    const list = $('connect-conflict-list');
+    if (!modal || !summary || !list) {
+      resolve('keep');
+      return;
+    }
+
+    const dirty = unsavedFileCount();
+    summary.textContent = `${summarizeConfigDiff(diff)}${dirty ? ` · ${dirty} unsaved in editor` : ''}.`;
+
+    list.innerHTML = '';
+    const preview = diffPreviewLines(diff, 12);
+    preview.forEach(({ kind, path }) => {
+      const li = document.createElement('li');
+      const tag = kind === 'changed' ? 'changed' : kind === 'local' ? 'editor only' : 'remote only';
+      li.textContent = `${path} (${tag})`;
+      list.appendChild(li);
+    });
+    const total = diff.changed.length + diff.onlyLocal.length + diff.onlyRemote.length;
+    if (total > preview.length) {
+      const li = document.createElement('li');
+      li.textContent = `…and ${total - preview.length} more`;
+      list.appendChild(li);
+    }
+
+    modal.classList.remove('hidden');
+
+    const finish = (choice) => {
+      modal.classList.add('hidden');
+      $('btn-conflict-keep').onclick = null;
+      $('btn-conflict-remote').onclick = null;
+      $('btn-conflict-cancel').onclick = null;
+      resolve(choice);
+    };
+
+    $('btn-conflict-keep').onclick = () => finish('keep');
+    $('btn-conflict-remote').onclick = () => finish('remote');
+    $('btn-conflict-cancel').onclick = () => finish('cancel');
+  });
+}
+
 async function exportOmotePack() {
   if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded — refresh the page.');
   const entries = packFileEntries();
@@ -747,29 +872,51 @@ async function setEditorSyncMode(on) {
   });
 }
 
-async function connectAndLoad() {
+async function connectAndLoad(options = {}) {
   API = $('device-url').value.trim().replace(/\/$/, '') || 'http://omote.local';
   localStorage.setItem('omote_oo_api', API);
-  $('connect-msg').textContent = 'Connecting…';
-  $('connect-msg').className = 'msg';
+  setConnectMsg('Connecting…');
   try {
     const st = await api('/api/status');
-    $('status-bar').textContent = `${st.connected ? 'Connected' : 'Offline'} · ${st.ip || '?'} · ${st.hostname}.local${st.editor_sync ? ' · sync' : ''}`;
     const tree = await api('/api/fs/tree');
-    files.clear();
-    for (const p of tree.files || []) {
-      const r = await api('/api/fs/read?path=' + encodeURIComponent(p));
-      setFile(p, r.content, false);
+    const hadEditorFiles = files.size > 0;
+
+    if (!hadEditorFiles || options.forceRemote) {
+      await loadRemoteIntoEditor(tree);
+      $('status-bar').textContent = formatStatusBar(st);
+      setConnectMsg(`Loaded ${files.size} files from remote. Start with Scenes to pick or edit “Watch TV”, etc.`, 'ok');
+      showTab('scenes');
+      return;
     }
-    if (!files.has('Scenes.json')) setFile('Scenes.json', { Scenes: [] }, false);
-    syncOrphanSceneFiles();
-    initAfterLoad();
-    $('connect-msg').textContent = `Loaded ${files.size} files. Start with Scenes to pick or edit “Watch TV”, etc.`;
-    $('connect-msg').className = 'msg ok';
-    showTab('scenes');
+
+    setConnectMsg('Comparing editor with remote…');
+    const remoteMap = await fetchRemoteFileMap(tree);
+    const diff = diffEditorVsRemote(localFileMap(), remoteMap);
+
+    if (!diff.hasDiff) {
+      $('status-bar').textContent = formatStatusBar(st, unsavedFileCount() ? ` · ${unsavedFileCount()} unsaved` : '');
+      setConnectMsg(`Connected — editor matches remote (${files.size} files).`, 'ok');
+      return;
+    }
+
+    const choice = await askConnectConflictChoice(diff);
+    if (choice === 'cancel') {
+      $('status-bar').textContent = formatStatusBar(st, ` · editor copy${unsavedFileCount() ? ` · ${unsavedFileCount()} unsaved` : ''}`);
+      setConnectMsg('Connect cancelled — kept your editor files.', 'ok');
+      return;
+    }
+    if (choice === 'remote') {
+      await loadRemoteIntoEditor(tree);
+      $('status-bar').textContent = formatStatusBar(st);
+      setConnectMsg(`Loaded ${files.size} files from remote (editor copy replaced).`, 'ok');
+      showTab('scenes');
+      return;
+    }
+
+    $('status-bar').textContent = formatStatusBar(st, ` · editor copy${unsavedFileCount() ? ` · ${unsavedFileCount()} unsaved` : ''}`);
+    setConnectMsg(`Connected — kept your editor config (${files.size} files). Save to remote when ready.`, 'ok');
   } catch (e) {
-    $('connect-msg').textContent = e.message;
-    $('connect-msg').className = 'msg err';
+    setConnectMsg(e.message, 'err');
   }
 }
 

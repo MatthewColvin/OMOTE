@@ -45,6 +45,20 @@ python -m http.server 8080</pre>
       <p id="connect-msg" class="msg"></p>
     </section>
 
+    <div id="connect-conflict-modal" class="modal hidden" role="dialog" aria-labelledby="connect-conflict-title" aria-modal="true">
+      <div class="modal-panel">
+        <h3 id="connect-conflict-title">Config differs from remote</h3>
+        <p class="muted small">You have config in the editor that doesn’t match the remote. Choose what to keep — nothing is sent until you click <strong>Save to remote &amp; reboot</strong>.</p>
+        <p id="connect-conflict-summary" class="connect-conflict-summary"></p>
+        <ul id="connect-conflict-list" class="connect-conflict-list"></ul>
+        <div class="modal-actions">
+          <button type="button" id="btn-conflict-keep" class="primary">Keep editor config</button>
+          <button type="button" id="btn-conflict-remote">Load from remote</button>
+          <button type="button" id="btn-conflict-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <section id="tab-scenes" class="tab">
       <div class="scenes-shell">
         <aside class="panel sidebar-narrow">

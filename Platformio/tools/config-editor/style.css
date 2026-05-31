@@ -399,6 +399,44 @@ footer {
 }
 .backup-actions input[type="file"] { max-width: 240px; }
 
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: #000000aa;
+}
+.modal-panel {
+  width: min(520px, 100%);
+  max-height: min(90vh, 640px);
+  overflow: auto;
+  padding: 18px 20px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px #00000066;
+}
+.modal-panel h3 { margin: 0 0 8px; }
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.connect-conflict-summary { margin: 10px 0 6px; }
+.connect-conflict-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  max-height: 180px;
+  overflow: auto;
+}
+.connect-conflict-list li { margin: 2px 0; }
+
 .remote-face {
   display: flex;
   flex-direction: column;

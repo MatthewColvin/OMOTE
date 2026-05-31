@@ -188,7 +188,7 @@ void wifiHandler::networkSync() {
     ftpSync();
     nptSync();
   }
-  httpSync();
+  config_http::sync();
 }
 
 void wifiHandler::connect(std::string ssid, std::string password) {
@@ -535,8 +535,4 @@ void wifiHandler::ftpRestoreCredentials() {
     mLogger->debug("mDNS: " + mmDNSName + ", FTP: " + mFtpUser + (mFtpEnabled ? ", FTP enabled" : ", FTP disabled"));
   } else
     mLogger->info("FTP defaults used");
-}
-
-void wifiHandler::httpSync() {
-  config_http::sync();
 }

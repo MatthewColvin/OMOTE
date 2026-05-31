@@ -12,7 +12,8 @@
     ],
     "dependencies": [
         "HAL",
-        "LVGL++"
+        "LVGL++",
+        "Esp32HalImpl"
     ],
     "build": {
         "includeDir": ".",

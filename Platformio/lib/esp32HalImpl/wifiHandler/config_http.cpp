@@ -3,6 +3,7 @@
 #include "Hardware/LoggingInterface.hpp"
 #include "HardwareFactory.hpp"
 #include "RapidJsonUtilty.hpp"
+#include "editor_sync_mode.hpp"
 #include "ir/IRTransceiver.hpp"
 
 #include <Arduino.h>
@@ -99,6 +100,7 @@ void handleStatus() {
   d.AddMember("ip", rapidjson::Value(WiFi.localIP().toString().c_str(), a), a);
   d.AddMember("hostname", rapidjson::Value(mdnsHost.c_str(), a), a);
   d.AddMember("api", "omote-config-v1", a);
+  d.AddMember("editor_sync", editor_sync_mode::isActive(), a);
   sendJson(200, OMOTE::JSON::ToString(d));
 }
 
@@ -189,6 +191,35 @@ void handleReboot() {
   sendJson(200, "{\"ok\":true,\"restart\":true}");
 }
 
+void handleEditorSyncGet() {
+  rapidjson::Document d;
+  d.SetObject();
+  auto &a = d.GetAllocator();
+  d.AddMember("editor_sync", editor_sync_mode::isActive(), a);
+  sendJson(200, OMOTE::JSON::ToString(d));
+}
+
+void handleEditorSyncPost() {
+  if (!server.hasArg("plain") && !server.hasArg("body")) {
+    sendJson(400, "{\"error\":\"missing body\"}");
+    return;
+  }
+  std::string body = server.hasArg("plain") ? server.arg("plain").c_str() : server.arg("body").c_str();
+  rapidjson::Document d;
+  if (d.Parse(body.c_str()).HasParseError()) {
+    sendJson(400, "{\"error\":\"invalid json\"}");
+    return;
+  }
+  const bool on = d.HasMember("on") && d["on"].IsBool() && d["on"].GetBool();
+  if (on) {
+    editor_sync_mode::enter();
+    sendJson(200, "{\"ok\":true,\"editor_sync\":true}");
+  } else {
+    sendJson(200, "{\"ok\":true,\"editor_sync\":false,\"restart\":true}");
+    rebootAtMs = millis() + 500;
+  }
+}
+
 void handleIrLearnStart() {
   auto *ir = irHw();
   if (!ir) {
@@ -242,6 +273,8 @@ void registerRoutes() {
   server.on("/api/fs/write", HTTP_POST, handleFsWrite);
   server.on("/api/fs/write", HTTP_PUT, handleFsWrite);
   server.on("/api/device/reboot", HTTP_POST, handleReboot);
+  server.on("/api/device/sync-mode", HTTP_GET, handleEditorSyncGet);
+  server.on("/api/device/sync-mode", HTTP_POST, handleEditorSyncPost);
   server.on("/api/ir/learn/start", HTTP_POST, handleIrLearnStart);
   server.on("/api/ir/learn/stop", HTTP_POST, handleIrLearnStop);
   server.on("/api/ir/learn/poll", HTTP_GET, handleIrLearnPoll);
@@ -252,6 +285,7 @@ void registerRoutes() {
   server.on("/api/fs/read", HTTP_OPTIONS, handleOptions);
   server.on("/api/fs/write", HTTP_OPTIONS, handleOptions);
   server.on("/api/device/reboot", HTTP_OPTIONS, handleOptions);
+  server.on("/api/device/sync-mode", HTTP_OPTIONS, handleOptions);
   server.on("/api/ir/learn/start", HTTP_OPTIONS, handleOptions);
   server.on("/api/ir/learn/stop", HTTP_OPTIONS, handleOptions);
   server.on("/api/ir/learn/poll", HTTP_OPTIONS, handleOptions);
@@ -299,7 +333,9 @@ void sync() {
     server.begin();
     running = true;
   }
-  server.handleClient();
+  const int passes = editor_sync_mode::isActive() ? 16 : 2;
+  for (int i = 0; i < passes; i++)
+    server.handleClient();
 }
 
 void stop() {

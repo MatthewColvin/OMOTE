@@ -11,7 +11,7 @@
     <h1>OMOTE Config Editor</h1>
     <nav id="nav">
       <button data-tab="connect" class="active">Connect</button>
-      <button data-tab="activities">My setup</button>
+      <button data-tab="scenes">Scenes</button>
       <button data-tab="remote">Remote</button>
       <button data-tab="commands" class="nav-advanced hidden">Commands</button>
       <button data-tab="raw" class="nav-advanced hidden">JSON</button>
@@ -29,25 +29,60 @@
 python -m http.server 8080</pre>
       <label>Device URL <input id="device-url" placeholder="http://omote.local" /></label>
       <button id="btn-connect" class="primary">Connect &amp; load</button>
+      <div class="row">
+        <button type="button" id="btn-enter-sync">Enter sync mode on remote</button>
+        <button type="button" id="btn-exit-sync">Exit sync mode (reboot)</button>
+      </div>
+      <p class="muted small">On the remote: Settings → <strong>Editor sync</strong>. Or use the buttons above. Exit with the <strong>Power</strong> button after saving.</p>
       <p id="connect-msg" class="msg"></p>
     </section>
 
-    <section id="tab-activities" class="tab">
-      <div class="activities-shell">
+    <section id="tab-scenes" class="tab">
+      <div class="scenes-shell">
         <aside class="panel sidebar-narrow">
-          <h2>Activities</h2>
-          <p class="muted small">What you pick on the remote home screen — e.g. “Watch TV”, “Movie night”.</p>
-          <ul id="activity-list"></ul>
-          <button type="button" id="btn-new-activity">+ New activity</button>
+          <h2>Scenes</h2>
+          <p class="muted small">Same list as tapping the <strong>top-left</strong> of the remote status bar — e.g. “Watch TV”, “Image Test”, “Watch Roku on Proj”.</p>
+          <ul id="scene-list"></ul>
+          <div class="row">
+            <button type="button" id="btn-new-scene">+ New scene</button>
+            <button type="button" id="btn-delete-scene" class="danger-btn advanced-field hidden" title="Remove from scene picker">Delete</button>
+          </div>
         </aside>
-        <div class="panel grow" id="activity-detail">
-          <h2><span id="activity-title">Select an activity</span></h2>
-          <div id="activity-empty" class="muted">Choose an activity on the left, or create one to get started.</div>
-          <div id="activity-editor" class="hidden">
-            <label>Activity name <input id="activity-name" placeholder="Watch TV" /></label>
-            <label class="advanced-field hidden">Screen title on remote <input id="activity-screen-name" /></label>
-            <h3>Devices on this activity</h3>
-            <p class="muted small">Each device becomes a tab at the bottom of the touch screen while you’re in this activity.</p>
+        <div class="panel grow" id="scene-detail">
+          <h2><span id="scene-title">Select a scene</span></h2>
+          <div id="scene-empty" class="muted">Choose a scene on the left, or create one. Then add device tabs and configure the remote layout.</div>
+          <div id="scene-editor" class="hidden">
+            <p id="scene-parse-warn" class="msg err hidden"></p>
+            <label>Name in scene picker <input id="scene-picker-name" placeholder="Watch TV" /></label>
+            <p class="muted small">Shown in the list when you tap the status bar on the remote.</p>
+            <label>Title on status bar <input id="scene-screen-name" placeholder="TV" /></label>
+            <p class="muted small">Shown at the top of the screen while this scene is active.</p>
+            <details class="advanced-field hidden" id="scene-key-shortcut">
+              <summary>Physical key shortcut (optional)</summary>
+              <p class="muted small">Jump to this scene when a labeled key is pressed on the remote.</p>
+              <label>Key
+                <select id="scene-bind-key">
+                  <option value="">None</option>
+                  <option value="TV">TV</option>
+                  <option value="Stream">Stream</option>
+                  <option value="BluRay">BluRay</option>
+                  <option value="Audio">Audio</option>
+                  <option value="Aux1">Aux1 (Red)</option>
+                  <option value="Aux2">Aux2 (Green)</option>
+                  <option value="Aux3">Aux3 (Yellow)</option>
+                  <option value="Aux4">Aux4 (Blue)</option>
+                </select>
+              </label>
+              <label>Press type
+                <select id="scene-press-type">
+                  <option value="Press">Press</option>
+                  <option value="Long">Long</option>
+                  <option value="Short">Short</option>
+                </select>
+              </label>
+            </details>
+            <h3>Device tabs</h3>
+            <p class="muted small">Each device becomes a tab at the bottom of the touch screen while you’re in this scene.</p>
             <div id="device-tab-list"></div>
             <div class="row">
               <select id="device-template">
@@ -56,13 +91,13 @@ python -m http.server 8080</pre>
                 <option value="avreceiver">AV receiver</option>
                 <option value="blank">Blank — learn everything</option>
               </select>
-              <button type="button" id="btn-add-device">+ Add device</button>
-              <button type="button" id="btn-configure-remote" class="primary">Configure remote →</button>
+              <button type="button" id="btn-add-device">+ Add device tab</button>
+              <button type="button" id="btn-configure-remote" class="primary">Configure remote layout →</button>
             </div>
-            <details class="advanced-field hidden" id="activity-power-details">
-              <summary>When starting / leaving this activity</summary>
-              <p class="muted small">Optional — e.g. turn on the TV when you open this activity.</p>
-              <h4>When I open this activity</h4>
+            <details id="scene-power-details">
+              <summary>When starting / leaving this scene</summary>
+              <p class="muted small">Optional — e.g. turn on the TV when you open this scene. Sent when switching between scenes that have sequences.</p>
+              <h4>When I open this scene</h4>
               <div id="scene-start-seq"></div>
               <button type="button" id="btn-add-start-cmd">+ Add action</button>
               <h4>When I leave</h4>
@@ -77,7 +112,7 @@ python -m http.server 8080</pre>
     <section id="tab-remote" class="tab">
       <div class="remote-editor-shell">
         <aside class="panel sidebar-narrow">
-          <label>Activity <select id="remote-scene-select"></select></label>
+          <label>Scene <select id="remote-scene-select"></select></label>
           <h3>Device tab</h3>
           <ul id="remote-device-list" class="device-list"></ul>
           <p class="muted small">Swipe tabs on the touch screen preview, or pick here.</p>

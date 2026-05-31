@@ -64,7 +64,6 @@ let API = localStorage.getItem('omote_oo_api') || 'http://omote.local';
 let advancedMode = localStorage.getItem(ADVANCED_KEY) === '1';
 const files = new Map();
 let selectedScenePath = '';
-let selectedActivityId = '';
 let activeTabIdx = 0;
 let selectedPagePath = '';
 let selectedWidgetIdx = -1;
@@ -77,6 +76,56 @@ let drag = null;
 const $ = (id) => document.getElementById(id);
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+/** Firmware JSON allows // and block comments (RapidJSON kParseCommentsFlag). */
+function stripJsonComments(text) {
+  let out = '';
+  let i = 0;
+  let inString = false;
+  let quote = '';
+  while (i < text.length) {
+    const c = text[i];
+    if (inString) {
+      out += c;
+      if (c === '\\' && i + 1 < text.length) out += text[++i];
+      else if (c === quote) inString = false;
+      i++;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      inString = true;
+      quote = c;
+      out += c;
+      i++;
+      continue;
+    }
+    if (c === '/' && i + 1 < text.length) {
+      if (text[i + 1] === '/') {
+        i += 2;
+        while (i < text.length && text[i] !== '\n') i++;
+        continue;
+      }
+      if (text[i + 1] === '*') {
+        i += 2;
+        while (i + 1 < text.length && !(text[i] === '*' && text[i + 1] === '/')) i++;
+        i += 2;
+        continue;
+      }
+    }
+    out += c;
+    i++;
+  }
+  return out;
+}
+
+function parseJsonText(raw) {
+  if (!raw) return null;
+  try {
+    return JSON.parse(stripJsonComments(raw));
+  } catch {
+    try { return JSON.parse(raw); } catch { return null; }
+  }
+}
 
 function slugify(s) {
   return (s || 'device').replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'Device';
@@ -107,8 +156,7 @@ async function api(path, opts = {}) {
 
 function parseJson(path) {
   const raw = files.get(path)?.content;
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch { return null; }
+  return parseJsonText(raw);
 }
 
 function setFile(path, content, dirty = true) {
@@ -137,13 +185,33 @@ function sceneContext() {
   return { scene, entry, pagePath, commandPrefix: entry?.CommandPrefix || '' };
 }
 
-function activityRegistry() {
+function sceneRegistry() {
   if (!files.has('Scenes.json')) return { Scenes: [] };
   return parseJson('Scenes.json') || { Scenes: [] };
 }
 
-function setActivityRegistry(reg) {
+function setSceneRegistry(reg) {
   setFile('Scenes.json', reg);
+}
+
+function sceneRegistryEntry() {
+  return sceneRegistry().Scenes?.find((s) => s.FileName === selectedScenePath) || null;
+}
+
+function syncOrphanSceneFiles() {
+  const reg = sceneRegistry();
+  reg.Scenes = reg.Scenes || [];
+  const registered = new Set(reg.Scenes.map((s) => s.FileName));
+  let changed = false;
+  for (const path of listPaths('Scenes/')) {
+    if (registered.has(path)) continue;
+    const sc = parseJson(path);
+    const base = path.replace(/^Scenes\/Scene_/, '').replace(/\.json$/, '');
+    const name = sc?.ScreenName || base.replace(/_/g, ' ');
+    reg.Scenes.push({ SceneName: name, FileName: path });
+    changed = true;
+  }
+  if (changed) setSceneRegistry(reg);
 }
 
 function findSceneForPage(pagePath) {
@@ -202,23 +270,37 @@ function addDeviceToScene(deviceName, templateKey = 'blank') {
     ShortName: deviceName.slice(0, 10),
     FileName: pagePath.replace(/^Pages\//, '')
   });
-  if (!scene.ScreenName) scene.ScreenName = $('activity-name')?.value || 'My activity';
+  if (!scene.ScreenName) scene.ScreenName = $('scene-screen-name')?.value || 'My scene';
   setFile(selectedScenePath, scene);
   activeTabIdx = scene.Pages.length - 1;
   selectedPagePath = pagePath;
   refreshAll();
 }
 
-function addNewActivity(name) {
+function addNewScene(name) {
   const slug = slugify(name);
   const scenePath = `Scenes/Scene_${slug}.json`;
   setFile(scenePath, { Type: 'Scene', ScreenName: name, Pages: [] });
-  const reg = activityRegistry();
+  const reg = sceneRegistry();
   reg.Scenes = reg.Scenes || [];
   reg.Scenes.push({ SceneName: name, FileName: scenePath });
-  setActivityRegistry(reg);
+  setSceneRegistry(reg);
   selectedScenePath = scenePath;
-  selectedActivityId = scenePath;
+  activeTabIdx = 0;
+  refreshAll();
+}
+
+function deleteSelectedScene() {
+  if (!selectedScenePath) return;
+  const entry = sceneRegistryEntry();
+  const label = entry?.SceneName || selectedScenePath;
+  if (!confirm(`Remove scene “${label}” from the picker?\n\nThe scene file stays on disk unless you delete it in Advanced → JSON.`))
+    return;
+  const reg = sceneRegistry();
+  reg.Scenes = (reg.Scenes || []).filter((s) => s.FileName !== selectedScenePath);
+  setSceneRegistry(reg);
+  selectedScenePath = reg.Scenes?.[0]?.FileName || listPaths('Scenes/')[0] || '';
+  activeTabIdx = 0;
   refreshAll();
 }
 
@@ -303,7 +385,7 @@ function showTab(name) {
   });
   $(`tab-${name}`)?.classList.add('active');
   if (name === 'remote') refreshRemoteTab();
-  if (name === 'activities') refreshActivitiesTab();
+  if (name === 'scenes') refreshScenesTab();
   if (name === 'commands') renderCommandsTable();
   if (name === 'raw') populateRawSelect();
 }
@@ -316,6 +398,14 @@ $('advanced-mode').onchange = () => setAdvancedMode($('advanced-mode').checked);
 $('device-url').value = defaultApi();
 applyAdvancedMode();
 
+async function setEditorSyncMode(on) {
+  await api('/api/device/sync-mode', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ on })
+  });
+}
+
 async function connectAndLoad() {
   API = $('device-url').value.trim().replace(/\/$/, '') || 'http://omote.local';
   localStorage.setItem('omote_oo_api', API);
@@ -323,7 +413,7 @@ async function connectAndLoad() {
   $('connect-msg').className = 'msg';
   try {
     const st = await api('/api/status');
-    $('status-bar').textContent = `${st.connected ? 'Connected' : 'Offline'} · ${st.ip || '?'} · ${st.hostname}.local`;
+    $('status-bar').textContent = `${st.connected ? 'Connected' : 'Offline'} · ${st.ip || '?'} · ${st.hostname}.local${st.editor_sync ? ' · sync' : ''}`;
     const tree = await api('/api/fs/tree');
     files.clear();
     for (const p of tree.files || []) {
@@ -331,10 +421,11 @@ async function connectAndLoad() {
       setFile(p, r.content, false);
     }
     if (!files.has('Scenes.json')) setFile('Scenes.json', { Scenes: [] }, false);
+    syncOrphanSceneFiles();
     initAfterLoad();
-    $('connect-msg').textContent = `Loaded ${files.size} files. Start with My setup to add your devices.`;
+    $('connect-msg').textContent = `Loaded ${files.size} files. Start with Scenes to pick or edit “Watch TV”, etc.`;
     $('connect-msg').className = 'msg ok';
-    showTab('activities');
+    showTab('scenes');
   } catch (e) {
     $('connect-msg').textContent = e.message;
     $('connect-msg').className = 'msg err';
@@ -343,51 +434,93 @@ async function connectAndLoad() {
 
 $('btn-connect').onclick = connectAndLoad;
 
+$('btn-enter-sync').onclick = async () => {
+  try {
+    API = $('device-url').value.trim().replace(/\/$/, '') || API;
+    await setEditorSyncMode(true);
+    $('connect-msg').textContent = 'Sync mode enabled on remote.';
+    $('connect-msg').className = 'msg ok';
+  } catch (e) {
+    $('connect-msg').textContent = e.message;
+    $('connect-msg').className = 'msg err';
+  }
+};
+
+$('btn-exit-sync').onclick = async () => {
+  try {
+    API = $('device-url').value.trim().replace(/\/$/, '') || API;
+    await setEditorSyncMode(false);
+    $('connect-msg').textContent = 'Remote rebooting…';
+    $('connect-msg').className = 'msg ok';
+  } catch (e) {
+    $('connect-msg').textContent = e.message;
+    $('connect-msg').className = 'msg err';
+  }
+};
+
 function initAfterLoad() {
+  syncOrphanSceneFiles();
   if (!selectedScenePath) {
-    const reg = activityRegistry();
+    const reg = sceneRegistry();
     if (reg.Scenes?.[0]?.FileName) selectedScenePath = reg.Scenes[0].FileName;
     else if (listPaths('Scenes/')[0]) selectedScenePath = listPaths('Scenes/')[0];
   }
-  selectedActivityId = selectedScenePath;
   populateCmdFileSelect();
   refreshAll();
 }
 
 function refreshAll() {
-  refreshActivitiesTab();
+  refreshScenesTab();
   refreshRemoteTab();
   populateRawSelect();
 }
 
-/* ── Activities (My setup) ── */
-function refreshActivitiesTab() {
-  const ul = $('activity-list');
+/* ── Scenes (Scenes.json + scene files) ── */
+function refreshScenesTab() {
+  const ul = $('scene-list');
   ul.innerHTML = '';
-  const reg = activityRegistry();
-  (reg.Scenes || []).forEach((a) => {
+  const reg = sceneRegistry();
+  (reg.Scenes || []).forEach((s, idx) => {
     const li = document.createElement('li');
-    li.textContent = a.SceneName || a.FileName;
-    li.className = a.FileName === selectedActivityId ? 'active' : '';
+    const entry = s.SceneName || s.FileName;
+    const bind = s.BindToKey ? ` · ${s.BindToKey}` : '';
+    li.textContent = entry + bind;
+    li.title = s.FileName;
+    li.className = s.FileName === selectedScenePath ? 'active' : '';
     li.onclick = () => {
-      selectedActivityId = a.FileName;
-      selectedScenePath = a.FileName;
+      selectedScenePath = s.FileName;
       activeTabIdx = 0;
-      refreshActivitiesTab();
+      refreshScenesTab();
       refreshRemoteTab();
     };
     ul.appendChild(li);
   });
 
   const hasSel = !!selectedScenePath && files.has(selectedScenePath);
-  $('activity-empty').classList.toggle('hidden', hasSel);
-  $('activity-editor').classList.toggle('hidden', !hasSel);
-  if (!hasSel) return;
+  $('scene-empty').classList.toggle('hidden', hasSel);
+  $('scene-editor').classList.toggle('hidden', !hasSel);
+  if (!hasSel) {
+    $('scene-title').textContent = 'Select a scene';
+    return;
+  }
 
+  const entry = sceneRegistryEntry();
   const scene = parseJson(selectedScenePath);
-  $('activity-title').textContent = scene?.ScreenName || 'Activity';
-  $('activity-name').value = scene?.ScreenName || '';
-  $('activity-screen-name').value = scene?.ScreenName || '';
+  const warn = $('scene-parse-warn');
+  if (warn) {
+    if (files.has(selectedScenePath) && !scene) {
+      warn.textContent = 'Could not parse this scene file. Open it in Advanced → JSON to fix syntax errors.';
+      warn.classList.remove('hidden');
+    } else {
+      warn.classList.add('hidden');
+    }
+  }
+  const pickerName = entry?.SceneName || scene?.ScreenName || 'Scene';
+  $('scene-title').textContent = pickerName;
+  $('scene-picker-name').value = entry?.SceneName || '';
+  $('scene-screen-name').value = scene?.ScreenName || '';
+  if ($('scene-bind-key')) $('scene-bind-key').value = entry?.BindToKey || '';
+  if ($('scene-press-type')) $('scene-press-type').value = entry?.PressType || 'Press';
   renderDeviceTabList(scene);
   renderCommandSequences(scene);
 }
@@ -395,7 +528,21 @@ function refreshActivitiesTab() {
 function renderDeviceTabList(scene) {
   const box = $('device-tab-list');
   box.innerHTML = '';
-  (scene?.Pages || []).forEach((pg, idx) => {
+  const pages = scene?.Pages || [];
+  if (!pages.length) {
+    const empty = document.createElement('p');
+    empty.className = 'muted small';
+    empty.textContent = scene
+      ? 'No device tabs yet — add one below.'
+      : 'Device tabs could not be loaded from this scene file.';
+    box.appendChild(empty);
+    return;
+  }
+  const header = document.createElement('div');
+  header.className = 'device-tab-header muted small';
+  header.textContent = 'Device name · Tab label (shown at bottom of screen)';
+  box.appendChild(header);
+  pages.forEach((pg, idx) => {
     const row = document.createElement('div');
     row.className = 'device-tab-row';
     const name = document.createElement('input');
@@ -440,22 +587,48 @@ function renderDeviceTabList(scene) {
   });
 }
 
-$('activity-name').oninput = () => {
-  const scene = parseJson(selectedScenePath) || {};
-  scene.ScreenName = $('activity-name').value.trim();
-  setFile(selectedScenePath, scene);
-  const reg = activityRegistry();
+$('scene-picker-name').oninput = () => {
+  const reg = sceneRegistry();
   const hit = reg.Scenes?.find((s) => s.FileName === selectedScenePath);
-  if (hit) hit.SceneName = scene.ScreenName;
-  setActivityRegistry(reg);
-  refreshActivitiesTab();
+  if (!hit) return;
+  hit.SceneName = $('scene-picker-name').value.trim();
+  setSceneRegistry(reg);
+  refreshScenesTab();
 };
 
-$('btn-new-activity').onclick = () => {
-  const name = prompt('Activity name (shown on remote home screen):', 'Watch TV');
-  if (!name?.trim()) return;
-  addNewActivity(name.trim());
+$('scene-screen-name').oninput = () => {
+  const scene = parseJson(selectedScenePath) || {};
+  scene.ScreenName = $('scene-screen-name').value.trim();
+  setFile(selectedScenePath, scene);
+  refreshScenesTab();
 };
+
+function saveSceneRegistryFields() {
+  const reg = sceneRegistry();
+  const hit = reg.Scenes?.find((s) => s.FileName === selectedScenePath);
+  if (!hit) return;
+  const bind = $('scene-bind-key')?.value || '';
+  if (bind) {
+    hit.BindToKey = bind;
+    hit.PressType = $('scene-press-type')?.value || 'Press';
+  } else {
+    delete hit.BindToKey;
+    delete hit.PressType;
+  }
+  setSceneRegistry(reg);
+  refreshScenesTab();
+}
+
+$('scene-bind-key')?.addEventListener('change', saveSceneRegistryFields);
+$('scene-press-type')?.addEventListener('change', saveSceneRegistryFields);
+
+$('btn-new-scene').onclick = () => {
+  const name = prompt('Scene name (shown in remote scene picker):', 'Watch TV');
+  if (!name?.trim()) return;
+  addNewScene(name.trim());
+};
+
+$('btn-delete-scene').onclick = deleteSelectedScene;
 
 $('btn-add-device').onclick = () => {
   if (!selectedScenePath) return;
@@ -528,7 +701,7 @@ $('btn-add-exit-cmd').onclick = () => addSeqEntry('ExitCommandSequence');
 function refreshRemoteTab() {
   const sel = $('remote-scene-select');
   sel.innerHTML = '';
-  const reg = activityRegistry();
+  const reg = sceneRegistry();
   (reg.Scenes || []).forEach((a) => {
     const o = document.createElement('option');
     o.value = a.FileName;
@@ -538,9 +711,9 @@ function refreshRemoteTab() {
   sel.value = selectedScenePath || '';
   sel.onchange = () => {
     selectedScenePath = sel.value;
-    selectedActivityId = sel.value;
     activeTabIdx = 0;
     refreshRemoteTab();
+    refreshScenesTab();
   };
 
   const ul = $('remote-device-list');
@@ -562,10 +735,14 @@ function refreshRemoteTab() {
   const ctx = sceneContext();
   if (ctx.pagePath) selectedPagePath = ctx.pagePath;
   const entry = scene?.Pages?.[activeTabIdx];
+  const regEntry = sceneRegistryEntry();
+  const sceneLabel = regEntry?.SceneName || scene?.ScreenName || 'Scene';
   $('remote-device-label').textContent = entry?.PageName || entry?.ShortName || 'Device';
+  const hint = $('editing-hint');
+  if (hint) hint.textContent = `Scene: ${sceneLabel} · device tab “${entry?.ShortName || entry?.PageName || '?'}" — touch buttons above, physical keys below.`;
   const pg = currentPage();
-  const hint = $('linked-files-hint');
-  if (hint) hint.textContent = pg.CommandFile ? `Linked: ${selectedPagePath} → ${pg.CommandFile}` : '';
+  const linkedHint = $('linked-files-hint');
+  if (linkedHint) linkedHint.textContent = pg.CommandFile ? `Linked: ${selectedPagePath} → ${pg.CommandFile}` : '';
   renderWidgetList(pg);
   drawCanvas();
   renderRemoteKeymap();
@@ -1115,6 +1292,10 @@ $('btn-deploy').onclick = async () => {
     return;
   }
   try {
+    const st = await api('/api/status').catch(() => null);
+    if (st && !st.editor_sync) {
+      try { await setEditorSyncMode(true); } catch { /* device may lack API until flash */ }
+    }
     for (const [path, { content }] of dirty) {
       await api('/api/fs/write?path=' + encodeURIComponent(path), {
         method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: content, timeout: 30000

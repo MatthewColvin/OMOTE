@@ -7,6 +7,7 @@
 #include "RapidJsonUtilty.hpp"
 #include "ScreenManager.hpp"
 #include "SettingsPage.hpp"
+#include "editor_sync_mode.hpp"
 #include <filesystem>
 #include <fstream>
 
@@ -53,6 +54,11 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   mSceneChangeHandler = [this](std::string aNewScene) { GoToSceneSelection(aNewScene); };
 
   mStatusBar->SetTopButtonLabel("Select Scene");
+
+  mStatusBar->AddExtraSettingItem({"Editor sync", LV_SYMBOL_REFRESH, [] {
+    editor_sync_mode::enter();
+    return UI::Page::Base::Ptr{};
+  }});
 
   static constexpr auto ContentHeight =
       SCREEN_HEIGHT - Widget::StatusBar::Height;

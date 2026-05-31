@@ -9,15 +9,13 @@ cd Platformio/tools/config-editor
 python -m http.server 8080
 ```
 
-Open http://localhost:8080 → connect to `http://omote.local` → use **My setup**.
+Open http://localhost:8080 → connect to `http://omote.local` → use **Scenes**.
 
 ## Beginner flow
 
-1. **My setup** — create an **activity** (e.g. “Watch TV”). Each activity is what you pick on the remote home screen.
-2. **Add device** — each device becomes a **tab** at the bottom of the touch screen (TV, Roku, Receiver…). Pick a template or start blank.
-3. **Configure remote** — one screen with:
-   - **Touch screen** preview (top) — on-screen buttons
-   - **Physical remote face** (bottom) — matches the real OMOTE layout (same as greenfield editor)
+1. **Scenes** — pick or create a scene (e.g. “Watch TV”, “Watch Roku on Proj”). This is the same list as tapping the **top-left** of the remote status bar.
+2. **Device tabs** — within the scene, add devices (TV, Roku, receiver…). Each becomes a **tab** at the bottom of the touch screen.
+3. **Remote** — configure touch buttons and physical keys for the selected scene + device tab.
 4. Click any touch button or physical key → **Learn from another remote** or pick an existing command.
 5. **Save to remote & reboot** when done.
 
@@ -31,7 +29,8 @@ Toggle **Advanced** in the header to show:
 - Raw **Commands** table
 - **JSON** editor for any file
 - Press types (long/repeat) on physical keys
-- Activity start/exit power sequences
+- Scene start/exit power sequences
+- Physical key shortcuts (TV / Stream / BluRay keys)
 
 ## Device templates
 

@@ -1,12 +1,27 @@
 #include "JsonUI.hpp"
 
+#include "EditorSyncPage.hpp"
 #include "HardwareFactory.hpp"
 #include "JsonHomeScreen.hpp"
 #include "ScreenManager.hpp"
+#include "UIBase.hpp"
+#include "editor_sync_mode.hpp"
 
 using namespace UI;
 
 JsonUI::JsonUI() : BasicUI() {
+}
+
+void JsonUI::loopHandler() {
+  static bool syncUiShown = false;
+  if (editor_sync_mode::isActive() && !syncUiShown) {
+    syncUiShown = true;
+    Screen::Manager::getInstance().pushPopUp(
+        std::make_unique<Page::EditorSyncPage>(), LV_SCR_LOAD_ANIM_OVER_LEFT);
+  }
+  if (!editor_sync_mode::isActive())
+    syncUiShown = false;
+  UIBase::loopHandler();
 }
 
 void JsonUI::InitHomeScreen() {

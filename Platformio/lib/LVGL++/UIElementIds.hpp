@@ -59,6 +59,7 @@ public:
     AddDevicePage,
     ActionTesterPage,
     HomeScreenTabView,
+    EditorSyncPage,
     INVALID_PAGE_ID
   };
 

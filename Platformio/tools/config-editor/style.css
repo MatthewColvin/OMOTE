@@ -110,7 +110,7 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
   overflow-x: auto;
 }
 
-.activities-shell, .remote-editor-shell, .split {
+.scenes-shell, .remote-editor-shell, .split {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
@@ -118,12 +118,12 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 }
 .panel.grow { flex: 1; min-width: 300px; }
 
-#activity-list, #remote-device-list, #widget-list, .device-list {
+#scene-list, #remote-device-list, #widget-list, .device-list {
   list-style: none;
   padding: 0;
   margin: 0 0 12px;
 }
-#activity-list li, #remote-device-list li, .device-list li, #widget-list li {
+#scene-list li, #remote-device-list li, .device-list li, #widget-list li {
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -131,10 +131,17 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
   cursor: pointer;
   font-size: 0.9rem;
 }
-#activity-list li.active, #remote-device-list li.active, .device-list li.active, #widget-list li.selected {
+#scene-list li.active, #remote-device-list li.active, .device-list li.active, #widget-list li.selected {
   border-color: var(--accent);
   background: var(--accent-dim);
 }
+button.danger-btn {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+button.danger-btn:hover { background: #f8514922; }
+
+.device-tab-header { margin-bottom: 6px; }
 .device-tab-row {
   display: grid;
   grid-template-columns: 1fr 1fr auto auto;

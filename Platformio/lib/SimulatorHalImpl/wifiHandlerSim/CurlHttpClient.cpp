@@ -87,7 +87,7 @@ std::shared_ptr<HttpFuture> CurlHttpClient::executeAsync(const HttpRequest &requ
 }
 
 std::shared_ptr<HttpFuture> CurlHttpClient::getAsync(const std::string &url, int timeout_ms) {
-  HttpRequest request(HttpRequest::Method::GET, url);
+  HttpRequest request(HttpRequest::Method::Get, url);
   request.timeout_ms = timeout_ms;
   return executeAsync(request);
 }
@@ -96,7 +96,7 @@ std::shared_ptr<HttpFuture> CurlHttpClient::postAsync(
     const std::string &url,
     const std::string &body,
     int timeout_ms) {
-  HttpRequest request(HttpRequest::Method::POST, url, body);
+  HttpRequest request(HttpRequest::Method::Post, url, body);
   request.timeout_ms = timeout_ms;
   return executeAsync(request);
 }
@@ -105,7 +105,7 @@ std::shared_ptr<HttpFuture> CurlHttpClient::putAsync(
     const std::string &url,
     const std::string &body,
     int timeout_ms) {
-  HttpRequest request(HttpRequest::Method::PUT, url, body);
+  HttpRequest request(HttpRequest::Method::Put, url, body);
   request.timeout_ms = timeout_ms;
   return executeAsync(request);
 }
@@ -113,7 +113,7 @@ std::shared_ptr<HttpFuture> CurlHttpClient::putAsync(
 std::shared_ptr<HttpFuture> CurlHttpClient::deleteAsync(
     const std::string &url,
     int timeout_ms) {
-  HttpRequest request(HttpRequest::Method::DELETE, url);
+  HttpRequest request(HttpRequest::Method::Delete, url);
   request.timeout_ms = timeout_ms;
   return executeAsync(request);
 }
@@ -244,10 +244,10 @@ HttpResponse CurlHttpClient::executeSyncRequest(const HttpRequest &request) {
 
 void CurlHttpClient::SetupMethodOptions(AutoCleanupCurl &aCurl, const HttpRequest &aRequest) {
   switch (aRequest.method) {
-  case HttpRequest::Method::GET:
+  case HttpRequest::Method::Get:
     curl_easy_setopt(aCurl.get(), CURLOPT_HTTPGET, 1L);
     break;
-  case HttpRequest::Method::POST:
+  case HttpRequest::Method::Post:
     curl_easy_setopt(aCurl.get(), CURLOPT_POST, 1L);
     if (!aRequest.body.empty()) {
       curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDS, aRequest.body.c_str());
@@ -262,27 +262,27 @@ void CurlHttpClient::SetupMethodOptions(AutoCleanupCurl &aCurl, const HttpReques
       curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDSIZE, 0L);
     }
     break;
-  case HttpRequest::Method::PUT:
+  case HttpRequest::Method::Put:
     curl_easy_setopt(aCurl.get(), CURLOPT_CUSTOMREQUEST, "PUT");
     if (!aRequest.body.empty()) {
       curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDS, aRequest.body.c_str());
       curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDSIZE, (long)aRequest.body.size());
     }
     break;
-  case HttpRequest::Method::DELETE:
+  case HttpRequest::Method::Delete:
     curl_easy_setopt(aCurl.get(), CURLOPT_CUSTOMREQUEST, "DELETE");
     break;
-  case HttpRequest::Method::PATCH:
+  case HttpRequest::Method::Patch:
     curl_easy_setopt(aCurl.get(), CURLOPT_CUSTOMREQUEST, "PATCH");
     if (!aRequest.body.empty()) {
       curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDS, aRequest.body.c_str());
       curl_easy_setopt(aCurl.get(), CURLOPT_POSTFIELDSIZE, (long)aRequest.body.size());
     }
     break;
-  case HttpRequest::Method::HEAD:
+  case HttpRequest::Method::Head:
     curl_easy_setopt(aCurl.get(), CURLOPT_NOBODY, 1L);
     break;
-  case HttpRequest::Method::OPTIONS:
+  case HttpRequest::Method::Options:
     curl_easy_setopt(aCurl.get(), CURLOPT_CUSTOMREQUEST, "OPTIONS");
     break;
   }
@@ -290,19 +290,19 @@ void CurlHttpClient::SetupMethodOptions(AutoCleanupCurl &aCurl, const HttpReques
 
 std::string CurlHttpClient::methodToString(HttpRequest::Method method) {
   switch (method) {
-  case HttpRequest::Method::GET:
+  case HttpRequest::Method::Get:
     return "GET";
-  case HttpRequest::Method::POST:
+  case HttpRequest::Method::Post:
     return "POST";
-  case HttpRequest::Method::PUT:
+  case HttpRequest::Method::Put:
     return "PUT";
-  case HttpRequest::Method::DELETE:
+  case HttpRequest::Method::Delete:
     return "DELETE";
-  case HttpRequest::Method::PATCH:
+  case HttpRequest::Method::Patch:
     return "PATCH";
-  case HttpRequest::Method::HEAD:
+  case HttpRequest::Method::Head:
     return "HEAD";
-  case HttpRequest::Method::OPTIONS:
+  case HttpRequest::Method::Options:
     return "OPTIONS";
   default:
     return "UNKNOWN";

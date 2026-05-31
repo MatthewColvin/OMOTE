@@ -63,7 +63,7 @@ std::shared_ptr<HttpFuture> Esp32HttpClient::putAsync(
 std::shared_ptr<HttpFuture> Esp32HttpClient::deleteAsync(
     const std::string &url,
     int timeout_ms) {
-  HttpRequest request(HttpRequest::Method::DELETE, url);
+  HttpRequest request(HttpRequest::Method::Delete, url);
   request.timeout_ms = timeout_ms;
   return executeAsync(request);
 }
@@ -278,19 +278,19 @@ HttpResponse Esp32HttpClient::executeSyncRequest(const HttpRequest &request) {
 
 esp_http_client_method_t Esp32HttpClient::methodToEspMethod(HttpRequest::Method method) {
   switch (method) {
-  case HttpRequest::Method::GET:
+  case HttpRequest::Method::Get:
     return HTTP_METHOD_GET;
-  case HttpRequest::Method::POST:
+  case HttpRequest::Method::Post:
     return HTTP_METHOD_POST;
-  case HttpRequest::Method::PUT:
+  case HttpRequest::Method::Put:
     return HTTP_METHOD_PUT;
-  case HttpRequest::Method::DELETE:
+  case HttpRequest::Method::Delete:
     return HTTP_METHOD_DELETE;
-  case HttpRequest::Method::PATCH:
+  case HttpRequest::Method::Patch:
     return HTTP_METHOD_PATCH;
-  case HttpRequest::Method::HEAD:
+  case HttpRequest::Method::Head:
     return HTTP_METHOD_HEAD;
-  case HttpRequest::Method::OPTIONS:
+  case HttpRequest::Method::Options:
     return HTTP_METHOD_OPTIONS;
   default:
     return HTTP_METHOD_GET;

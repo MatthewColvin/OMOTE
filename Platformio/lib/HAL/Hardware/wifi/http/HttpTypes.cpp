@@ -10,7 +10,7 @@ HttpResponse::HttpResponse(int aCode, const std::string &aResponseBody, const st
     : status_code(aCode), body(aResponseBody), success(false), error_message(aError) {}
 
 // HttpRequest constructors
-HttpRequest::HttpRequest() : method(Method::GET), url(""), timeout_ms(5000) {}
+HttpRequest::HttpRequest() : method(Method::Get), url(""), timeout_ms(5000) {}
 
 HttpRequest::HttpRequest(Method aMethod, const std::string &aUrl)
     : method(aMethod), url(aUrl), timeout_ms(5000) {}

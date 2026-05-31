@@ -120,7 +120,7 @@ void RokuHttp::sendKeyPress(const std::string &keyName) {
 
   std::string url = buildRokuUrl("/keypress/" + keyName);
 
-  HttpRequest request(HttpRequest::Method::POST, url);
+  HttpRequest request(HttpRequest::Method::Post, url);
   // TODO Try and add the other headers from postman here
   // request.headers["Content-Type"] = "application/x-www-form-urlencoded";
   request.headers["Expect"] = "";

@@ -57,13 +57,13 @@ void HttpAction::execute() {
 
   // Set method
   if (mMethod == "POST") {
-    request.method = HttpRequest::Method::POST;
+    request.method = HttpRequest::Method::Post;
   } else if (mMethod == "PUT") {
-    request.method = HttpRequest::Method::PUT;
+    request.method = HttpRequest::Method::Put;
   } else if (mMethod == "DELETE") {
-    request.method = HttpRequest::Method::DELETE;
+    request.method = HttpRequest::Method::Delete;
   } else {
-    request.method = HttpRequest::Method::GET;
+    request.method = HttpRequest::Method::Get;
   }
 
   // Set headers

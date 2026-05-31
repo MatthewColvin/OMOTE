@@ -28,13 +28,13 @@ struct HttpResponse {
  */
 struct HttpRequest {
   enum class Method {
-    GET,
-    POST,
-    PUT,
-    DELETE,
-    PATCH,
-    HEAD,
-    OPTIONS
+    Get,
+    Post,
+    Put,
+    Delete,
+    Patch,
+    Head,
+    Options
   };
 
   Method method;

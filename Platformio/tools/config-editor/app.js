@@ -23,7 +23,13 @@ const FW_LAYOUT = {
   numberPad: { height: 180, btnW: 60, btnH: 30, spacingX: 20, spacingY: 15, pad: 10, cols: 3 },
 };
 
-const DRAGGABLE_WIDGET_TYPES = new Set(['Button', 'Title', 'Label', 'Image', 'HaToggle', 'HaLabel']);
+const DRAGGABLE_WIDGET_TYPES = new Set([
+  'Button', 'Title', 'Label', 'Image',
+  'HaToggle', 'HaLabel', 'HaSwitch', 'HaSlider', 'HaMomentary', 'HaClimate'
+]);
+const HA_WIDGET_TYPES = new Set([
+  'HaToggle', 'HaLabel', 'HaSwitch', 'HaSlider', 'HaMomentary', 'HaClimate'
+]);
 
 const NUM_PAD_COMMANDS = [
   'NUM_0', 'NUM_1', 'NUM_2', 'NUM_3', 'NUM_4',
@@ -97,6 +103,43 @@ const WIDGET_TYPES = {
     hint: 'Shows live entity state from Home Assistant.',
     create() {
       return { Type: 'HaLabel', Text: '—', EntityId: '', HeightPct: 8, AlignTo: 0 };
+    }
+  },
+  HaSwitch: {
+    label: 'HA switch',
+    hint: 'LVGL on/off switch bound to turn_on / turn_off.',
+    create() {
+      return {
+        Type: 'HaSwitch', Text: 'Device', EntityId: '', Domain: 'light',
+        ServiceOn: 'turn_on', ServiceOff: 'turn_off', HeightPct: 10, AlignTo: 0
+      };
+    }
+  },
+  HaSlider: {
+    label: 'HA slider',
+    hint: 'Brightness, cover position, or fan speed (release to send).',
+    create() {
+      return {
+        Type: 'HaSlider', Text: 'Brightness', EntityId: '', Domain: 'light',
+        Service: 'turn_on', Attribute: 'brightness', Min: 0, Max: 255, HeightPct: 10, AlignTo: 0
+      };
+    }
+  },
+  HaMomentary: {
+    label: 'HA momentary',
+    hint: 'Press and hold — turn_on while pressed, turn_off on release.',
+    create() {
+      return {
+        Type: 'HaMomentary', Text: 'Hold', EntityId: '', Domain: 'light',
+        ServiceOn: 'turn_on', ServiceOff: 'turn_off', HeightPct: 12, AlignTo: 0
+      };
+    }
+  },
+  HaClimate: {
+    label: 'HA climate',
+    hint: 'Thermostat arc with mode and temperature controls.',
+    create() {
+      return { Type: 'HaClimate', EntityId: '', HeightPct: 58, AlignTo: 0 };
     }
   }
 };
@@ -457,7 +500,7 @@ function applyHaEntityPickToWidget() {
   if (selection.kind !== 'widget') return;
   const page = currentPage();
   const w = page.Widgets?.[selection.widgetIdx];
-  if (!w || (w.Type !== 'HaToggle' && w.Type !== 'HaLabel')) return;
+  if (!w || !HA_WIDGET_TYPES.has(w.Type)) return;
   const sel = $('ha-entity-pick');
   const opt = sel?.selectedOptions?.[0];
   if (!opt?.value) return;
@@ -1655,7 +1698,7 @@ function widgetSummary(w) {
   if (w.Type === 'ColorButtons') return 'RGYB keys';
   if (w.Type === 'NumberPad') return '0–9 pad';
   if (w.Type === 'Title') return activePageName();
-  if (w.Type === 'HaToggle' || w.Type === 'HaLabel') {
+  if (HA_WIDGET_TYPES.has(w.Type)) {
     const name = w.Text || w.Type;
     return w.EntityId ? `${name} → ${w.EntityId}` : name;
   }
@@ -1692,7 +1735,7 @@ function addWidgetOfType(type) {
   page.Widgets.push(widget);
   savePage(page);
   selectWidget(page.Widgets.length - 1);
-  if (type === 'HaToggle' || type === 'HaLabel') {
+  if (HA_WIDGET_TYPES.has(type)) {
     syncWidgetEditor();
     populateHaEntityPicker({ autoApplyLabel: false }).catch(() => {});
   }
@@ -1718,9 +1761,13 @@ function syncWidgetEditor() {
   const isPad = type === 'NumberPad';
   const isHaToggle = type === 'HaToggle';
   const isHaLabel = type === 'HaLabel';
-  const isHa = isHaToggle || isHaLabel;
+  const isHaClimate = type === 'HaClimate';
+  const isHaMomentary = type === 'HaMomentary';
+  const isHaSwitch = type === 'HaSwitch';
+  const isHaSlider = type === 'HaSlider';
+  const isHa = HA_WIDGET_TYPES.has(type);
 
-  $('w-fields-text')?.classList.toggle('hidden', isTitle || isImage || isColor || isPad || isHaLabel);
+  $('w-fields-text')?.classList.toggle('hidden', isTitle || isImage || isColor || isPad || isHaLabel || isHaClimate);
   $('w-fields-command')?.classList.toggle('hidden', !(isButton || isLabel));
   $('w-fields-image')?.classList.toggle('hidden', !isImage);
   $('w-fields-color')?.classList.toggle('hidden', !isColor);
@@ -1730,6 +1777,12 @@ function syncWidgetEditor() {
 
   if ($('ha-service-row')) {
     $('ha-service-row').classList.toggle('hidden', !isHaToggle);
+  }
+  if ($('ha-momentary-row')) {
+    $('ha-momentary-row').classList.toggle('hidden', !isHaMomentary && !isHaSwitch);
+  }
+  if ($('ha-slider-row')) {
+    $('ha-slider-row').classList.toggle('hidden', !isHaSlider);
   }
 
   if ($('w-text-label')) {
@@ -1743,6 +1796,11 @@ function syncWidgetEditor() {
     }
     renderHaDomainTabs();
     if ($('ha-service') && w.Service) $('ha-service').value = w.Service;
+    if ($('ha-service-on')) $('ha-service-on').value = w.ServiceOn || 'turn_on';
+    if ($('ha-service-off')) $('ha-service-off').value = w.ServiceOff || 'turn_off';
+    if ($('ha-attribute')) $('ha-attribute').value = w.Attribute || 'brightness';
+    if ($('ha-slider-min')) $('ha-slider-min').value = w.Min ?? 0;
+    if ($('ha-slider-max')) $('ha-slider-max').value = w.Max ?? 255;
     populateHaEntityPicker({ selected: w.EntityId || '', autoApplyLabel: false });
   }
 
@@ -1889,11 +1947,21 @@ function applyWidgetEdits() {
   if (!w) return;
 
   const type = w.Type || 'Button';
-  if (type === 'HaToggle' || type === 'HaLabel') {
-    w.Text = $('action-touch-label').value.trim();
+  if (HA_WIDGET_TYPES.has(type)) {
+    if (type !== 'HaClimate') w.Text = $('action-touch-label').value.trim();
     applyHaEntityPickToWidget();
     if (type === 'HaToggle') {
       w.Service = $('ha-service')?.value || defaultHaService(w.Domain, type);
+    }
+    if (type === 'HaSwitch' || type === 'HaMomentary') {
+      w.ServiceOn = $('ha-service-on')?.value || 'turn_on';
+      w.ServiceOff = $('ha-service-off')?.value || 'turn_off';
+    }
+    if (type === 'HaSlider') {
+      w.Service = $('ha-service')?.value || 'turn_on';
+      w.Attribute = $('ha-attribute')?.value || 'brightness';
+      w.Min = parseInt($('ha-slider-min')?.value, 10) || 0;
+      w.Max = parseInt($('ha-slider-max')?.value, 10) || 255;
     }
   } else if (type === 'Button' || type === 'Label') {
     w.Text = $('action-touch-label').value.trim();
@@ -1919,7 +1987,7 @@ function applyWidgetEdits() {
     ensureStubCommands(ensurePageCommandFile(), w.Command);
   }
 
-  if (type === 'Button' || type === 'Label' || type === 'Title' || type === 'HaToggle' || type === 'HaLabel') {
+  if (type === 'Button' || type === 'Label' || type === 'Title' || HA_WIDGET_TYPES.has(type)) {
     const h = parseInt($('w-height').value, 10);
     if (h) w.HeightPct = h;
   }
@@ -2066,6 +2134,10 @@ populateWidgetTypeSelects();
 
 /* ── Canvas (layout mirrors JsonPage + LVGL++ widget sizes) ── */
 function widgetLayoutHeight(w) {
+  if (w.Type === 'HaClimate') {
+    const hp = w.HeightPct || 58;
+    return Math.max(120, Math.round((CONTENT_H - FW_LAYOUT.gap * 2) * hp / 100));
+  }
   if (w.Type === 'ColorButtons') return FW_LAYOUT.colorButtons.height;
   if (w.Type === 'NumberPad') return FW_LAYOUT.numberPad.height;
   if (w.Type === 'Image' && w.SizeXYinPixels?.[1]) return w.SizeXYinPixels[1];
@@ -2302,6 +2374,68 @@ function drawCanvas() {
       ctx.textAlign = 'left';
       ctx.strokeStyle = sel ? '#58a6ff' : '#555';
       ctx.strokeRect(r.x, r.y, r.w, r.h);
+    } else if (w.Type === 'HaSwitch') {
+      const st = haStateCache.get(w.EntityId);
+      const on = isHaStateOn(st);
+      ctx.fillStyle = '#252530';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = '#ccc';
+      ctx.font = '11px sans-serif';
+      ctx.fillText((w.Text || 'Switch').slice(0, 18), r.x + 6, r.y + 14);
+      const swW = 36;
+      const swH = 18;
+      const sx = r.x + r.w - swW - 8;
+      const sy = r.y + (r.h - swH) / 2;
+      ctx.fillStyle = on ? '#4caf50' : '#555';
+      ctx.fillRect(sx, sy, swW, swH);
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(on ? sx + swW - 9 : sx + 9, sy + swH / 2, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = sel ? '#58a6ff' : '#555';
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+    } else if (w.Type === 'HaSlider') {
+      ctx.fillStyle = '#252530';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = '#ccc';
+      ctx.font = '11px sans-serif';
+      ctx.fillText((w.Text || 'Slider').slice(0, 18), r.x + 6, r.y + 12);
+      const trackY = r.y + r.h / 2 + 4;
+      ctx.fillStyle = '#444';
+      ctx.fillRect(r.x + 8, trackY, r.w - 16, 6);
+      ctx.fillStyle = '#58a6ff';
+      ctx.fillRect(r.x + 8, trackY, (r.w - 16) * 0.55, 6);
+      ctx.strokeStyle = sel ? '#58a6ff' : '#555';
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+    } else if (w.Type === 'HaMomentary') {
+      ctx.fillStyle = '#5a3a6a';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = '#eee';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText((w.Text || 'Hold').slice(0, 20), r.x + r.w / 2, r.y + r.h / 2 + 4);
+      ctx.textAlign = 'left';
+      ctx.strokeStyle = sel ? '#58a6ff' : '#a6f';
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+    } else if (w.Type === 'HaClimate') {
+      ctx.fillStyle = '#2a1a3a';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.strokeStyle = sel ? '#58a6ff' : '#666';
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+      const cx = r.x + r.w / 2;
+      const cy = r.y + 50;
+      ctx.strokeStyle = '#ff8844';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 42, 0.75 * Math.PI, 1.85 * Math.PI);
+      ctx.stroke();
+      ctx.fillStyle = '#ddd';
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Climate', cx, r.y + 22);
+      ctx.fillText(w.EntityId ? w.EntityId.split('.').pop().slice(0, 14) : 'entity', cx, cy + 4);
+      ctx.textAlign = 'left';
+      ctx.lineWidth = 1;
     } else {
       ctx.fillStyle = '#2a3548';
       ctx.fillRect(r.x, r.y, r.w, r.h);

@@ -6,7 +6,8 @@
 
 namespace HaWebSocket {
 
-using StateCallback = std::function<void(const std::string &entityId, const std::string &state)>;
+using StateCallback =
+    std::function<void(const std::string &entityId, const std::string &state, const std::string &attributesJson)>;
 
 void start();
 void tick();
@@ -18,6 +19,9 @@ bool isConnected();
 bool callService(const std::string &domain, const std::string &service, const std::string &entityId);
 /** Synchronous REST call_service — used for touchscreen taps. */
 bool callServiceRest(const std::string &domain, const std::string &service, const std::string &entityId);
+bool callServiceRestWithData(const std::string &domain, const std::string &service, const std::string &entityId,
+                             const std::string &serviceDataJson);
+bool fetchEntityStateRest(const std::string &entityId, std::string &stateOut, std::string &attributesJsonOut);
 
 void setStateCallback(StateCallback cb);
 

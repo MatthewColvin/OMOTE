@@ -12,7 +12,8 @@
         "flags": [
             "-I page",
             "-I screen",
-            "-I ha"
+            "-I ha",
+            "-I widget"
         ]
     },
     "frameworks": "*",

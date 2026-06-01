@@ -69,9 +69,9 @@ bool networkSettled() {
 
 uint32_t nextMsgId() { return gNextMsgId++; }
 
-void notifyState(const std::string &entityId, const std::string &state) {
+void notifyState(const std::string &entityId, const std::string &state, const std::string &attributesJson) {
   if (gStateCallback)
-    gStateCallback(entityId, state);
+    gStateCallback(entityId, state, attributesJson);
 }
 
 void copySubscribeList(const std::vector<std::string> &entities) {
@@ -192,7 +192,7 @@ void handleCompressedEntity(const char *entityId, const rapidjson::Value &ent) {
       st = ent["state"].GetString();
   }
   if (st && st[0])
-    notifyState(entityId, st);
+    notifyState(entityId, st, {});
 }
 
 void handleStateChanged(const rapidjson::Value &eventData) {
@@ -206,7 +206,13 @@ void handleStateChanged(const rapidjson::Value &eventData) {
   const auto &newState = eventData["new_state"];
   if (!newState.HasMember("state") || !newState["state"].IsString())
     return;
-  notifyState(eid, newState["state"].GetString());
+  std::string attrsJson;
+  if (newState.HasMember("attributes") && newState["attributes"].IsObject()) {
+    rapidjson::Document attrsDoc;
+    attrsDoc.CopyFrom(newState["attributes"], attrsDoc.GetAllocator());
+    attrsJson = OMOTE::JSON::ToString(attrsDoc);
+  }
+  notifyState(eid, newState["state"].GetString(), attrsJson);
 }
 
 void handleWsText(const char *payload) {
@@ -342,7 +348,8 @@ bool wsConnect() {
   return true;
 }
 
-bool restCallService(const std::string &domain, const std::string &service, const std::string &entityId) {
+bool restCallServiceWithData(const std::string &domain, const std::string &service, const std::string &entityId,
+                             const std::string &serviceDataJson) {
   if (!gSettings.ok()) {
     Serial.println("HA> REST skip: HaSettings.json missing Url or Token");
     return false;
@@ -357,6 +364,18 @@ bool restCallService(const std::string &domain, const std::string &service, cons
   auto &a = body.GetAllocator();
   body.AddMember("entity_id", rapidjson::Value(entityId.c_str(), a), a);
 
+  if (!serviceDataJson.empty()) {
+    rapidjson::Document data;
+    data.Parse(serviceDataJson.c_str());
+    if (!data.HasParseError() && data.IsObject()) {
+      for (auto it = data.MemberBegin(); it != data.MemberEnd(); ++it) {
+        rapidjson::Value name(it->name, a);
+        rapidjson::Value val(it->value, a);
+        body.AddMember(name, val, a);
+      }
+    }
+  }
+
   HTTPClient http;
   const std::string url = gSettings.url + "/api/services/" + domain + "/" + service;
   if (!http.begin(url.c_str())) {
@@ -370,6 +389,42 @@ bool restCallService(const std::string &domain, const std::string &service, cons
   http.end();
   Serial.printf("HA> REST %s.%s %s -> HTTP %d\n", domain.c_str(), service.c_str(), entityId.c_str(), code);
   return code >= 200 && code < 300;
+}
+
+bool restCallService(const std::string &domain, const std::string &service, const std::string &entityId) {
+  return restCallServiceWithData(domain, service, entityId, {});
+}
+
+bool fetchEntityStateRest(const std::string &entityId, std::string &stateOut, std::string &attributesJsonOut) {
+  stateOut.clear();
+  attributesJsonOut.clear();
+  if (!gSettings.ok() || !wifiReady() || entityId.empty())
+    return false;
+
+  HTTPClient http;
+  const std::string url = gSettings.url + "/api/states/" + entityId;
+  if (!http.begin(url.c_str()))
+    return false;
+  http.addHeader("Authorization", ("Bearer " + gSettings.token).c_str());
+  http.setTimeout(8000);
+  const int code = http.GET();
+  const String payload = http.getString();
+  http.end();
+  if (code < 200 || code >= 300)
+    return false;
+
+  rapidjson::Document doc;
+  if (doc.Parse(payload.c_str()).HasParseError() || !doc.IsObject())
+    return false;
+  if (!doc.HasMember("state") || !doc["state"].IsString())
+    return false;
+  stateOut = doc["state"].GetString();
+  if (doc.HasMember("attributes") && doc["attributes"].IsObject()) {
+    rapidjson::Document attrsDoc;
+    attrsDoc.CopyFrom(doc["attributes"], attrsDoc.GetAllocator());
+    attributesJsonOut = OMOTE::JSON::ToString(attrsDoc);
+  }
+  return true;
 }
 
 void wsSendCallService(const WsCommand &cmd) {
@@ -491,6 +546,15 @@ bool callService(const std::string &domain, const std::string &service, const st
 
 bool callServiceRest(const std::string &domain, const std::string &service, const std::string &entityId) {
   return restCallService(domain, service, entityId);
+}
+
+bool callServiceRestWithData(const std::string &domain, const std::string &service, const std::string &entityId,
+                             const std::string &serviceDataJson) {
+  return restCallServiceWithData(domain, service, entityId, serviceDataJson);
+}
+
+bool fetchEntityStateRest(const std::string &entityId, std::string &stateOut, std::string &attributesJsonOut) {
+  return ::fetchEntityStateRest(entityId, stateOut, attributesJsonOut);
 }
 
 } // namespace HaWebSocket

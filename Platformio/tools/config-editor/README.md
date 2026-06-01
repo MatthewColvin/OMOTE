@@ -49,16 +49,20 @@ Avoid `uploadfs` unless you intentionally want to reset the remote to the repo�
 
 On **Connect**: enter HA URL + long-lived token → **Save HA settings** (writes `HaSettings.json`) → **Test connection**.
 
-On **Remote**: add **HA toggle** or **HA label** widgets. Entity lists load from HA **in your browser** (not via the remote). The canvas polls entity state every 8s for live preview.
+On **Remote**: add Home Assistant widgets (toggle, label, switch, slider, momentary, climate). Entity lists load from HA **in your browser** (not via the remote). The canvas polls entity state every 8s for live preview.
 
 Widget JSON on pages:
 
 ```json
 { "Type": "HaToggle", "Text": "Kitchen", "EntityId": "light.kitchen", "Domain": "light", "Service": "toggle", "HeightPct": 10, "AlignTo": 0 }
 { "Type": "HaLabel", "Text": "—", "EntityId": "sensor.temperature", "HeightPct": 8, "AlignTo": 1 }
+{ "Type": "HaSwitch", "Text": "Fan", "EntityId": "switch.fan", "Domain": "switch", "ServiceOn": "turn_on", "ServiceOff": "turn_off", "HeightPct": 10, "AlignTo": 0 }
+{ "Type": "HaSlider", "Text": "Brightness", "EntityId": "light.kitchen", "Domain": "light", "Service": "turn_on", "Attribute": "brightness", "Min": 0, "Max": 255, "HeightPct": 10, "AlignTo": 1 }
+{ "Type": "HaMomentary", "Text": "Garage", "EntityId": "switch.garage", "Domain": "switch", "ServiceOn": "turn_on", "ServiceOff": "turn_off", "HeightPct": 12, "AlignTo": 2 }
+{ "Type": "HaClimate", "EntityId": "climate.living_room", "HeightPct": 58, "AlignTo": 0 }
 ```
 
-Firmware support for these widget types is planned (see repo notes). Deploy `HaSettings.json` with **Save to remote**.
+Deploy pages and `HaSettings.json` with **Save to remote**.
 
 ## Advanced mode
 

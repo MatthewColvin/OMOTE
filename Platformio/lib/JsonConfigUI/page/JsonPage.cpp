@@ -2,7 +2,11 @@
 #include "Button.hpp"
 #include "Colors.hpp"
 #include "ColorButtons.hpp"
+#include "HaAttrs.hpp"
+#include "HaClimatePanel.hpp"
 #include "HaRuntime.hpp"
+#include "Slider.hpp"
+#include "Switch.hpp"
 #include "HardwareFactory.hpp"
 #include "Image.hpp"
 #include "Label.hpp"
@@ -17,6 +21,8 @@ using namespace UI::Page;
 using namespace Command;
 
 namespace {
+
+bool sHaSyncInProgress = false;
 
 bool readJsonUint(const rapidjson::Value &obj, const char *key, unsigned int &out) {
   if (!obj.HasMember(key))
@@ -121,6 +127,14 @@ JsonPage::JsonPage(std::string aFileName, std::string aPageName, std::string aCo
           addHaToggle(d["Widgets"][i].GetObject());
         } else if (type == "HaLabel") {
           addHaLabel(d["Widgets"][i].GetObject());
+        } else if (type == "HaSwitch") {
+          addHaSwitch(d["Widgets"][i].GetObject());
+        } else if (type == "HaSlider") {
+          addHaSlider(d["Widgets"][i].GetObject());
+        } else if (type == "HaMomentary") {
+          addHaMomentary(d["Widgets"][i].GetObject());
+        } else if (type == "HaClimate") {
+          addHaClimate(d["Widgets"][i].GetObject());
         } else {
           pageNeedsScroll = true;
           Serial.printf("JsonPage: unknown widget Type \"%s\" in %s\n", type.c_str(), aFileName.c_str());
@@ -201,6 +215,26 @@ void JsonPage::applyHaStates() {
       b.toggle->SetBgColor(on ? UI::Color::BTN_ACTIVE : UI::Color::BTN_PRIMARY);
       b.toggle->SetBgOpacity(LV_OPA_COVER);
     }
+    if (b.sw) {
+      const bool on = HaRuntime::stateIsOn(b.entityId, state);
+      sHaSyncInProgress = true;
+      b.sw->SetValue(on);
+      sHaSyncInProgress = false;
+    }
+    if (b.slider) {
+      std::string attrsJson;
+      if (HaRuntime::getCachedAttributes(b.entityId, attrsJson)) {
+        rapidjson::Document doc;
+        if (!doc.Parse(attrsJson.c_str()).HasParseError() && doc.IsObject()) {
+          const int val = HaClimate::readSliderValue(b.sliderDomain, doc, b.sliderAttribute, 0);
+          sHaSyncInProgress = true;
+          b.slider->SetValue(val, LV_ANIM_OFF);
+          sHaSyncInProgress = false;
+        }
+      }
+    }
+    if (b.climate)
+      b.climate->refreshFromCache();
   }
 }
 
@@ -325,6 +359,213 @@ void JsonPage::addHaLabel(const rapidjson::Value &value) {
   }
 
   mWidgets.push_back(AddElement(std::move(label)));
+}
+
+void JsonPage::addHaSwitch(const rapidjson::Value &value) {
+  const std::string entityId = readEntityId(value);
+
+  std::string domain;
+  if (value.HasMember("Domain") && value["Domain"].IsString())
+    domain = value["Domain"].GetString();
+  else if (!entityId.empty()) {
+    const auto dot = entityId.find('.');
+    domain = dot != std::string::npos ? entityId.substr(0, dot) : "light";
+  } else {
+    domain = "light";
+  }
+
+  std::string serviceOn = "turn_on";
+  std::string serviceOff = "turn_off";
+  if (value.HasMember("ServiceOn") && value["ServiceOn"].IsString())
+    serviceOn = value["ServiceOn"].GetString();
+  if (value.HasMember("ServiceOff") && value["ServiceOff"].IsString())
+    serviceOff = value["ServiceOff"].GetString();
+
+  auto sw = std::make_unique<Widget::Switch>([domain, serviceOn, serviceOff, entityId](bool on) {
+    if (sHaSyncInProgress || entityId.empty())
+      return;
+    HaRuntime::callService(domain, on ? serviceOn : serviceOff, entityId);
+  });
+
+  if (value.HasMember("Text") && value["Text"].IsString()) {
+    auto caption = std::make_unique<Widget::Label>(value["Text"].GetString());
+    caption->SetWidth(lv_pct(90));
+    applyWidgetLayout(caption.get(), value, 8);
+    mWidgets.push_back(AddElement(std::move(caption)));
+  }
+
+  sw->SetWidth(lv_pct(90));
+  applyWidgetLayout(sw.get(), value, 10);
+
+  if (!entityId.empty()) {
+    HaBinding binding;
+    binding.entityId = entityId;
+    binding.sw = sw.get();
+    mHaBindings.push_back(binding);
+    mHaEntityIds.push_back(entityId);
+    Serial.printf("JsonPage: HaSwitch %s\n", entityId.c_str());
+  }
+
+  mWidgets.push_back(AddElement(std::move(sw)));
+}
+
+void JsonPage::addHaSlider(const rapidjson::Value &value) {
+  const std::string entityId = readEntityId(value);
+
+  std::string domain = "light";
+  if (value.HasMember("Domain") && value["Domain"].IsString())
+    domain = value["Domain"].GetString();
+  else if (!entityId.empty()) {
+    const auto dot = entityId.find('.');
+    domain = dot != std::string::npos ? entityId.substr(0, dot) : "light";
+  }
+
+  std::string attribute;
+  if (value.HasMember("Attribute") && value["Attribute"].IsString())
+    attribute = value["Attribute"].GetString();
+
+  std::string service = "turn_on";
+  if (value.HasMember("Service") && value["Service"].IsString())
+    service = value["Service"].GetString();
+
+  int minVal = 0;
+  int maxVal = 255;
+  if (value.HasMember("Min") && value["Min"].IsInt())
+    minVal = value["Min"].GetInt();
+  if (value.HasMember("Max") && value["Max"].IsInt())
+    maxVal = value["Max"].GetInt();
+  if (domain == "cover" && maxVal == 255)
+    maxVal = 100;
+
+  auto slider = std::make_unique<Widget::Slider>(
+      [domain, service, entityId, attribute](int32_t val) {
+        if (sHaSyncInProgress || entityId.empty())
+          return;
+        rapidjson::Document doc;
+        doc.SetObject();
+        auto &a = doc.GetAllocator();
+        std::string key = attribute;
+        if (key.empty()) {
+          if (domain == "light")
+            key = "brightness";
+          else if (domain == "cover")
+            key = "position";
+          else if (domain == "fan")
+            key = "percentage";
+          else
+            key = "brightness";
+        }
+        doc.AddMember(rapidjson::StringRef(key.c_str()), rapidjson::Value(static_cast<int>(val)), a);
+        HaRuntime::callServiceWithData(domain, service, entityId, OMOTE::JSON::ToString(doc));
+      },
+      minVal, maxVal);
+  slider->UpdateOnReleaseOnly(true);
+
+  if (value.HasMember("Text") && value["Text"].IsString()) {
+    auto caption = std::make_unique<Widget::Label>(value["Text"].GetString());
+    caption->SetWidth(lv_pct(90));
+    applyWidgetLayout(caption.get(), value, 8);
+    mWidgets.push_back(AddElement(std::move(caption)));
+  }
+
+  slider->SetWidth(lv_pct(90));
+  applyWidgetLayout(slider.get(), value, 8);
+
+  if (!entityId.empty()) {
+    HaBinding binding;
+    binding.entityId = entityId;
+    binding.slider = slider.get();
+    binding.sliderDomain = domain;
+    binding.sliderAttribute = attribute;
+    binding.sliderService = service;
+    mHaBindings.push_back(binding);
+    mHaEntityIds.push_back(entityId);
+    HaRuntime::fetchEntityState(entityId);
+    Serial.printf("JsonPage: HaSlider %s\n", entityId.c_str());
+  }
+
+  mWidgets.push_back(AddElement(std::move(slider)));
+}
+
+void JsonPage::addHaMomentary(const rapidjson::Value &value) {
+  const std::string entityId = readEntityId(value);
+
+  std::string domain;
+  if (value.HasMember("Domain") && value["Domain"].IsString())
+    domain = value["Domain"].GetString();
+  else if (!entityId.empty()) {
+    const auto dot = entityId.find('.');
+    domain = dot != std::string::npos ? entityId.substr(0, dot) : "light";
+  } else {
+    domain = "light";
+  }
+
+  std::string serviceOn = "turn_on";
+  std::string serviceOff = "turn_off";
+  if (value.HasMember("ServiceOn") && value["ServiceOn"].IsString())
+    serviceOn = value["ServiceOn"].GetString();
+  if (value.HasMember("ServiceOff") && value["ServiceOff"].IsString())
+    serviceOff = value["ServiceOff"].GetString();
+
+  std::string label = "Hold";
+  if (value.HasMember("Text") && value["Text"].IsString())
+    label = value["Text"].GetString();
+  if (label.empty())
+    label = entityId.empty() ? "Momentary" : entityId;
+
+  auto button = std::make_unique<Widget::Button>();
+  if (!entityId.empty()) {
+    button->OnPress([domain, serviceOn, entityId]() { HaRuntime::callService(domain, serviceOn, entityId); });
+    button->OnRelease([domain, serviceOff, entityId]() { HaRuntime::callService(domain, serviceOff, entityId); });
+  }
+  button->SetText(label);
+  button->SetBgColor(UI::Color::BTN_PRIMARY);
+  button->SetBgOpacity(LV_OPA_COVER);
+  button->SetWidth(lv_pct(90));
+  applyWidgetLayout(button.get(), value, 12);
+
+  if (!entityId.empty()) {
+    mHaEntityIds.push_back(entityId);
+    Serial.printf("JsonPage: HaMomentary %s\n", entityId.c_str());
+  }
+
+  mWidgets.push_back(AddElement(std::move(button)));
+}
+
+void JsonPage::addHaClimate(const rapidjson::Value &value) {
+  const std::string entityId = readEntityId(value);
+
+  auto panel = std::make_unique<Widget::HaClimatePanel>(LvglSelf(), entityId);
+  panel->SetWidth(lv_pct(100));
+  unsigned int heightPct = 58;
+  readJsonUint(value, "HeightPct", heightPct);
+  if (heightPct < 40)
+    heightPct = 40;
+  panel->SetHeight(lv_pct(heightPct));
+
+  unsigned int posX = 0, posY = 0;
+  if (readJsonUint(value, "PosX", posX))
+    panel->SetX(lv_pct(posX));
+  if (readJsonUint(value, "PosY", posY))
+    panel->SetY(lv_pct(posY));
+  else
+    panel->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
+
+  clampWidgetHorizontal(panel.get());
+
+  if (!entityId.empty()) {
+    HaBinding binding;
+    binding.entityId = entityId;
+    binding.climate = panel.get();
+    mHaBindings.push_back(binding);
+    mHaEntityIds.push_back(entityId);
+    panel->requestFetchIfNeeded();
+    Serial.printf("JsonPage: HaClimate %s\n", entityId.c_str());
+  } else {
+    Serial.println("JsonPage: HaClimate has no EntityId");
+  }
+
+  mWidgets.push_back(AddElement(std::move(panel)));
 }
 
 void JsonPage::addTitle(const std::string &aCommandPrefix, const rapidjson::Value &value, std::string aPageName) {

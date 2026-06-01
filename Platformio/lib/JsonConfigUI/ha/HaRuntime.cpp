@@ -50,6 +50,8 @@ struct StateEntry {
 
   std::string state;
 
+  std::string attributesJson;
+
 };
 
 
@@ -186,7 +188,7 @@ StateEntry *findState(const std::string &entityId) {
 
 
 
-void upsertState(const std::string &entityId, const std::string &state) {
+void upsertState(const std::string &entityId, const std::string &state, const std::string &attributesJson) {
 
   if (entityId.empty())
 
@@ -194,9 +196,25 @@ void upsertState(const std::string &entityId, const std::string &state) {
 
   if (auto *e = findState(entityId)) {
 
+    bool changed = e->state != state;
+
+    if (!attributesJson.empty() && e->attributesJson != attributesJson) {
+
+      e->attributesJson = attributesJson;
+
+      changed = true;
+
+    }
+
     if (e->state != state) {
 
       e->state = state;
+
+      changed = true;
+
+    }
+
+    if (changed) {
 
       gDirtyCache = true;
 
@@ -212,7 +230,7 @@ void upsertState(const std::string &entityId, const std::string &state) {
 
     gStates.erase(gStates.begin());
 
-  gStates.push_back({entityId, state});
+  gStates.push_back({entityId, state, attributesJson});
 
   gDirtyCache = true;
 
@@ -222,7 +240,9 @@ void upsertState(const std::string &entityId, const std::string &state) {
 
 
 
-void onWsState(const std::string &entityId, const std::string &state) { upsertState(entityId, state); }
+void onWsState(const std::string &entityId, const std::string &state, const std::string &attributesJson) {
+  upsertState(entityId, state, attributesJson);
+}
 
 
 
@@ -315,6 +335,46 @@ bool callService(const std::string &domain, const std::string &service, const st
 
   Serial.printf("HA> tap %s.%s %s\n", dom.c_str(), svc.c_str(), entityId.c_str());
   return HaWebSocket::callServiceRest(dom, svc, entityId);
+}
+
+bool callServiceWithData(const std::string &domain, const std::string &service, const std::string &entityId,
+                         const std::string &serviceDataJson) {
+  refreshSettings();
+  if (entityId.empty())
+    return false;
+  if (!configured()) {
+    Serial.println("HA> tap ignored: save HA settings to remote (HaSettings.json on LittleFS)");
+    return false;
+  }
+
+  std::string dom = domain;
+  if (dom.empty()) {
+    const auto dot = entityId.find('.');
+    dom = dot != std::string::npos ? entityId.substr(0, dot) : "homeassistant";
+  }
+  std::string svc = service.empty() ? "turn_on" : service;
+
+  Serial.printf("HA> call %s.%s %s\n", dom.c_str(), svc.c_str(), entityId.c_str());
+  return HaWebSocket::callServiceRestWithData(dom, svc, entityId, serviceDataJson);
+}
+
+bool getCachedAttributes(const std::string &entityId, std::string &attributesJsonOut) {
+  if (auto *e = findState(entityId)) {
+    if (!e->attributesJson.empty()) {
+      attributesJsonOut = e->attributesJson;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool fetchEntityState(const std::string &entityId) {
+  std::string state;
+  std::string attrs;
+  if (!HaWebSocket::fetchEntityStateRest(entityId, state, attrs))
+    return false;
+  upsertState(entityId, state, attrs);
+  return true;
 }
 
 

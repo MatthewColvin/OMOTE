@@ -268,6 +268,17 @@ python -m http.server 8080</pre>
                     <option value="turn_off">turn_off</option>
                   </select>
                 </label>
+                <div id="ha-momentary-row" class="hidden">
+                  <label>On (press) <input id="ha-service-on" value="turn_on" /></label>
+                  <label>Off (release) <input id="ha-service-off" value="turn_off" /></label>
+                </div>
+                <div id="ha-slider-row" class="hidden">
+                  <label>Attribute <input id="ha-attribute" placeholder="brightness" /></label>
+                  <div class="row">
+                    <label>Min <input id="ha-slider-min" type="number" value="0" style="width:4em" /></label>
+                    <label>Max <input id="ha-slider-max" type="number" value="255" style="width:4em" /></label>
+                  </div>
+                </div>
               </div>
               <div id="w-fields-layout">
                 <label>Height % <input id="w-height" type="number" min="1" max="100" /></label>

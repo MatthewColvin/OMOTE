@@ -50,4 +50,4 @@ jobs:
 
       - name: Run PlatformIO Tests
         working-directory: ./Platformio
-        run: pio test
+        run: pio test --environment ${{ matrix.os == 'windows-latest' && 'x64_sim_windows' || 'x64_sim' }}

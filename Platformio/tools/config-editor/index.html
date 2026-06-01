@@ -248,14 +248,10 @@ python -m http.server 8080</pre>
                 </div>
               </div>
               <div id="w-fields-color" class="hidden">
-                <p class="muted small">Assign IR commands for each color key (must exist in this page’s command file).</p>
-                <label>Red <input id="w-cmd-red" placeholder="RED" /></label>
-                <label>Green <input id="w-cmd-green" placeholder="GREEN" /></label>
-                <label>Yellow <input id="w-cmd-yellow" placeholder="YELLOW" /></label>
-                <label>Blue <input id="w-cmd-blue" placeholder="BLUE" /></label>
+                <p class="muted small">Set each color key in <strong>Page commands</strong> on the right (Red / Green / Yellow / Blue).</p>
               </div>
               <div id="w-fields-numpad" class="hidden">
-                <p class="muted small">Uses commands NUM_0 … NUM_9 from this page’s command file. Learn or add them on the Commands tab.</p>
+                <p class="muted small">Set NUM_0 … NUM_9 in <strong>Page commands</strong> on the right.</p>
               </div>
               <div id="w-fields-ha" class="hidden">
                 <div class="domain-tabs" id="ha-domain-tabs"></div>
@@ -306,6 +302,21 @@ python -m http.server 8080</pre>
             <button type="button" id="btn-add-widget" class="primary">+ Add</button>
           </div>
           <p class="muted small advanced-field hidden" id="linked-files-hint"></p>
+        </aside>
+        <aside class="panel commands-sidebar" id="page-commands-panel">
+          <h3 class="section-title">Page commands (IR)</h3>
+          <p class="muted small section-lead">Command file for the active device tab.</p>
+          <label class="field-block">Command file
+            <select id="page-cmd-file-select"></select>
+          </label>
+          <div class="row page-cmd-toolbar">
+            <button type="button" id="btn-page-cmd-new" class="small-btn">New file</button>
+            <button type="button" id="btn-page-cmd-ensure">Create missing</button>
+            <button type="button" id="btn-page-cmd-open" class="small-btn">Full editor…</button>
+          </div>
+          <p id="page-cmd-msg" class="msg muted small"></p>
+          <div id="page-cmd-slots" class="page-cmd-slots"></div>
+          <p id="page-cmd-empty" class="muted small hidden">No IR widgets on this page yet. Add buttons, color keys, or a number pad.</p>
         </aside>
       </div>
     </section>

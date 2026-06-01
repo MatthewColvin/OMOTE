@@ -21,6 +21,8 @@ Open http://localhost:8080 → connect to `http://omote.local` → use **Scenes*
 
 The editor **auto-creates and links** the JSON files (`Pages/…`, `Commands/…`, scene entries). You don’t need to know the file structure.
 
+On the **Remote** tab, the layout is four columns: **device tabs** → **remote preview** → **widget editor** → **page commands (IR)** (far right). In the commands column, pick the command file for the active tab, assign names per button / color key / numpad digit, and **Learn** IR. Use **Full editor…** for the complete command table (Advanced).
+
 ## Backup (.omote)
 
 On the **Connect** tab (or **Export backup** in the footer):

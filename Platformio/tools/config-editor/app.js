@@ -1185,6 +1185,216 @@ function ensurePageCommandFile() {
   return cf;
 }
 
+const COLOR_KEY_LABELS = ['Red', 'Green', 'Yellow', 'Blue'];
+
+function commandRowStatus(cmdFile, commandName) {
+  if (!commandName) return 'missing';
+  const doc = parseJson(cmdFile);
+  const row = (doc?.Commands || []).find((c) => c.Command === commandName);
+  if (!row) return 'missing';
+  const data = Array.isArray(row.Data) ? String(row.Data[0] || '') : '';
+  if (!data || data === '0x0' || data === '0x00') return 'placeholder';
+  return 'ok';
+}
+
+function collectPageCommandSlots(page) {
+  const slots = [];
+  (page.Widgets || []).forEach((w, widgetIdx) => {
+    if (w.Type === 'Button') {
+      slots.push({
+        widgetIdx,
+        kind: 'button',
+        label: w.Text ? `Button: ${w.Text}` : 'Button',
+        command: typeof w.Command === 'string' ? w.Command : ''
+      });
+    } else if (w.Type === 'ColorButtons' && Array.isArray(w.Command)) {
+      w.Command.forEach((cmd, colorIdx) => {
+        slots.push({
+          widgetIdx,
+          kind: 'color',
+          colorIdx,
+          label: `Color · ${COLOR_KEY_LABELS[colorIdx] || colorIdx + 1}`,
+          command: cmd || ''
+        });
+      });
+    } else if (w.Type === 'NumberPad' && Array.isArray(w.Command)) {
+      w.Command.forEach((cmd, padIdx) => {
+        slots.push({
+          widgetIdx,
+          kind: 'numpad',
+          padIdx,
+          label: `Numpad · ${cmd || 'NUM_' + padIdx}`,
+          command: cmd || ''
+        });
+      });
+    }
+  });
+  return slots;
+}
+
+function setWidgetCommandName(page, slot, commandName) {
+  const w = page.Widgets[slot.widgetIdx];
+  if (!w) return;
+  const name = commandName.trim();
+  if (slot.kind === 'button') {
+    w.Command = name;
+  } else if (slot.kind === 'color') {
+    w.Command = w.Command || ['RED', 'GREEN', 'YELLOW', 'BLUE'];
+    w.Command[slot.colorIdx] = name;
+  } else if (slot.kind === 'numpad') {
+    w.Command = w.Command || [...NUM_PAD_COMMANDS];
+    w.Command[slot.padIdx] = name;
+  }
+}
+
+function setPageCommandFile(path) {
+  const page = currentPage();
+  page.CommandFile = path;
+  savePage(page);
+  const slots = collectPageCommandSlots(page);
+  ensureStubCommands(path, slots.map((s) => s.command).filter(Boolean));
+  renderPageCommandsPanel();
+  populateCmdFileSelect();
+}
+
+function openCommandsTabForPage() {
+  setAdvancedMode(true);
+  selectedCmdFile = ensurePageCommandFile();
+  populateCmdFileSelect();
+  showTab('commands');
+}
+
+function renderPageCommandsPanel() {
+  const sel = $('page-cmd-file-select');
+  const box = $('page-cmd-slots');
+  const empty = $('page-cmd-empty');
+  if (!sel || !box) return;
+
+  const page = currentPage();
+  const cf = ensurePageCommandFile();
+  const allCmdFiles = listPaths('Commands/');
+  sel.innerHTML = '';
+  allCmdFiles.forEach((p) => {
+    const o = document.createElement('option');
+    o.value = p;
+    o.textContent = p.replace(/^Commands\//, '');
+    if (p === cf) o.selected = true;
+    sel.appendChild(o);
+  });
+  if (!allCmdFiles.includes(cf)) {
+    const o = document.createElement('option');
+    o.value = cf;
+    o.textContent = cf.replace(/^Commands\//, '') + ' (linked)';
+    o.selected = true;
+    sel.appendChild(o);
+  }
+  sel.onchange = () => setPageCommandFile(sel.value);
+
+  const existingNames = commandNamesFromFile(cf);
+  const slots = collectPageCommandSlots(page);
+  box.innerHTML = '';
+  empty?.classList.toggle('hidden', slots.length > 0);
+
+  const highlightWidgetIdx =
+    selection.kind === 'widget' ? selection.widgetIdx : -1;
+
+  slots.forEach((slot) => {
+    const row = document.createElement('div');
+    row.className = 'page-cmd-slot';
+    if (slot.widgetIdx === highlightWidgetIdx) row.classList.add('highlight');
+
+    const lbl = document.createElement('div');
+    lbl.className = 'page-cmd-slot-label';
+    lbl.textContent = slot.label;
+
+    const status = document.createElement('span');
+    status.className = 'page-cmd-status ' + commandRowStatus(cf, slot.command);
+    status.title =
+      status.className.includes('ok') ? 'IR code set' :
+      status.className.includes('placeholder') ? 'Placeholder — learn or edit code' : 'Not in command file';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = slot.command || '';
+    input.placeholder = 'Command name';
+    input.setAttribute('list', 'page-cmd-name-list');
+    input.onchange = () => {
+      const name = input.value.trim();
+      setWidgetCommandName(page, slot, name);
+      savePage(page);
+      ensureStubCommands(cf, [name]);
+      renderPageCommandsPanel();
+      renderWidgetList(page);
+      drawCanvas();
+      updateSelectionPanel();
+    };
+
+    const pick = document.createElement('select');
+    pick.title = 'Pick existing command';
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = 'Pick…';
+    pick.appendChild(emptyOpt);
+    existingNames.forEach((n) => {
+      const o = document.createElement('option');
+      o.value = n;
+      o.textContent = n;
+      if (n === slot.command) o.selected = true;
+      pick.appendChild(o);
+    });
+    pick.onchange = () => {
+      if (!pick.value) return;
+      input.value = pick.value;
+      input.dispatchEvent(new Event('change'));
+    };
+
+    const learnBtn = document.createElement('button');
+    learnBtn.type = 'button';
+    learnBtn.className = 'btn-learn-slot';
+    learnBtn.textContent = 'Learn';
+    learnBtn.onclick = async () => {
+      const name = input.value.trim() || slot.command || 'LEARNED';
+      const msg = $('page-cmd-msg');
+      if (msg) { msg.textContent = 'Learning… point remote at OMOTE.'; msg.className = 'msg muted small'; }
+      try {
+        const cap = await learnIr(msg);
+        upsertCommand(cf, name, cap.protocol, cap.code.startsWith('0x') ? cap.code : '0x' + cap.code);
+        setWidgetCommandName(page, slot, name);
+        savePage(page);
+        if (msg) { msg.textContent = `Learned ${name} (${cap.protocol})`; msg.className = 'msg ok small'; }
+        renderPageCommandsPanel();
+        renderWidgetList(page);
+        drawCanvas();
+        updateSelectionPanel();
+      } catch (e) {
+        if (msg) { msg.textContent = e.message; msg.className = 'msg err small'; }
+      }
+    };
+
+    row.append(lbl, input, pick, status, learnBtn);
+    box.appendChild(row);
+  });
+
+  if (highlightWidgetIdx >= 0) {
+    requestAnimationFrame(() => {
+      box.querySelector('.page-cmd-slot.highlight')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  }
+
+  let datalist = $('page-cmd-name-list');
+  if (!datalist) {
+    datalist = document.createElement('datalist');
+    datalist.id = 'page-cmd-name-list';
+    document.body.appendChild(datalist);
+  }
+  datalist.innerHTML = '';
+  existingNames.forEach((n) => {
+    const o = document.createElement('option');
+    o.value = n;
+    datalist.appendChild(o);
+  });
+}
+
 /* ── UI mode ── */
 function applyAdvancedMode() {
   document.querySelectorAll('.advanced-field, .nav-advanced').forEach((el) => {
@@ -1604,6 +1814,7 @@ function refreshRemoteTab() {
   const pg = currentPage();
   const linkedHint = $('linked-files-hint');
   if (linkedHint) linkedHint.textContent = pg.CommandFile ? `Linked: ${selectedPagePath} → ${pg.CommandFile}` : '';
+  renderPageCommandsPanel();
   renderWidgetList(pg);
   drawCanvas();
   renderRemoteKeymap();
@@ -1698,7 +1909,9 @@ function selectWidget(idx) {
   selection = { kind: 'widget', widgetIdx: idx, keyName: null };
   selectedWidgetIdx = idx;
   selectedKeyName = '';
+  const w = currentPage().Widgets?.[idx];
   updateSelectionPanel();
+  renderPageCommandsPanel();
   renderWidgetList(currentPage());
   renderRemoteKeymap();
   drawCanvas();
@@ -1884,13 +2097,6 @@ function syncWidgetEditor() {
     populateImageFileList();
   }
 
-  if (isColor && Array.isArray(w.Command)) {
-    $('w-cmd-red').value = w.Command[0] || 'RED';
-    $('w-cmd-green').value = w.Command[1] || 'GREEN';
-    $('w-cmd-yellow').value = w.Command[2] || 'YELLOW';
-    $('w-cmd-blue').value = w.Command[3] || 'BLUE';
-  }
-
   const showHeight = isButton || isLabel || isTitle || isHa;
   if ($('w-height')?.parentElement) {
     $('w-height').parentElement.classList.toggle('hidden', !showHeight);
@@ -2034,16 +2240,6 @@ function applyWidgetEdits() {
     w.SizeXYinPixels = [iw || 120, ih || 120];
   }
 
-  if (type === 'ColorButtons') {
-    w.Command = [
-      $('w-cmd-red').value.trim() || 'RED',
-      $('w-cmd-green').value.trim() || 'GREEN',
-      $('w-cmd-yellow').value.trim() || 'YELLOW',
-      $('w-cmd-blue').value.trim() || 'BLUE'
-    ];
-    ensureStubCommands(ensurePageCommandFile(), w.Command);
-  }
-
   if (type === 'Button' || type === 'Label' || type === 'Title' || HA_WIDGET_TYPES.has(type)) {
     const h = parseInt($('w-height').value, 10);
     if (h) w.HeightPct = h;
@@ -2070,6 +2266,7 @@ function applyWidgetEdits() {
   }
 
   savePage(page);
+  renderPageCommandsPanel();
   refreshRemoteTab();
 }
 
@@ -2724,6 +2921,29 @@ $('btn-new-cmd-file')?.addEventListener('click', () => {
   selectedCmdFile = path;
   populateCmdFileSelect();
   renderCommandsTable();
+});
+
+$('btn-page-cmd-open')?.addEventListener('click', openCommandsTabForPage);
+
+$('btn-page-cmd-new')?.addEventListener('click', () => {
+  const slug = slugify($('remote-device-label')?.textContent || 'Device');
+  const path = `Commands/Commands_${slug}.json`;
+  if (!files.has(path)) {
+    setFile(path, { Manufacturer: 'Custom', DeviceClass: 'Generic', Commands: [] });
+  }
+  setPageCommandFile(path);
+  const msg = $('page-cmd-msg');
+  if (msg) { msg.textContent = `Using ${path}`; msg.className = 'msg ok small'; }
+});
+
+$('btn-page-cmd-ensure')?.addEventListener('click', () => {
+  const cf = ensurePageCommandFile();
+  const page = currentPage();
+  const names = collectPageCommandSlots(page).map((s) => s.command).filter(Boolean);
+  ensureStubCommands(cf, names);
+  const msg = $('page-cmd-msg');
+  if (msg) { msg.textContent = `Ensured ${names.length} command name(s) in ${cf.replace('Commands/', '')}`; msg.className = 'msg ok small'; }
+  renderPageCommandsPanel();
 });
 
 $('btn-learn-ir')?.addEventListener('click', async () => {

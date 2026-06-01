@@ -395,6 +395,9 @@ button.danger-btn:hover { background: #f8514922; }
   box-shadow: 0 8px 24px #00000055, inset 0 1px 0 #ffffff11;
   flex-shrink: 0;
 }
+.remote-keymap.pcb-3661 {
+  --remote-w: 348px;
+}
 
 .remote-screen {
   margin-bottom: 10px;
@@ -677,6 +680,13 @@ footer {
   flex-shrink: 0;
 }
 .remote-key.shape-round { border-radius: 50%; width: 46px; height: 46px; min-width: 46px; padding: 3px; }
+.remote-key.shape-square {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  border-radius: 8px;
+  padding: 3px;
+}
 .remote-key.shape-corner { width: 68px; min-width: 68px; max-width: 68px; min-height: 42px; border-radius: 10px 4px 10px 4px; }
 .remote-key.shape-rocker-tall { width: 52px; min-width: 52px; max-width: 52px; min-height: 46px; font-weight: bold; }
 .remote-key.shape-dpad { width: 40px; height: 36px; min-width: 40px; border-radius: 8px; }
@@ -709,6 +719,91 @@ footer {
   background: #505868;
 }
 .remote-power-row { display: flex; justify-content: flex-end; width: 100%; margin-bottom: 8px; }
+
+/* 3661 extended PCB — fixed row layout after screen */
+.remote-face.pcb-3661 {
+  width: 100%;
+  gap: 0;
+  align-items: center;
+}
+.r3661-body {
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.r3661-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  width: 100%;
+  align-items: center;
+  justify-items: center;
+}
+.r3661-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+}
+.r3661-dpad-row {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+.r3661-dpad-cell {
+  width: auto;
+  min-height: 0;
+}
+.r3661-dpad-row .remote-dpad {
+  flex-shrink: 0;
+}
+.r3661-row .remote-key.shape-round {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  max-width: 46px;
+}
+.r3661-row .remote-key.shape-square {
+  width: 100%;
+  max-width: 52px;
+  min-width: 44px;
+  height: 46px;
+  min-height: 46px;
+}
+.r3661-row .remote-key.shape-wide {
+  width: 100%;
+  max-width: 88px;
+  min-width: 0;
+  min-height: 38px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.r3661-row .remote-key.shape-device {
+  width: 100%;
+  max-width: 92px;
+  min-height: 32px;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.remote-key.color-record {
+  background: #a82828;
+  border-color: #c44;
+}
+
+.settings-page {
+  max-width: 520px;
+  margin: 0 auto;
+}
+#tab-settings.tab.active {
+  display: flex;
+  justify-content: center;
+}
 
 .section-title { margin: 16px 0 4px; font-size: 0.95rem; font-weight: 600; }
 .section-title:first-child { margin-top: 0; }

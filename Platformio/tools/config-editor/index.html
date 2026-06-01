@@ -11,6 +11,7 @@
     <h1>OMOTE Config Editor</h1>
     <nav id="nav">
       <button data-tab="connect" class="active">Connect</button>
+      <button data-tab="settings">Settings</button>
       <button data-tab="scenes">Scenes</button>
       <button data-tab="remote">Remote</button>
       <button data-tab="commands" class="nav-advanced hidden">Commands</button>
@@ -42,16 +43,35 @@ python -m http.server 8080</pre>
           <input type="file" id="omote-import-file" accept=".omote,.zip,application/zip" />
         </label>
       </div>
-      <h3 class="section-title">Home Assistant</h3>
-      <p class="muted small">Entity lists load <strong>directly from HA in this browser</strong> — not through the remote. Credentials are saved in <code>HaSettings.json</code> on the remote when you deploy.</p>
-      <label>HA URL <input id="ha-url" placeholder="http://192.168.1.10:8123" /></label>
-      <label>Long-lived token <input id="ha-token" type="password" placeholder="eyJ…" /></label>
-      <div class="row">
-        <button type="button" id="btn-save-ha">Save HA settings</button>
-        <button type="button" id="btn-test-ha">Test connection</button>
-      </div>
-      <p class="muted small">Add this editor URL to <code>http.cors_allowed_origins</code> in Home Assistant <code>configuration.yaml</code>, then restart HA.</p>
       <p id="connect-msg" class="msg"></p>
+    </section>
+
+    <section id="tab-settings" class="tab">
+      <div class="settings-page panel">
+        <h2>Editor &amp; remote settings</h2>
+        <p class="muted small">Saved in this browser unless noted. Deploy sends HA credentials to the remote.</p>
+
+        <h3 class="section-title">Physical remote</h3>
+        <p class="muted small">Choose the PCB that matches your hardware. This changes the key layout in the Remote tab.</p>
+        <label class="field-block">PCB layout
+          <select id="remote-pcb-variant" title="Match your remote hardware">
+            <option value="stock">Stock OMOTE</option>
+            <option value="3661">3661 extended keys</option>
+          </select>
+        </label>
+        <p class="muted small">3661 adds Home, Guide, device keys (TV, Stream, STB…), and replaces the four color aux keys.</p>
+
+        <h3 class="section-title">Home Assistant</h3>
+        <p class="muted small">Entity lists load <strong>directly from HA in this browser</strong>. Credentials are written to <code>HaSettings.json</code> on the remote when you deploy.</p>
+        <label>HA URL <input id="ha-url" placeholder="http://192.168.1.10:8123" /></label>
+        <label>Long-lived token <input id="ha-token" type="password" placeholder="eyJ…" /></label>
+        <div class="row">
+          <button type="button" id="btn-save-ha">Save HA settings</button>
+          <button type="button" id="btn-test-ha">Test connection</button>
+        </div>
+        <p class="muted small">Add this editor URL to <code>http.cors_allowed_origins</code> in Home Assistant <code>configuration.yaml</code>, then restart HA.</p>
+        <p id="settings-msg" class="msg"></p>
+      </div>
     </section>
 
     <div id="connect-conflict-modal" class="modal hidden" role="dialog" aria-labelledby="connect-conflict-title" aria-modal="true">

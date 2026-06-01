@@ -23,6 +23,8 @@ The editor **auto-creates and links** the JSON files (`Pages/…`, `Commands/…
 
 On the **Remote** tab, the layout is four columns: **device tabs** → **remote preview** → **widget editor** → **page commands (IR)** (far right). In the commands column, pick the command file for the active tab, assign names per button / color key / numpad digit, and **Learn** IR. Use **Full editor…** for the complete command table (Advanced).
 
+**Settings** tab: choose **Stock OMOTE** or **3661 extended keys** under Physical remote, and configure Home Assistant. The 3661 layout matches custom Rev5 hardware (`OMOTE_KEYBRD_3661`). PCB choice is saved in the browser (not on the remote).
+
 ## Backup (.omote)
 
 On the **Connect** tab (or **Export backup** in the footer):

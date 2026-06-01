@@ -147,14 +147,58 @@ const WIDGET_TYPES = {
   }
 };
 
+const PCB_VARIANT_KEY = 'omote_pcb_variant';
+const STOCK_ONLY_KEYS = ['Source', 'Aux1', 'Aux2', 'Aux3', 'Aux4'];
+const PCB3661_ONLY_KEYS = ['Guide', 'Home', 'Cycle', 'Exit', 'Pause', 'TV', 'Stream', 'STB', 'Audio', 'BluRay', 'DVD'];
+
 const KEY_LABELS = {
   Power: 'Power', Stop: 'Stop', Rewind: 'Rewind', Play: 'Play', FastForward: 'Forward',
   Menu: 'Menu', Info: 'Info', Back: 'Back', Source: 'Source',
   Up: 'Up', Down: 'Down', Left: 'Left', Right: 'Right', Center: 'OK',
   VolUp: 'Vol+', VolDown: 'Vol-', Mute: 'Mute', Record: 'Record',
   ChannelUp: 'CH+', ChannelDown: 'CH-',
-  Aux1: 'Red', Aux2: 'Green', Aux3: 'Yellow', Aux4: 'Blue'
+  Aux1: 'Red', Aux2: 'Green', Aux3: 'Yellow', Aux4: 'Blue',
+  Guide: 'Guide', Home: 'Home', Cycle: 'Cycle', Exit: 'Exit', Pause: 'Pause',
+  TV: 'TV', Stream: 'Stream', STB: 'STB', Audio: 'Audio', BluRay: 'Bluray', DVD: 'DVD'
 };
+
+function getPcbVariant() {
+  return localStorage.getItem(PCB_VARIANT_KEY) === '3661' ? '3661' : 'stock';
+}
+
+function setPcbVariant(variant) {
+  localStorage.setItem(PCB_VARIANT_KEY, variant === '3661' ? '3661' : 'stock');
+  const sel = $('remote-pcb-variant');
+  if (sel) sel.value = getPcbVariant();
+  refreshSceneBindKeyOptions();
+  if (selection.kind === 'key' && !isKeyOnCurrentPcb(selection.keyName)) clearSelection();
+  else renderRemoteKeymap();
+}
+
+function isKeyOnCurrentPcb(keyId) {
+  if (!keyId) return false;
+  if (getPcbVariant() === '3661') return !STOCK_ONLY_KEYS.includes(keyId);
+  return !PCB3661_ONLY_KEYS.includes(keyId);
+}
+
+function refreshSceneBindKeyOptions() {
+  const sel = $('scene-bind-key');
+  if (!sel) return;
+  const cur = sel.value;
+  const pairs = getPcbVariant() === '3661'
+    ? [['', 'None'], ['TV', 'TV'], ['Stream', 'Stream'], ['Audio', 'Audio'], ['STB', 'STB'], ['DVD', 'DVD'], ['BluRay', 'Bluray'], ['Home', 'Home']]
+    : [['', 'None'], ['TV', 'TV'], ['Stream', 'Stream'], ['BluRay', 'BluRay'], ['Audio', 'Audio'],
+      ['Aux1', 'Aux1 (Red)'], ['Aux2', 'Aux2 (Green)'], ['Aux3', 'Aux3 (Yellow)'], ['Aux4', 'Aux4 (Blue)']];
+  sel.innerHTML = '';
+  pairs.forEach(([value, label]) => {
+    const o = document.createElement('option');
+    o.value = value;
+    o.textContent = label;
+    sel.appendChild(o);
+  });
+  if (pairs.some(([v]) => v === cur)) sel.value = cur;
+  else sel.value = '';
+}
 
 const DEFAULT_CMD_FOR_KEY = {
   Up: 'UP', Down: 'DOWN', Left: 'LEFT', Right: 'RIGHT', Center: 'SELECT',
@@ -1421,7 +1465,7 @@ function showTab(name) {
   } else {
     stopHaPreviewPolling();
   }
-  if (name === 'connect') loadHaSettingsForm();
+  if (name === 'connect' || name === 'settings') loadHaSettingsForm();
   if (name === 'scenes') refreshScenesTab();
   if (name === 'commands') renderCommandsTable();
   if (name === 'raw') populateRawSelect();
@@ -1434,6 +1478,11 @@ document.querySelectorAll('#nav button').forEach((b) => {
 $('advanced-mode').onchange = () => setAdvancedMode($('advanced-mode').checked);
 $('device-url').value = defaultApi();
 applyAdvancedMode();
+if ($('remote-pcb-variant')) {
+  $('remote-pcb-variant').value = getPcbVariant();
+  $('remote-pcb-variant').onchange = () => setPcbVariant($('remote-pcb-variant').value);
+}
+refreshSceneBindKeyOptions();
 
 async function setEditorSyncMode(on) {
   await api('/api/device/sync-mode', {
@@ -1830,10 +1879,15 @@ function tabLabels() {
 function renderRemoteKeymap() {
   const powerRow = $('remote-power-row');
   const face = $('remote-face');
+  const keymap = $('remote-keymap');
   if (!powerRow || !face) return;
   powerRow.innerHTML = '';
   face.innerHTML = '';
-  const page = currentPage();
+  const is3661 = getPcbVariant() === '3661';
+  keymap?.classList.toggle('pcb-3661', is3661);
+  keymap?.classList.toggle('pcb-stock', !is3661);
+  face.classList.toggle('pcb-3661', is3661);
+  face.classList.toggle('pcb-stock', !is3661);
 
   const makeBtn = (keyId, label, shape, extra = '') => {
     const mapped = getKeyMapping(keyId);
@@ -1848,6 +1902,11 @@ function renderRemoteKeymap() {
 
   powerRow.appendChild(makeBtn('Power', 'Power', 'shape-power'));
 
+  if (is3661) renderRemoteKeymap3661(face, makeBtn);
+  else renderRemoteKeymapStock(face, makeBtn);
+}
+
+function renderRemoteKeymapStock(face, makeBtn) {
   const media = document.createElement('div');
   media.className = 'remote-media';
   [['Stop', 'Stop'], ['Rewind', 'Rewind'], ['Play', 'Play'], ['FastForward', 'Forward']].forEach(([k, l]) => {
@@ -1894,6 +1953,83 @@ function renderRemoteKeymap() {
     colors.appendChild(makeBtn(k, l, 'shape-round', ' ' + c));
   });
   face.appendChild(colors);
+}
+
+/** 3661 PCB — row layout (after screen). Spec: [keyId, label, shapeClass?] per cell. */
+function append3661Row(face, makeBtn, specs, rowClass = 'r3661-row') {
+  const row = document.createElement('div');
+  row.className = rowClass;
+  specs.forEach((spec) => {
+    const cell = document.createElement('div');
+    cell.className = 'r3661-cell';
+    if (spec) cell.appendChild(makeBtn(spec[0], spec[1], spec[2] || ''));
+    row.appendChild(cell);
+  });
+  face.appendChild(row);
+  return row;
+}
+
+function renderRemoteKeymap3661(face, makeBtn) {
+  const body = document.createElement('div');
+  body.className = 'r3661-body';
+  face.appendChild(body);
+
+  append3661Row(body, makeBtn, [
+    ['VolUp', 'Vol+', 'shape-rocker-tall'],
+    ['Cycle', 'Cycle', 'shape-round'],
+    ['ChannelUp', 'CH+', 'shape-rocker-tall']
+  ]);
+  append3661Row(body, makeBtn, [
+    ['VolDown', 'Vol-', 'shape-rocker-tall'],
+    ['Mute', 'Mute', 'shape-round'],
+    ['ChannelDown', 'CH-', 'shape-rocker-tall']
+  ]);
+  append3661Row(body, makeBtn, [
+    ['Info', 'Info', 'shape-round'],
+    ['Guide', 'Guide', 'shape-square'],
+    ['Menu', 'Menu', 'shape-round']
+  ]);
+
+  const dpadRow = document.createElement('div');
+  dpadRow.className = 'r3661-row r3661-dpad-row';
+  const dpadCell = document.createElement('div');
+  dpadCell.className = 'r3661-cell r3661-dpad-cell';
+  const dpad = document.createElement('div');
+  dpad.className = 'remote-dpad';
+  dpad.appendChild(makeBtn('Up', 'Up', 'shape-dpad dpad-up'));
+  dpad.appendChild(makeBtn('Left', 'Left', 'shape-dpad dpad-left'));
+  dpad.appendChild(makeBtn('Center', 'OK', 'shape-dpad-ok dpad-ok'));
+  dpad.appendChild(makeBtn('Right', 'Right', 'shape-dpad dpad-right'));
+  dpad.appendChild(makeBtn('Down', 'Down', 'shape-dpad dpad-down'));
+  dpadCell.appendChild(dpad);
+  dpadRow.appendChild(dpadCell);
+  body.appendChild(dpadRow);
+
+  append3661Row(body, makeBtn, [
+    ['Back', 'Back', 'shape-round'],
+    ['Home', 'Home', 'shape-wide'],
+    ['Exit', 'Exit', 'shape-round']
+  ]);
+  append3661Row(body, makeBtn, [
+    ['Rewind', 'Rewind', 'shape-square'],
+    ['Play', 'Play', 'shape-square'],
+    ['FastForward', 'Fwd', 'shape-square']
+  ]);
+  append3661Row(body, makeBtn, [
+    ['Stop', 'Stop', 'shape-square'],
+    ['Pause', 'Pause', 'shape-square'],
+    ['Record', 'Rec', 'shape-square color-record']
+  ]);
+  append3661Row(body, makeBtn, [
+    ['TV', 'TV', 'shape-device'],
+    ['Stream', 'Stream', 'shape-device'],
+    ['STB', 'STB', 'shape-device']
+  ]);
+  append3661Row(body, makeBtn, [
+    ['Audio', 'AUDIO', 'shape-device'],
+    ['BluRay', 'BLURAY', 'shape-device'],
+    ['DVD', 'DVD', 'shape-device']
+  ]);
 }
 
 function clearSelection() {

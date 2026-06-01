@@ -3,6 +3,7 @@
 #include <string>
 
 #include "BackgroundScreen.hpp"
+#include "LvglResourceManager.hpp"
 
 using namespace UI::Page;
 
@@ -20,6 +21,14 @@ TabView::TabView(ID aId)
 
 void TabView::AddTab(Page::Base::Ptr aPage) {
   auto lTab = lv_tabview_add_tab(LvglSelf(), aPage->GetTitle().c_str());
+  {
+    auto lock = LvglResourceManager::GetInstance().scopeLock();
+    lv_obj_remove_flag(lTab, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+    lv_obj_remove_flag(lTab, LV_OBJ_FLAG_SCROLL_CHAIN_HOR);
+    lv_obj_remove_flag(lTab, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(lTab, LV_DIR_NONE);
+    lv_obj_set_scrollbar_mode(lTab, LV_SCROLLBAR_MODE_OFF);
+  }
   auto tab = std::make_unique<Tab>(lTab, std::move(aPage));
 
   mTabs.push_back(std::move(tab));

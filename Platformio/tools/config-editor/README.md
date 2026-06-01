@@ -32,6 +32,19 @@ When you **Connect & load** while already editing (e.g. after importing a backup
 
 Use this before a risky deploy, when the remote is offline, or to clone config to a second OMOTE.
 
+## Firmware vs config on the remote
+
+| Command | What it updates |
+|---------|-----------------|
+| `pio run -e esp32_Rev1 -t upload` | **Firmware only** (app partition) |
+| `pio run -e esp32_Rev1 -t uploadfs` | **LittleFS only** — overwrites the remote with files from `Platformio/data/` |
+
+JSON scenes/pages live on **LittleFS**, not inside the firmware binary. A normal firmware flash does **not** restore `Platformio/data/` to the device.
+
+If deleted scenes reappear after **firmware-only** flash, they were still on LittleFS (changes were never saved to the remote, or the editor still had the old copy). Use **Save to remote** after edits.
+
+Avoid `uploadfs` unless you intentionally want to reset the remote to the repo’s bundled `data/` folder.
+
 ## Home Assistant
 
 On **Connect**: enter HA URL + long-lived token → **Save HA settings** (writes `HaSettings.json`) → **Test connection**.

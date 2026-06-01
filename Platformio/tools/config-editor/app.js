@@ -2277,7 +2277,7 @@ function drawCanvas() {
     } else if (w.Type === 'HaToggle') {
       const st = haStateCache.get(w.EntityId);
       const on = isHaStateOn(st);
-      ctx.fillStyle = on ? '#2d6a4f' : '#2a3548';
+      ctx.fillStyle = on ? '#4caf50' : '#337ab7';
       ctx.fillRect(r.x, r.y, r.w, r.h);
       ctx.fillStyle = '#eee';
       ctx.font = '12px sans-serif';

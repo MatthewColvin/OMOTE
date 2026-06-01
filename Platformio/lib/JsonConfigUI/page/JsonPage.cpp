@@ -1,5 +1,6 @@
 #include "JsonPage.hpp"
 #include "Button.hpp"
+#include "Colors.hpp"
 #include "ColorButtons.hpp"
 #include "HaRuntime.hpp"
 #include "HardwareFactory.hpp"
@@ -56,13 +57,28 @@ std::filesystem::path resolvePageJsonPath(const std::string &fileName) {
   return direct;
 }
 
-void enablePageScroll(lv_obj_t *pageObj) {
+void configureJsonPage(lv_obj_t *pageObj, bool verticalScroll) {
   if (!pageObj)
     return;
   auto lock = LvglResourceManager::GetInstance().scopeLock();
-  lv_obj_add_flag(pageObj, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_set_scroll_dir(pageObj, LV_DIR_VER);
+  lv_obj_remove_flag(pageObj, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+  lv_obj_remove_flag(pageObj, LV_OBJ_FLAG_SCROLL_CHAIN_HOR);
+  lv_obj_clear_flag(pageObj, LV_OBJ_FLAG_SCROLL_ELASTIC);
   lv_obj_set_scrollbar_mode(pageObj, LV_SCROLLBAR_MODE_AUTO);
+  if (verticalScroll) {
+    lv_obj_add_flag(pageObj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(pageObj, LV_DIR_VER);
+  } else {
+    lv_obj_remove_flag(pageObj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scroll_dir(pageObj, LV_DIR_NONE);
+  }
+}
+
+void clampWidgetHorizontal(UI::UIElement *widget) {
+  if (!widget)
+    return;
+  auto lock = LvglResourceManager::GetInstance().scopeLock();
+  lv_obj_set_style_max_width(widget->LvglSelf(), LV_PCT(100), LV_PART_MAIN);
 }
 
 } // namespace
@@ -113,11 +129,11 @@ JsonPage::JsonPage(std::string aFileName, std::string aPageName, std::string aCo
     }
   }
 
-  if (pageNeedsScroll || mWidgets.size() > 6)
-    enablePageScroll(LvglSelf());
+  configureJsonPage(LvglSelf(), pageNeedsScroll || mWidgets.size() > 6);
   {
     auto lock = LvglResourceManager::GetInstance().scopeLock();
     lv_obj_update_layout(LvglSelf());
+    lv_obj_scroll_to_x(LvglSelf(), 0, LV_ANIM_OFF);
   }
   Serial.printf("JsonPage %s: %u widgets (%u HA)\n", aFileName.c_str(), static_cast<unsigned>(mWidgets.size()),
                 static_cast<unsigned>(mHaBindings.size()));
@@ -182,15 +198,19 @@ void JsonPage::applyHaStates() {
       b.stateLabel->SetText(state);
     if (b.toggle) {
       const bool on = HaRuntime::stateIsOn(b.entityId, state);
-      b.toggle->SetBgColor(on ? lv_color_hex(0x2d6a4f) : lv_color_hex(0x2a3548));
+      b.toggle->SetBgColor(on ? UI::Color::BTN_ACTIVE : UI::Color::BTN_PRIMARY);
+      b.toggle->SetBgOpacity(LV_OPA_COVER);
     }
   }
 }
 
 void JsonPage::applyWidgetLayout(UIElement *widget, const rapidjson::Value &value, unsigned int defaultHeightPct) {
   unsigned int heightPct = defaultHeightPct;
-  if (readJsonUint(value, "HeightPct", heightPct) || defaultHeightPct > 0)
+  if (readJsonUint(value, "HeightPct", heightPct) || defaultHeightPct > 0) {
+    if (heightPct > 0 && heightPct < 10)
+      heightPct = 10;
     widget->SetHeight(lv_pct(heightPct > 0 ? heightPct : defaultHeightPct));
+  }
 
   if (value.HasMember("SizeXY") && value["SizeXY"].IsArray() && value["SizeXY"].Size() == 2) {
     unsigned int sx = 0, sy = 0;
@@ -230,6 +250,8 @@ void JsonPage::applyWidgetLayout(UIElement *widget, const rapidjson::Value &valu
     widget->SetX(lv_pct(posX));
   if (readJsonUint(value, "PosY", posY))
     widget->SetY(lv_pct(posY));
+
+  clampWidgetHorizontal(widget);
 }
 
 void JsonPage::addHaToggle(const rapidjson::Value &value) {
@@ -259,8 +281,10 @@ void JsonPage::addHaToggle(const rapidjson::Value &value) {
   if (!entityId.empty())
     button->OnShortClick([domain, service, entityId]() { HaRuntime::callService(domain, service, entityId); });
   button->SetText(label);
+  button->SetBgColor(UI::Color::BTN_PRIMARY);
+  button->SetBgOpacity(LV_OPA_COVER);
   button->SetWidth(lv_pct(90));
-  applyWidgetLayout(button.get(), value, 10);
+  applyWidgetLayout(button.get(), value, 12);
 
   if (!entityId.empty()) {
     HaBinding binding;
@@ -360,8 +384,12 @@ void JsonPage::addButton(const std::string &aCommandPrefix, const rapidjson::Val
       auto button = std::make_unique<Widget::Button>([this, commandStruct]() { Command::Commands::sendCommand(commandStruct); });
       if (value.HasMember("Text") && value["Text"].IsString())
         button->SetText(value["Text"].GetString());
-      if (value.HasMember("HeightPct") && value["HeightPct"].IsUint())
-        button->SetHeight(lv_pct(value["HeightPct"].GetUint()));
+      if (value.HasMember("HeightPct") && value["HeightPct"].IsUint()) {
+        unsigned int hp = value["HeightPct"].GetUint();
+        if (hp < 10)
+          hp = 10;
+        button->SetHeight(lv_pct(hp));
+      }
       if (value.HasMember("SizeXY") && value["SizeXY"].IsArray())
         if (value["SizeXY"].Size() == 2 && value["SizeXY"][0].IsUint() && value["SizeXY"][1].IsUint())
           button->SetSize(lv_pct(value["SizeXY"][0].GetUint()), lv_pct(value["SizeXY"][1].GetUint()));
@@ -377,6 +405,7 @@ void JsonPage::addButton(const std::string &aCommandPrefix, const rapidjson::Val
         button->SetX(lv_pct(value["PosX"].GetUint()));
       if (value.HasMember("PosY") && value["PosY"].IsUint())
         button->SetY(lv_pct(value["PosY"].GetUint()));
+      clampWidgetHorizontal(button.get());
       mWidgets.push_back(AddElement(std::move(button)));
     }
   }
@@ -401,6 +430,7 @@ void JsonPage::addImage(const rapidjson::Value &value) {
       image->SetX(lv_pct(value["PosX"].GetUint()));
     if (value.HasMember("PosY") && value["PosY"].IsUint())
       image->SetY(lv_pct(value["PosY"].GetUint()));
+    clampWidgetHorizontal(image.get());
     mWidgets.push_back(AddElement(std::move(image)));
   }
 }

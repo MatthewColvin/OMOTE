@@ -27,6 +27,9 @@ protected:
   void OnLvglEvent(lv_event_t *anEvent) override;
 
 private:
+  static void applyLabelReadabilityStyle(lv_obj_t *label);
+  void layoutLabelText();
+
   Label *mText = nullptr;
   std::function<void()> mOnPress = nullptr;
   std::function<void()> mOnRelease = nullptr;

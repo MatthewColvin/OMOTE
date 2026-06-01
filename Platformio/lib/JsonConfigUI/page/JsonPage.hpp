@@ -50,7 +50,7 @@ private:
   std::vector<uint32_t> mSubscriptions;
   std::vector<std::string> mHaEntityIds;
   std::vector<HaBinding> mHaBindings;
-  static constexpr auto distBetweenWidgets = 5;
+  static constexpr auto distBetweenWidgets = 3;
   std::string mCommandFile;
   std::multimap<Command::KeyIds, Command::KeyStruct> mKeyHandlers;
 };

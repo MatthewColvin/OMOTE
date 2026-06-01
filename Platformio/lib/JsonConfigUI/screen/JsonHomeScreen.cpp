@@ -2,6 +2,7 @@
 
 #include "ActionTester.hpp"
 #include "AddDevice.hpp"
+#include "HaRuntime.hpp"
 #include "HardwareFactory.hpp"
 #include "JsonPage.hpp"
 #include "RapidJsonUtilty.hpp"
@@ -49,6 +50,7 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   SetPushAnimation(LV_SCR_LOAD_ANIM_NONE);
   // Init Factory to allow building of Json devices
   aFactory.InitJsonFactory();
+  HaRuntime::init();
 
   mSceneChangeHandler.SetNotification(mStatusBar->GetSceneChangeNotification());
   mSceneChangeHandler = [this](std::string aNewScene) { GoToSceneSelection(aNewScene); };
@@ -237,6 +239,7 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
   mTabView->SetVisiblity(true);
   mList->SetVisiblity(false);
   lv_obj_fade_in(mTabView->LvglSelf(), 400, 0);
+  mTabView->OnShow();
 }
 
 void JsonHomeScreen::AddPage(Page::Base::Ptr aPage) {
@@ -304,6 +307,17 @@ void JsonHomeScreen::sendExitSequence() {
     Command::Commands::sendCommand(i);
   mExitCommands.clear();
   mSavedExitSeq.clear();
+}
+
+void JsonHomeScreen::reloadCurrentSceneFromDisk() {
+  if (mLastScene.empty() || !mTabView->IsVisible())
+    return;
+  const std::string scene = mLastScene;
+  const uint16_t tabIdx = mTabView->GetCurrentTabIdx();
+  mLastScene.clear();
+  displayScenePage(scene, false);
+  mTabView->SetCurrentTabIdx(tabIdx, LV_ANIM_OFF);
+  mTabView->OnShow();
 }
 
 void JsonHomeScreen::GoToSceneSelection(const std::string &aNewScene) {

@@ -1,4 +1,5 @@
 #include "config_http.hpp"
+#include "config_reload.hpp"
 
 #include "Hardware/LoggingInterface.hpp"
 #include "HardwareFactory.hpp"
@@ -183,6 +184,10 @@ void handleFsWrite() {
   }
   file << body;
   file.close();
+  if (path == "HaSettings.json")
+    config_reload::markHaSettingsDirty();
+  else if (path.rfind("Pages/", 0) == 0 || path == "Scenes.json" || path.rfind("Scenes/", 0) == 0)
+    config_reload::markPagesDirty();
   sendJson(200, "{\"ok\":true}");
 }
 
@@ -333,7 +338,8 @@ void sync() {
     server.begin();
     running = true;
   }
-  const int passes = editor_sync_mode::isActive() ? 16 : 2;
+  // Keep HTTP responsive without starving LVGL (16 passes froze the touchscreen UI).
+  const int passes = editor_sync_mode::isActive() ? 4 : 2;
   for (int i = 0; i < passes; i++)
     server.handleClient();
 }

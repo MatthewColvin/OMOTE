@@ -1,10 +1,12 @@
 #include "JsonUI.hpp"
 
 #include "EditorSyncPage.hpp"
+#include "HaRuntime.hpp"
 #include "HardwareFactory.hpp"
 #include "JsonHomeScreen.hpp"
 #include "ScreenManager.hpp"
 #include "UIBase.hpp"
+#include "config_reload.hpp"
 #include "editor_sync_mode.hpp"
 
 using namespace UI;
@@ -21,6 +23,11 @@ void JsonUI::loopHandler() {
   }
   if (!editor_sync_mode::isActive())
     syncUiShown = false;
+  if (config_reload::consumeHaSettingsDirty())
+    HaRuntime::reloadSettingsFromDisk();
+  if (mJsonHomeScreen && config_reload::consumePagesDirty())
+    mJsonHomeScreen->reloadCurrentSceneFromDisk();
+  HaRuntime::tick();
   UIBase::loopHandler();
 }
 

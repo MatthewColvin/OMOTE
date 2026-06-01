@@ -32,6 +32,21 @@ When you **Connect & load** while already editing (e.g. after importing a backup
 
 Use this before a risky deploy, when the remote is offline, or to clone config to a second OMOTE.
 
+## Home Assistant
+
+On **Connect**: enter HA URL + long-lived token → **Save HA settings** (writes `HaSettings.json`) → **Test connection**.
+
+On **Remote**: add **HA toggle** or **HA label** widgets. Entity lists load from HA **in your browser** (not via the remote). The canvas polls entity state every 8s for live preview.
+
+Widget JSON on pages:
+
+```json
+{ "Type": "HaToggle", "Text": "Kitchen", "EntityId": "light.kitchen", "Domain": "light", "Service": "toggle", "HeightPct": 10, "AlignTo": 0 }
+{ "Type": "HaLabel", "Text": "—", "EntityId": "sensor.temperature", "HeightPct": 8, "AlignTo": 1 }
+```
+
+Firmware support for these widget types is planned (see repo notes). Deploy `HaSettings.json` with **Save to remote**.
+
 ## Advanced mode
 
 Toggle **Advanced** in the header to show:

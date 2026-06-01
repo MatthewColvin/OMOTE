@@ -42,6 +42,15 @@ python -m http.server 8080</pre>
           <input type="file" id="omote-import-file" accept=".omote,.zip,application/zip" />
         </label>
       </div>
+      <h3 class="section-title">Home Assistant</h3>
+      <p class="muted small">Entity lists load <strong>directly from HA in this browser</strong> — not through the remote. Credentials are saved in <code>HaSettings.json</code> on the remote when you deploy.</p>
+      <label>HA URL <input id="ha-url" placeholder="http://192.168.1.10:8123" /></label>
+      <label>Long-lived token <input id="ha-token" type="password" placeholder="eyJ…" /></label>
+      <div class="row">
+        <button type="button" id="btn-save-ha">Save HA settings</button>
+        <button type="button" id="btn-test-ha">Test connection</button>
+      </div>
+      <p class="muted small">Add this editor URL to <code>http.cors_allowed_origins</code> in Home Assistant <code>configuration.yaml</code>, then restart HA.</p>
       <p id="connect-msg" class="msg"></p>
     </section>
 
@@ -245,6 +254,20 @@ python -m http.server 8080</pre>
               </div>
               <div id="w-fields-numpad" class="hidden">
                 <p class="muted small">Uses commands NUM_0 … NUM_9 from this page’s command file. Learn or add them on the Commands tab.</p>
+              </div>
+              <div id="w-fields-ha" class="hidden">
+                <div class="domain-tabs" id="ha-domain-tabs"></div>
+                <input id="ha-entity-search" placeholder="Search entities…" />
+                <p id="ha-entity-status" class="muted small"></p>
+                <select id="ha-entity-pick" size="6"></select>
+                <label class="inline"><input type="checkbox" id="ha-auto-label" checked /> Auto label from entity name</label>
+                <label id="ha-service-row">Service
+                  <select id="ha-service">
+                    <option value="toggle">toggle</option>
+                    <option value="turn_on">turn_on</option>
+                    <option value="turn_off">turn_off</option>
+                  </select>
+                </label>
               </div>
               <div id="w-fields-layout">
                 <label>Height % <input id="w-height" type="number" min="1" max="100" /></label>

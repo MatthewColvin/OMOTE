@@ -6,6 +6,14 @@ const TAB_BAR_H = Math.round(SCR_H * 0.1);
 const CONTENT_H = SCR_H - STATUS_H - TAB_BAR_H;
 const ADVANCED_KEY = 'omote_editor_advanced';
 const OMOTE_PACK_VERSION = 1;
+const HA_SETTINGS_PATH = 'HaSettings.json';
+const HA_DOMAINS = ['light', 'switch', 'cover', 'climate', 'sensor', 'media_player', 'fan', 'scene', 'script', 'input_boolean', 'lock', 'button'];
+const HA_EDITOR_PREFS_KEY = 'omote_oo_ha_editor_prefs';
+
+/** Live HA state for canvas preview (browser only). */
+const haStateCache = new Map();
+let haPreviewTimer = null;
+let haActiveDomain = 'light';
 
 /** Match LVGL++ widget constants (NumberPad.hpp, ColorButtons.hpp, JsonPage distBetweenWidgets). */
 const FW_LAYOUT = {
@@ -15,7 +23,7 @@ const FW_LAYOUT = {
   numberPad: { height: 180, btnW: 60, btnH: 30, spacingX: 20, spacingY: 15, pad: 10, cols: 3 },
 };
 
-const DRAGGABLE_WIDGET_TYPES = new Set(['Button', 'Title', 'Label', 'Image']);
+const DRAGGABLE_WIDGET_TYPES = new Set(['Button', 'Title', 'Label', 'Image', 'HaToggle', 'HaLabel']);
 
 const NUM_PAD_COMMANDS = [
   'NUM_0', 'NUM_1', 'NUM_2', 'NUM_3', 'NUM_4',
@@ -76,6 +84,20 @@ const WIDGET_TYPES = {
       return { Type: 'NumberPad', Command: [...NUM_PAD_COMMANDS], AlignTo: widgets.length };
     },
     stubCommands: NUM_PAD_COMMANDS
+  },
+  HaToggle: {
+    label: 'HA toggle',
+    hint: 'Home Assistant toggle button (light, switch, etc.).',
+    create() {
+      return { Type: 'HaToggle', Text: 'Device', EntityId: '', Domain: 'light', Service: 'toggle', HeightPct: 10, AlignTo: 0 };
+    }
+  },
+  HaLabel: {
+    label: 'HA label',
+    hint: 'Shows live entity state from Home Assistant.',
+    create() {
+      return { Type: 'HaLabel', Text: '—', EntityId: '', HeightPct: 8, AlignTo: 0 };
+    }
   }
 };
 
@@ -270,6 +292,226 @@ function setConnectMsg(text, kind = '') {
   if (!el) return;
   el.textContent = text;
   el.className = 'msg' + (kind ? ' ' + kind : '');
+}
+
+function defaultHaService(domain, widgetType) {
+  const d = domain || 'light';
+  if (widgetType === 'HaLabel') return 'turn_on';
+  if (d === 'scene' || d === 'script') return 'turn_on';
+  if (d === 'button') return 'press';
+  return 'toggle';
+}
+
+function isHaStateOn(state) {
+  const s = String(state || '').toLowerCase();
+  return ['on', 'true', '1', 'yes', 'open', 'opening', 'playing', 'home', 'heat', 'cool', 'auto', 'unlocked', 'active'].includes(s);
+}
+
+function loadHaSettingsDoc() {
+  return parseJson(HA_SETTINGS_PATH) || { Url: '', Token: '' };
+}
+
+function loadHaSettingsForm() {
+  const doc = loadHaSettingsDoc();
+  const prefs = JSON.parse(localStorage.getItem(HA_EDITOR_PREFS_KEY) || '{}');
+  if ($('ha-url')) $('ha-url').value = doc.Url || prefs.ha_url || '';
+  if ($('ha-token')) $('ha-token').value = doc.Token || prefs.ha_token || '';
+}
+
+function saveHaSettingsToFiles() {
+  const url = ($('ha-url')?.value || '').trim().replace(/\/+$/, '');
+  const token = ($('ha-token')?.value || '').trim();
+  setFile(HA_SETTINGS_PATH, { Url: url, Token: token });
+  localStorage.setItem(HA_EDITOR_PREFS_KEY, JSON.stringify({ ha_url: url, ha_token: token }));
+}
+
+function getHaCredentials() {
+  const url = ($('ha-url')?.value || '').trim().replace(/\/+$/, '');
+  const token = ($('ha-token')?.value || '').trim();
+  if (!url || !token) return null;
+  return { url, token };
+}
+
+async function haBrowserFetch(path, opts = {}) {
+  const creds = getHaCredentials();
+  if (!creds) throw new Error('Enter HA URL and token on the Connect tab.');
+  const timeoutMs = opts.timeoutMs || 8000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${creds.url}${path}`, {
+      method: opts.method || 'GET',
+      body: opts.body,
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${creds.token}`,
+        'Content-Type': 'application/json',
+        ...(opts.headers || {}),
+      },
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      let err = text;
+      try {
+        const j = JSON.parse(text);
+        err = j.message || j.error || text;
+      } catch { /* ignore */ }
+      throw new Error(typeof err === 'string' ? err : res.statusText);
+    }
+    return text;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function haBrowserErrorHint(err) {
+  const m = String(err?.message || err || '');
+  if (m === 'Failed to fetch' || err?.name === 'TypeError') {
+    return 'Browser cannot reach Home Assistant (CORS or wrong URL). Add this editor to HA http.cors_allowed_origins.';
+  }
+  if (m.includes('401') || m.toLowerCase().includes('unauthorized')) {
+    return 'HA rejected the token — create a new long-lived access token.';
+  }
+  return m;
+}
+
+async function haBrowserListEntities(domain, search) {
+  const dom = domain || 'light';
+  const prefix = dom + '.';
+  const text = await haBrowserFetch('/api/states', { timeoutMs: 20000 });
+  const states = JSON.parse(text);
+  if (!Array.isArray(states)) throw new Error('Unexpected /api/states response');
+  const q = (search || '').toLowerCase();
+  const entities = [];
+  for (const s of states) {
+    const entity_id = s.entity_id || '';
+    if (!entity_id.startsWith(prefix)) continue;
+    const friendly_name = s.attributes?.friendly_name || '';
+    if (q) {
+      const blob = `${entity_id} ${friendly_name}`.toLowerCase();
+      if (!blob.includes(q)) continue;
+    }
+    entities.push({
+      entity_id,
+      state: s.state || '',
+      friendly_name,
+      domain: dom,
+    });
+    if (entities.length >= 120) break;
+  }
+  return { entities };
+}
+
+async function haBrowserEntityState(entityId) {
+  const text = await haBrowserFetch(`/api/states/${encodeURIComponent(entityId)}`);
+  const s = JSON.parse(text);
+  return { entity_id: entityId, state: s.state || '', friendly_name: s.attributes?.friendly_name || '' };
+}
+
+function renderHaDomainTabs() {
+  const root = $('ha-domain-tabs');
+  if (!root) return;
+  root.innerHTML = '';
+  HA_DOMAINS.forEach((d) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = d;
+    b.className = d === haActiveDomain ? 'active' : '';
+    b.onclick = () => {
+      haActiveDomain = d;
+      renderHaDomainTabs();
+      populateHaEntityPicker({ domain: d });
+    };
+    root.appendChild(b);
+  });
+}
+
+async function populateHaEntityPicker(opts = {}) {
+  const status = $('ha-entity-status');
+  const sel = $('ha-entity-pick');
+  if (!status || !sel) return;
+  const domain = opts.domain || haActiveDomain || 'light';
+  const search = ($('ha-entity-search')?.value || '').trim();
+  const selected = opts.selected || sel.value || '';
+  status.textContent = 'Loading entities…';
+  sel.innerHTML = '';
+  try {
+    const data = await haBrowserListEntities(domain, search);
+    status.textContent = `${data.entities.length} ${domain} entities`;
+    data.entities.forEach((e) => {
+      const o = document.createElement('option');
+      o.value = e.entity_id;
+      o.textContent = `${e.friendly_name || e.entity_id} — ${e.state}`;
+      if (e.entity_id === selected) o.selected = true;
+      sel.appendChild(o);
+    });
+    data.entities.forEach((e) => haStateCache.set(e.entity_id, e.state));
+    if (opts.autoApplyLabel !== false) applyHaEntityPickToWidget();
+    drawCanvas();
+  } catch (e) {
+    status.textContent = haBrowserErrorHint(e);
+  }
+}
+
+function applyHaEntityPickToWidget() {
+  if (selection.kind !== 'widget') return;
+  const page = currentPage();
+  const w = page.Widgets?.[selection.widgetIdx];
+  if (!w || (w.Type !== 'HaToggle' && w.Type !== 'HaLabel')) return;
+  const sel = $('ha-entity-pick');
+  const opt = sel?.selectedOptions?.[0];
+  if (!opt?.value) return;
+  w.EntityId = opt.value;
+  w.Domain = opt.value.split('.')[0] || 'light';
+  if (w.Type === 'HaToggle') {
+    w.Service = $('ha-service')?.value || defaultHaService(w.Domain, w.Type);
+  }
+  if ($('ha-auto-label')?.checked) {
+    const label = opt.textContent.split(' — ')[0] || opt.value;
+    w.Text = label;
+    if ($('action-touch-label')) $('action-touch-label').value = label;
+  }
+  savePage(page);
+  drawCanvas();
+}
+
+function pageHaEntityIds(page) {
+  const ids = new Set();
+  (page?.Widgets || []).forEach((w) => {
+    if (w.EntityId) ids.add(w.EntityId);
+  });
+  return [...ids];
+}
+
+async function refreshHaPreviewStates() {
+  const creds = getHaCredentials();
+  if (!creds) return;
+  const ids = pageHaEntityIds(currentPage());
+  if (!ids.length) return;
+  let changed = false;
+  for (const eid of ids.slice(0, 12)) {
+    try {
+      const data = await haBrowserEntityState(eid);
+      const prev = haStateCache.get(eid);
+      if (prev !== data.state) {
+        haStateCache.set(eid, data.state);
+        changed = true;
+      }
+    } catch { /* skip */ }
+  }
+  if (changed) drawCanvas();
+}
+
+function startHaPreviewPolling() {
+  stopHaPreviewPolling();
+  haPreviewTimer = setInterval(() => refreshHaPreviewStates().catch(() => {}), 8000);
+}
+
+function stopHaPreviewPolling() {
+  if (haPreviewTimer) {
+    clearInterval(haPreviewTimer);
+    haPreviewTimer = null;
+  }
 }
 
 function localFileMap() {
@@ -476,6 +718,29 @@ function resolvePagePath(fileName) {
   return fileName;
 }
 
+/** Scene tabs created by older editor builds omitted the Pages/ prefix — fix on load. */
+function normalizeScenePagePaths() {
+  let fixed = false;
+  for (const path of listPaths('Scenes/')) {
+    const sc = parseJson(path);
+    if (!sc?.Pages?.length) continue;
+    let changed = false;
+    for (const pg of sc.Pages) {
+      if (!pg.FileName) continue;
+      const resolved = resolvePagePath(pg.FileName);
+      if (resolved && resolved !== pg.FileName && resolved.startsWith('Pages/')) {
+        pg.FileName = resolved;
+        changed = true;
+      }
+    }
+    if (changed) {
+      setFile(path, sc);
+      fixed = true;
+    }
+  }
+  return fixed;
+}
+
 function sceneContext() {
   const scene = parseJson(selectedScenePath);
   const entry = scene?.Pages?.[activeTabIdx];
@@ -566,7 +831,7 @@ function addDeviceToScene(pageName, templateKey = 'blank', shortName) {
   scene.Pages.push({
     PageName: pageName,
     ShortName: (shortName || pageName).slice(0, 12),
-    FileName: pagePath.replace(/^Pages\//, '')
+    FileName: pagePath
   });
   if (!scene.ScreenName) scene.ScreenName = $('scene-screen-name')?.value || 'My scene';
   setFile(selectedScenePath, scene);
@@ -850,7 +1115,13 @@ function showTab(name) {
     b.classList.toggle('active', b.dataset.tab === name);
   });
   $(`tab-${name}`)?.classList.add('active');
-  if (name === 'remote') refreshRemoteTab();
+  if (name === 'remote') {
+    refreshRemoteTab();
+    startHaPreviewPolling();
+  } else {
+    stopHaPreviewPolling();
+  }
+  if (name === 'connect') loadHaSettingsForm();
   if (name === 'scenes') refreshScenesTab();
   if (name === 'commands') renderCommandsTable();
   if (name === 'raw') populateRawSelect();
@@ -922,6 +1193,50 @@ async function connectAndLoad(options = {}) {
 
 $('btn-connect').onclick = connectAndLoad;
 
+$('btn-save-ha')?.addEventListener('click', async () => {
+  saveHaSettingsToFiles();
+  const content = files.get(HA_SETTINGS_PATH)?.content;
+  if (!content) {
+    setConnectMsg('HA settings saved locally only.', 'ok');
+    return;
+  }
+  setConnectMsg('Saving HA settings…');
+  try {
+    const st = await api('/api/status');
+    if (!st) throw new Error('Not connected to remote');
+    await api('/api/fs/write?path=' + encodeURIComponent(HA_SETTINGS_PATH), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: content,
+      timeout: 15000,
+    });
+    files.get(HA_SETTINGS_PATH).dirty = false;
+    setConnectMsg('HA settings saved on remote (LittleFS). Taps work without reboot.', 'ok');
+  } catch (e) {
+    setConnectMsg(
+      `Saved in editor only — use “Save to remote” to push all files. (${e.message})`,
+      'ok'
+    );
+  }
+});
+
+$('btn-test-ha')?.addEventListener('click', async () => {
+  setConnectMsg('Testing Home Assistant…');
+  try {
+    await haBrowserFetch('/api/');
+    const data = await haBrowserListEntities('light', '');
+    setConnectMsg(`Connected to HA — found ${data.entities.length} light entities (sample).`, 'ok');
+  } catch (e) {
+    setConnectMsg(haBrowserErrorHint(e), 'err');
+  }
+});
+
+$('ha-entity-search')?.addEventListener('input', () => {
+  populateHaEntityPicker({ autoApplyLabel: false }).catch(() => {});
+});
+$('ha-entity-pick')?.addEventListener('change', () => applyHaEntityPickToWidget());
+$('ha-service')?.addEventListener('change', () => applyHaEntityPickToWidget());
+
 $('btn-export-omote')?.addEventListener('click', handleExportOmotePack);
 $('btn-export-omote-footer')?.addEventListener('click', handleExportOmotePack);
 $('omote-import-file')?.addEventListener('change', async (ev) => {
@@ -965,6 +1280,12 @@ $('btn-exit-sync').onclick = async () => {
 
 function initAfterLoad() {
   syncOrphanSceneFiles();
+  if (normalizeScenePagePaths()) {
+    $('deploy-msg').textContent = 'Fixed scene tab paths (Pages/ prefix). Save to remote when ready.';
+    $('deploy-msg').className = 'msg ok';
+  }
+  if (!files.has(HA_SETTINGS_PATH)) setFile(HA_SETTINGS_PATH, { Url: '', Token: '' }, false);
+  loadHaSettingsForm();
   if (!selectedScenePath) {
     const reg = sceneRegistry();
     if (reg.Scenes?.[0]?.FileName) selectedScenePath = reg.Scenes[0].FileName;
@@ -1185,6 +1506,7 @@ function refreshRemoteTab() {
   drawCanvas();
   renderRemoteKeymap();
   updateSelectionPanel();
+  refreshHaPreviewStates().catch(() => {});
 }
 
 function tabLabels() {
@@ -1333,6 +1655,10 @@ function widgetSummary(w) {
   if (w.Type === 'ColorButtons') return 'RGYB keys';
   if (w.Type === 'NumberPad') return '0–9 pad';
   if (w.Type === 'Title') return activePageName();
+  if (w.Type === 'HaToggle' || w.Type === 'HaLabel') {
+    const name = w.Text || w.Type;
+    return w.EntityId ? `${name} → ${w.EntityId}` : name;
+  }
   const cmd = Array.isArray(w.Command) ? w.Command[0] : w.Command;
   const text = w.Text || w.Type;
   return cmd ? `${text} → ${cmd}` : text;
@@ -1366,6 +1692,10 @@ function addWidgetOfType(type) {
   page.Widgets.push(widget);
   savePage(page);
   selectWidget(page.Widgets.length - 1);
+  if (type === 'HaToggle' || type === 'HaLabel') {
+    syncWidgetEditor();
+    populateHaEntityPicker({ autoApplyLabel: false }).catch(() => {});
+  }
 }
 
 function syncWidgetEditor() {
@@ -1386,16 +1716,34 @@ function syncWidgetEditor() {
   const isImage = type === 'Image';
   const isColor = type === 'ColorButtons';
   const isPad = type === 'NumberPad';
+  const isHaToggle = type === 'HaToggle';
+  const isHaLabel = type === 'HaLabel';
+  const isHa = isHaToggle || isHaLabel;
 
-  $('w-fields-text')?.classList.toggle('hidden', isTitle || isImage || isColor || isPad);
+  $('w-fields-text')?.classList.toggle('hidden', isTitle || isImage || isColor || isPad || isHaLabel);
   $('w-fields-command')?.classList.toggle('hidden', !(isButton || isLabel));
   $('w-fields-image')?.classList.toggle('hidden', !isImage);
   $('w-fields-color')?.classList.toggle('hidden', !isColor);
   $('w-fields-numpad')?.classList.toggle('hidden', !isPad);
+  $('w-fields-ha')?.classList.toggle('hidden', !isHa);
   $('w-fields-layout')?.classList.toggle('hidden', isColor || isPad);
 
+  if ($('ha-service-row')) {
+    $('ha-service-row').classList.toggle('hidden', !isHaToggle);
+  }
+
   if ($('w-text-label')) {
-    $('w-text-label').firstChild.textContent = isLabel ? 'Text ' : 'Label ';
+    $('w-text-label').firstChild.textContent = isLabel || isHaLabel ? 'Text ' : 'Label ';
+  }
+
+  if (isHa) {
+    $('action-touch-label').value = w.Text || '';
+    if (w.EntityId) {
+      haActiveDomain = w.EntityId.split('.')[0] || haActiveDomain;
+    }
+    renderHaDomainTabs();
+    if ($('ha-service') && w.Service) $('ha-service').value = w.Service;
+    populateHaEntityPicker({ selected: w.EntityId || '', autoApplyLabel: false });
   }
 
   if (isTitle && $('w-fields-layout')) {
@@ -1426,7 +1774,7 @@ function syncWidgetEditor() {
     $('w-cmd-blue').value = w.Command[3] || 'BLUE';
   }
 
-  const showHeight = isButton || isLabel || isTitle;
+  const showHeight = isButton || isLabel || isTitle || isHa;
   if ($('w-height')?.parentElement) {
     $('w-height').parentElement.classList.toggle('hidden', !showHeight);
   }
@@ -1541,7 +1889,13 @@ function applyWidgetEdits() {
   if (!w) return;
 
   const type = w.Type || 'Button';
-  if (type === 'Button' || type === 'Label') {
+  if (type === 'HaToggle' || type === 'HaLabel') {
+    w.Text = $('action-touch-label').value.trim();
+    applyHaEntityPickToWidget();
+    if (type === 'HaToggle') {
+      w.Service = $('ha-service')?.value || defaultHaService(w.Domain, type);
+    }
+  } else if (type === 'Button' || type === 'Label') {
     w.Text = $('action-touch-label').value.trim();
     const wa = $('widget-action-type').value;
     if (wa === 'none') delete w.Command;
@@ -1565,7 +1919,7 @@ function applyWidgetEdits() {
     ensureStubCommands(ensurePageCommandFile(), w.Command);
   }
 
-  if (type === 'Button' || type === 'Label' || type === 'Title') {
+  if (type === 'Button' || type === 'Label' || type === 'Title' || type === 'HaToggle' || type === 'HaLabel') {
     const h = parseInt($('w-height').value, 10);
     if (h) w.HeightPct = h;
   }
@@ -1920,6 +2274,34 @@ function drawCanvas() {
       ctx.textAlign = 'left';
       ctx.strokeStyle = sel ? '#58a6ff' : '#555';
       ctx.strokeRect(r.x, r.y, r.w, r.h);
+    } else if (w.Type === 'HaToggle') {
+      const st = haStateCache.get(w.EntityId);
+      const on = isHaStateOn(st);
+      ctx.fillStyle = on ? '#2d6a4f' : '#2a3548';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = '#eee';
+      ctx.font = '12px sans-serif';
+      const label = (w.Text || w.EntityId || 'HA').slice(0, 20);
+      ctx.fillText(label, r.x + 6, r.y + r.h / 2 + 4);
+      ctx.fillStyle = on ? '#7dffb0' : '#666';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(st != null ? String(st).slice(0, 10) : '…', r.x + r.w - 6, r.y + r.h / 2 + 4);
+      ctx.textAlign = 'left';
+      ctx.strokeStyle = sel ? '#58a6ff' : '#3d8';
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
+    } else if (w.Type === 'HaLabel') {
+      const st = haStateCache.get(w.EntityId);
+      ctx.fillStyle = '#252530';
+      ctx.fillRect(r.x, r.y, r.w, r.h);
+      ctx.fillStyle = '#9cf';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      const line = st != null ? String(st) : (w.Text || '—');
+      ctx.fillText(line.slice(0, 24), r.x + r.w / 2, r.y + r.h / 2 + 4);
+      ctx.textAlign = 'left';
+      ctx.strokeStyle = sel ? '#58a6ff' : '#555';
+      ctx.strokeRect(r.x, r.y, r.w, r.h);
     } else {
       ctx.fillStyle = '#2a3548';
       ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -2208,8 +2590,14 @@ $('btn-deploy').onclick = async () => {
         method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: content, timeout: 30000
       });
     }
-    await api('/api/device/reboot', { method: 'POST', timeout: 5000 }).catch(() => {});
-    $('deploy-msg').textContent = `Saved ${dirty.length} file(s). Remote rebooting…`;
+    const onlyHaSettings =
+      dirty.length > 0 && dirty.every(([p]) => p === HA_SETTINGS_PATH);
+    if (!onlyHaSettings) {
+      await api('/api/device/reboot', { method: 'POST', timeout: 5000 }).catch(() => {});
+      $('deploy-msg').textContent = `Saved ${dirty.length} file(s). Remote rebooting…`;
+    } else {
+      $('deploy-msg').textContent = `Saved HaSettings.json on remote (no reboot).`;
+    }
     $('deploy-msg').className = 'msg ok';
     dirty.forEach(([p]) => { files.get(p).dirty = false; });
   } catch (e) {

@@ -19,7 +19,8 @@ void Button::OnLvglEvent(lv_event_t *anEvent) {
     mOnPress();
   } else if (eventCode == LV_EVENT_RELEASED && mOnRelease) {
     mOnRelease();
-  } else if (eventCode == LV_EVENT_SHORT_CLICKED && mOnShortClick) {
+  } else if ((eventCode == LV_EVENT_CLICKED || eventCode == LV_EVENT_SHORT_CLICKED) &&
+             mOnShortClick) {
     mOnShortClick();
   } else if (eventCode == LV_EVENT_LONG_PRESSED && mOnLongHold) {
     mOnLongHold();
@@ -37,6 +38,9 @@ void Button::SetText(std::string aText) {
   if (!mText) {
     mText = AddNewElement<Label>(aText);
     mText->SetTextStyle(UI::TextStyle().Align(LV_TEXT_ALIGN_CENTER));
+    auto lock = LvglResourceManager::GetInstance().scopeLock();
+    lv_obj_remove_flag(mText->LvglSelf(), LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(mText->LvglSelf(), LV_OBJ_FLAG_EVENT_BUBBLE);
   }
   mText->SetText(aText);
 }

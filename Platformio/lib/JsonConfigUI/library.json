@@ -11,7 +11,8 @@
         "includeDir": ".",
         "flags": [
             "-I page",
-            "-I screen"
+            "-I screen",
+            "-I ha"
         ]
     },
     "frameworks": "*",

@@ -435,7 +435,18 @@ footer {
   max-height: 180px;
   overflow: auto;
 }
-.connect-conflict-list li { margin: 2px 0; }
+.domain-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.domain-tabs button {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+}
+.domain-tabs button.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+#ha-entity-pick { width: 100%; margin: 4px 0; }
 
 .remote-face {
   display: flex;

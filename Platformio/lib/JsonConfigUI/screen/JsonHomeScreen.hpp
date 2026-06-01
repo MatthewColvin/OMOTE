@@ -37,6 +37,9 @@ public:
 
   void displayScenePage(const std::string &aFileName, bool restoreScene);
 
+  /** Re-read page JSON from LittleFS for the current scene (after editor deploy). */
+  void reloadCurrentSceneFromDisk();
+
   void OnLvglEvent(lv_event_t *aEvent);
 
 protected:

@@ -1,30 +1,89 @@
 #include "JsonPage.hpp"
 #include "Button.hpp"
 #include "ColorButtons.hpp"
+#include "HaRuntime.hpp"
 #include "HardwareFactory.hpp"
 #include "Image.hpp"
 #include "Label.hpp"
+#include "LvglResourceManager.hpp"
 #include "NumberPad.hpp"
 #include "magic_enum.hpp"
 #include "observerHandles.hpp"
+#include <Arduino.h>
 #include <fstream>
 
 using namespace UI::Page;
 using namespace Command;
 
+namespace {
+
+bool readJsonUint(const rapidjson::Value &obj, const char *key, unsigned int &out) {
+  if (!obj.HasMember(key))
+    return false;
+  const auto &v = obj[key];
+  if (v.IsUint()) {
+    out = v.GetUint();
+    return true;
+  }
+  if (v.IsInt() && v.GetInt() >= 0) {
+    out = static_cast<unsigned int>(v.GetInt());
+    return true;
+  }
+  return false;
+}
+
+std::string readEntityId(const rapidjson::Value &value) {
+  if (value.HasMember("EntityId") && value["EntityId"].IsString())
+    return value["EntityId"].GetString();
+  return {};
+}
+
+std::filesystem::path resolvePageJsonPath(const std::string &fileName) {
+  if (fileName.empty())
+    return std::filesystem::path(FS_PATH);
+  const std::filesystem::path direct(FS_PATH + fileName);
+  {
+    std::ifstream probe(direct);
+    if (probe.good())
+      return direct;
+  }
+  if (fileName.rfind("Pages/", 0) != 0) {
+    const std::filesystem::path underPages(FS_PATH "Pages/" + fileName);
+    std::ifstream probe(underPages);
+    if (probe.good())
+      return underPages;
+  }
+  return direct;
+}
+
+void enablePageScroll(lv_obj_t *pageObj) {
+  if (!pageObj)
+    return;
+  auto lock = LvglResourceManager::GetInstance().scopeLock();
+  lv_obj_add_flag(pageObj, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_scroll_dir(pageObj, LV_DIR_VER);
+  lv_obj_set_scrollbar_mode(pageObj, LV_SCROLLBAR_MODE_AUTO);
+}
+
+} // namespace
+
 JsonPage::JsonPage(std::string aFileName, std::string aPageName, std::string aCommandPrefix)
     : Base(ID::Pages::JsonPage) {
 
-  std::filesystem::path aPageJsonPath(FS_PATH + aFileName);
+  const std::filesystem::path aPageJsonPath = resolvePageJsonPath(aFileName);
 
   rapidjson::Document d = OMOTE::JSON::GetDocument(aPageJsonPath);
-  if (d.HasParseError() || d.IsNull())
+  if (d.HasParseError() || d.IsNull() || !d.IsObject()) {
+    Serial.printf("JsonPage: failed to load \"%s\" (scene FileName=\"%s\")\n", aPageJsonPath.c_str(),
+                  aFileName.c_str());
     return;
+  }
 
   if (d.HasMember("CommandFile") && d["CommandFile"].IsString()) {
     mCommandFile = d["CommandFile"].GetString();
   }
 
+  bool pageNeedsScroll = false;
   if (d.HasMember("Widgets") && d["Widgets"].IsArray()) {
     for (rapidjson::SizeType i = 0; i < d["Widgets"].Size(); i++) {
       if (d["Widgets"][i].HasMember("Type") && d["Widgets"][i]["Type"].IsString()) {
@@ -42,10 +101,26 @@ JsonPage::JsonPage(std::string aFileName, std::string aPageName, std::string aCo
           addColorButtons(aCommandPrefix, d["Widgets"][i].GetObject());
         } else if (type == "NumberPad") {
           addNumberPad(aCommandPrefix, d["Widgets"][i].GetObject());
+        } else if (type == "HaToggle") {
+          addHaToggle(d["Widgets"][i].GetObject());
+        } else if (type == "HaLabel") {
+          addHaLabel(d["Widgets"][i].GetObject());
+        } else {
+          pageNeedsScroll = true;
+          Serial.printf("JsonPage: unknown widget Type \"%s\" in %s\n", type.c_str(), aFileName.c_str());
         }
       }
     }
   }
+
+  if (pageNeedsScroll || mWidgets.size() > 6)
+    enablePageScroll(LvglSelf());
+  {
+    auto lock = LvglResourceManager::GetInstance().scopeLock();
+    lv_obj_update_layout(LvglSelf());
+  }
+  Serial.printf("JsonPage %s: %u widgets (%u HA)\n", aFileName.c_str(), static_cast<unsigned>(mWidgets.size()),
+                static_cast<unsigned>(mHaBindings.size()));
 
   if (d.HasMember("ButtonMaps") && d["ButtonMaps"].IsObject()) {
     for (Command::KeyIds id = Command::KeyIds::Power; id != Command::KeyIds::INVALID; id = (Command::KeyIds)((int)id + 1)) {
@@ -83,6 +158,149 @@ JsonPage::~JsonPage() {
     HardwareFactory::getAbstract().wifi()->mqttUnBindTextEvent(id);
     UI::observerHandles::deleteHandle(id);
   }
+  HaRuntime::setActivePage(nullptr, {});
+}
+
+void JsonPage::OnShow() {
+  Base::OnShow();
+  HaRuntime::setActivePage(this, mHaEntityIds);
+  applyHaStates();
+  HaRuntime::requestRefresh();
+}
+
+void JsonPage::OnHide() {
+  HaRuntime::setActivePage(nullptr, {});
+  Base::OnHide();
+}
+
+void JsonPage::applyHaStates() {
+  for (const auto &b : mHaBindings) {
+    std::string state;
+    if (!HaRuntime::getCachedState(b.entityId, state))
+      continue;
+    if (b.stateLabel)
+      b.stateLabel->SetText(state);
+    if (b.toggle) {
+      const bool on = HaRuntime::stateIsOn(b.entityId, state);
+      b.toggle->SetBgColor(on ? lv_color_hex(0x2d6a4f) : lv_color_hex(0x2a3548));
+    }
+  }
+}
+
+void JsonPage::applyWidgetLayout(UIElement *widget, const rapidjson::Value &value, unsigned int defaultHeightPct) {
+  unsigned int heightPct = defaultHeightPct;
+  if (readJsonUint(value, "HeightPct", heightPct) || defaultHeightPct > 0)
+    widget->SetHeight(lv_pct(heightPct > 0 ? heightPct : defaultHeightPct));
+
+  if (value.HasMember("SizeXY") && value["SizeXY"].IsArray() && value["SizeXY"].Size() == 2) {
+    unsigned int sx = 0, sy = 0;
+    const auto &arr = value["SizeXY"];
+    if (arr[0].IsUint())
+      sx = arr[0].GetUint();
+    else if (arr[0].IsInt() && arr[0].GetInt() >= 0)
+      sx = static_cast<unsigned int>(arr[0].GetInt());
+    if (arr[1].IsUint())
+      sy = arr[1].GetUint();
+    else if (arr[1].IsInt() && arr[1].GetInt() >= 0)
+      sy = static_cast<unsigned int>(arr[1].GetInt());
+    if (sx > 0 && sy > 0)
+      widget->SetSize(lv_pct(sx), lv_pct(sy));
+  }
+
+  bool aligned = false;
+  unsigned int index = 0;
+  if (readJsonUint(value, "AlignTo", index)) {
+    if (index == 0) {
+      widget->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
+      aligned = true;
+    } else if (index <= mWidgets.size()) {
+      widget->AlignTo(mWidgets[index - 1], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+      aligned = true;
+    }
+  }
+  if (!aligned) {
+    if (mWidgets.empty())
+      widget->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
+    else
+      widget->AlignTo(mWidgets.back(), LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+  }
+
+  unsigned int posX = 0, posY = 0;
+  if (readJsonUint(value, "PosX", posX))
+    widget->SetX(lv_pct(posX));
+  if (readJsonUint(value, "PosY", posY))
+    widget->SetY(lv_pct(posY));
+}
+
+void JsonPage::addHaToggle(const rapidjson::Value &value) {
+  const std::string entityId = readEntityId(value);
+
+  std::string domain;
+  if (value.HasMember("Domain") && value["Domain"].IsString())
+    domain = value["Domain"].GetString();
+  else if (!entityId.empty()) {
+    const auto dot = entityId.find('.');
+    domain = dot != std::string::npos ? entityId.substr(0, dot) : "light";
+  } else {
+    domain = "light";
+  }
+
+  std::string service = "toggle";
+  if (value.HasMember("Service") && value["Service"].IsString())
+    service = value["Service"].GetString();
+
+  std::string label;
+  if (value.HasMember("Text") && value["Text"].IsString())
+    label = value["Text"].GetString();
+  if (label.empty())
+    label = entityId.empty() ? "HA Toggle" : entityId;
+
+  auto button = std::make_unique<Widget::Button>();
+  if (!entityId.empty())
+    button->OnShortClick([domain, service, entityId]() { HaRuntime::callService(domain, service, entityId); });
+  button->SetText(label);
+  button->SetWidth(lv_pct(90));
+  applyWidgetLayout(button.get(), value, 10);
+
+  if (!entityId.empty()) {
+    HaBinding binding;
+    binding.entityId = entityId;
+    binding.toggle = button.get();
+    mHaBindings.push_back(binding);
+    mHaEntityIds.push_back(entityId);
+    Serial.printf("JsonPage: HaToggle %s\n", entityId.c_str());
+  } else {
+    Serial.println("JsonPage: HaToggle has no EntityId — shown but not bound to HA");
+  }
+
+  mWidgets.push_back(AddElement(std::move(button)));
+}
+
+void JsonPage::addHaLabel(const rapidjson::Value &value) {
+  const std::string entityId = readEntityId(value);
+
+  std::string text = "—";
+  if (value.HasMember("Text") && value["Text"].IsString())
+    text = value["Text"].GetString();
+  if (text == "—" && !entityId.empty())
+    text = entityId;
+
+  auto label = std::make_unique<Widget::Label>(text);
+  label->SetWidth(lv_pct(90));
+  applyWidgetLayout(label.get(), value, 8);
+
+  if (!entityId.empty()) {
+    HaBinding binding;
+    binding.entityId = entityId;
+    binding.stateLabel = label.get();
+    mHaBindings.push_back(binding);
+    mHaEntityIds.push_back(entityId);
+    Serial.printf("JsonPage: HaLabel %s\n", entityId.c_str());
+  } else {
+    Serial.println("JsonPage: HaLabel has no EntityId — shown but not bound to HA");
+  }
+
+  mWidgets.push_back(AddElement(std::move(label)));
 }
 
 void JsonPage::addTitle(const std::string &aCommandPrefix, const rapidjson::Value &value, std::string aPageName) {

@@ -8,9 +8,17 @@
 #include "driver/rtc_io.h"
 #include "editor_sync_mode.hpp"
 #include "esp32WebSocket.hpp"
+#include "esp_log.h"
 #include "observerHandles.hpp"
 #include "wifihandler.hpp"
 #include <Wire.h>
+
+namespace {
+void quietNoisyEspLogs() {
+  // Matrix keypad scan toggles pin modes often; gpio driver logs at INFO drown HA> lines.
+  esp_log_level_set("gpio", ESP_LOG_ERROR);
+}
+} // namespace
 
 void HardwareRevX::initIO() {
   // Button Pin Definition
@@ -80,6 +88,7 @@ HardwareRevX::WakeReason getWakeReason() {
 }
 
 void HardwareRevX::init() {
+  quietNoisyEspLogs();
   // Make sure ESP32 is running at full speed
   setCpuFrequencyMhz(240);
   mWakeupReason = getWakeReason();

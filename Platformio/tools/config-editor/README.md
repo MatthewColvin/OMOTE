@@ -41,7 +41,14 @@ Use this before a risky deploy, when the remote is offline, or to clone config t
 
 JSON scenes/pages live on **LittleFS**, not inside the firmware binary. A normal firmware flash does **not** restore `Platformio/data/` to the device.
 
-If deleted scenes reappear after **firmware-only** flash, they were still on LittleFS (changes were never saved to the remote, or the editor still had the old copy). Use **Save to remote** after edits.
+Scenes use two layers on LittleFS:
+
+1. **`Scenes.json`** — registry; only these appear on the remote scene picker (status bar tap).
+2. **`Scenes/Scene_*.json`** — scene definitions. A file can remain on disk after you “delete” a scene if it was only removed from the registry.
+
+**Delete scene** (Advanced) removes the entry from `Scenes.json` and drops the scene file from the editor; **Save to remote** writes both and deletes the file on the device. If old scenes reappear in the web app after connect, leftover `Scenes/Scene_*.json` files were still on the device — use **Clean up unregistered scene files** (Advanced) then **Save to remote**.
+
+If deleted scenes reappear after **firmware-only** flash, they were still on LittleFS (`uploadfs` restores factory `data/`, or files were never deleted on device). Use **Save to remote** after cleanup — not `uploadfs` unless you intend to reset all config.
 
 Avoid `uploadfs` unless you intentionally want to reset the remote to the repo’s bundled `data/` folder.
 

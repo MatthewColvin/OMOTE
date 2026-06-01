@@ -201,6 +201,8 @@ const DEVICE_TEMPLATES = {
 let API = localStorage.getItem('omote_oo_api') || 'http://omote.local';
 let advancedMode = localStorage.getItem(ADVANCED_KEY) === '1';
 const files = new Map();
+/** Scene/page paths to remove from LittleFS on next Save to remote. */
+const remoteDeletes = new Set();
 let selectedScenePath = '';
 let activeTabIdx = 0;
 let selectedPagePath = '';
@@ -604,12 +606,12 @@ async function fetchRemoteFileMap(tree) {
 
 async function loadRemoteIntoEditor(tree) {
   files.clear();
+  remoteDeletes.clear();
   for (const p of tree.files || []) {
     const r = await api('/api/fs/read?path=' + encodeURIComponent(p));
     setFile(p, r.content, false);
   }
   if (!files.has('Scenes.json')) setFile('Scenes.json', { Scenes: [] }, false);
-  syncOrphanSceneFiles();
   initAfterLoad();
 }
 
@@ -732,7 +734,7 @@ async function importOmotePack(file) {
   }
 
   if (!files.has('Scenes.json')) setFile('Scenes.json', { Scenes: [] }, true);
-  syncOrphanSceneFiles();
+  registerOrphanSceneFiles({ ask: true });
   initAfterLoad();
   $('status-bar').textContent = `Offline · ${files.size} files from backup`;
   showTab('scenes');
@@ -804,20 +806,33 @@ function sceneRegistryEntry() {
   return sceneRegistry().Scenes?.find((s) => s.FileName === selectedScenePath) || null;
 }
 
-function syncOrphanSceneFiles() {
+/** Scene JSON files on disk that are not listed in Scenes.json (hidden on device picker). */
+function listOrphanSceneFiles() {
+  const registered = new Set((sceneRegistry().Scenes || []).map((s) => s.FileName));
+  return listPaths('Scenes/').filter((path) => !registered.has(path));
+}
+
+function registerOrphanSceneFiles({ ask = false } = {}) {
+  const orphans = listOrphanSceneFiles();
+  if (!orphans.length) return 0;
+  if (ask) {
+    const names = orphans.map((p) => parseJson(p)?.ScreenName || p).join('\n· ');
+    if (!confirm(
+      `Found ${orphans.length} scene file(s) on disk that are not in the scene picker:\n\n· ${names}\n\nAdd them to Scenes.json?`
+    )) return 0;
+  }
   const reg = sceneRegistry();
   reg.Scenes = reg.Scenes || [];
   const registered = new Set(reg.Scenes.map((s) => s.FileName));
-  let changed = false;
-  for (const path of listPaths('Scenes/')) {
+  for (const path of orphans) {
     if (registered.has(path)) continue;
     const sc = parseJson(path);
     const base = path.replace(/^Scenes\/Scene_/, '').replace(/\.json$/, '');
     const name = sc?.ScreenName || base.replace(/_/g, ' ');
     reg.Scenes.push({ SceneName: name, FileName: path });
-    changed = true;
   }
-  if (changed) setSceneRegistry(reg);
+  setSceneRegistry(reg);
+  return orphans.length;
 }
 
 function findSceneForPage(pagePath) {
@@ -1068,13 +1083,42 @@ function deleteSelectedScene() {
   if (!selectedScenePath) return;
   const entry = sceneRegistryEntry();
   const label = entry?.SceneName || selectedScenePath;
-  if (!confirm(`Remove scene “${label}” from the picker?\n\nThe scene file stays on disk unless you delete it in Advanced → JSON.`))
+  const path = selectedScenePath;
+  if (!confirm(
+    `Delete scene “${label}”?\n\nRemoves it from Scenes.json and deletes ${path} in the editor. Use Save to remote to remove the file on the device.`
+  ))
     return;
   const reg = sceneRegistry();
-  reg.Scenes = (reg.Scenes || []).filter((s) => s.FileName !== selectedScenePath);
+  reg.Scenes = (reg.Scenes || []).filter((s) => s.FileName !== path);
   setSceneRegistry(reg);
-  selectedScenePath = reg.Scenes?.[0]?.FileName || listPaths('Scenes/')[0] || '';
+  if (files.has(path)) {
+    files.delete(path);
+    remoteDeletes.add(path);
+  }
+  selectedScenePath = reg.Scenes?.[0]?.FileName || '';
   activeTabIdx = 0;
+  refreshAll();
+}
+
+function deleteOrphanSceneFiles() {
+  const orphans = listOrphanSceneFiles();
+  if (!orphans.length) {
+    alert('No unregistered scene files — Scenes.json matches every file in Scenes/.');
+    return;
+  }
+  const names = orphans.map((p) => parseJson(p)?.ScreenName || p).join('\n· ');
+  if (!confirm(
+    `Delete ${orphans.length} unregistered scene file(s) from the editor?\n\n· ${names}\n\nSave to remote to remove them from the device.`
+  ))
+    return;
+  orphans.forEach((path) => {
+    files.delete(path);
+    remoteDeletes.add(path);
+  });
+  if (selectedScenePath && !files.has(selectedScenePath)) {
+    selectedScenePath = sceneRegistry().Scenes?.[0]?.FileName || '';
+    activeTabIdx = 0;
+  }
   refreshAll();
 }
 
@@ -1322,7 +1366,6 @@ $('btn-exit-sync').onclick = async () => {
 };
 
 function initAfterLoad() {
-  syncOrphanSceneFiles();
   if (normalizeScenePagePaths()) {
     $('deploy-msg').textContent = 'Fixed scene tab paths (Pages/ prefix). Save to remote when ready.';
     $('deploy-msg').className = 'msg ok';
@@ -1346,6 +1389,18 @@ function refreshAll() {
 
 /* ── Scenes (Scenes.json + scene files) ── */
 function refreshScenesTab() {
+  const orphans = listOrphanSceneFiles();
+  const orphanWarn = $('scene-orphan-warn');
+  if (orphanWarn) {
+    if (orphans.length) {
+      orphanWarn.textContent =
+        `${orphans.length} scene file(s) still on disk but not in the picker (device hides them). Use “Clean up disk” or Advanced → JSON.`;
+      orphanWarn.classList.remove('hidden');
+    } else {
+      orphanWarn.classList.add('hidden');
+    }
+  }
+
   const ul = $('scene-list');
   ul.innerHTML = '';
   const reg = sceneRegistry();
@@ -1444,6 +1499,7 @@ $('btn-new-scene').onclick = () => {
 };
 
 $('btn-delete-scene').onclick = deleteSelectedScene;
+$('btn-cleanup-orphan-scenes')?.addEventListener('click', deleteOrphanSceneFiles);
 
 $('btn-add-device').onclick = () => addDeviceTabFromUi('device-template');
 
@@ -2710,7 +2766,8 @@ $('btn-deploy').onclick = async () => {
   $('deploy-msg').textContent = 'Saving…';
   $('deploy-msg').className = 'msg';
   const dirty = [...files.entries()].filter(([, v]) => v.dirty);
-  if (!dirty.length) {
+  const toDelete = [...remoteDeletes];
+  if (!dirty.length && !toDelete.length) {
     $('deploy-msg').textContent = 'No changes to save.';
     return;
   }
@@ -2719,6 +2776,10 @@ $('btn-deploy').onclick = async () => {
     if (st && !st.editor_sync) {
       try { await setEditorSyncMode(true); } catch { /* device may lack API until flash */ }
     }
+    for (const path of toDelete) {
+      await api('/api/fs/delete?path=' + encodeURIComponent(path), { method: 'POST', timeout: 15000 });
+      remoteDeletes.delete(path);
+    }
     for (const [path, { content }] of dirty) {
       await api('/api/fs/write?path=' + encodeURIComponent(path), {
         method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: content, timeout: 30000
@@ -2726,11 +2787,15 @@ $('btn-deploy').onclick = async () => {
     }
     const onlyHaSettings =
       dirty.length > 0 && dirty.every(([p]) => p === HA_SETTINGS_PATH);
+    const parts = [];
+    if (dirty.length) parts.push(`saved ${dirty.length}`);
+    if (toDelete.length) parts.push(`deleted ${toDelete.length}`);
+    const summary = parts.join(', ');
     if (!onlyHaSettings) {
       await api('/api/device/reboot', { method: 'POST', timeout: 5000 }).catch(() => {});
-      $('deploy-msg').textContent = `Saved ${dirty.length} file(s). Remote rebooting…`;
+      $('deploy-msg').textContent = `${summary}. Remote rebooting…`;
     } else {
-      $('deploy-msg').textContent = `Saved HaSettings.json on remote (no reboot).`;
+      $('deploy-msg').textContent = `${summary} on remote (no reboot).`;
     }
     $('deploy-msg').className = 'msg ok';
     dirty.forEach(([p]) => { files.get(p).dirty = false; });

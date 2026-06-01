@@ -73,11 +73,13 @@ python -m http.server 8080</pre>
         <aside class="panel sidebar-narrow">
           <h2>Scenes</h2>
           <p class="muted small">Same list as tapping the <strong>top-left</strong> of the remote status bar — e.g. “Watch TV”, “Image Test”, “Watch Roku on Proj”.</p>
+          <p id="scene-orphan-warn" class="msg err small hidden"></p>
           <ul id="scene-list"></ul>
           <div class="row">
             <button type="button" id="btn-new-scene">+ New scene</button>
-            <button type="button" id="btn-delete-scene" class="danger-btn advanced-field hidden" title="Remove from scene picker">Delete</button>
+            <button type="button" id="btn-delete-scene" class="danger-btn advanced-field hidden" title="Remove from Scenes.json and delete scene file on save">Delete</button>
           </div>
+          <button type="button" id="btn-cleanup-orphan-scenes" class="advanced-field hidden small-btn">Clean up unregistered scene files</button>
         </aside>
         <div class="panel grow" id="scene-detail">
           <h2><span id="scene-title">Select a scene</span></h2>

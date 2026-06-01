@@ -157,6 +157,33 @@ void handleFsRead() {
   sendJson(200, OMOTE::JSON::ToString(d));
 }
 
+void handleFsDelete() {
+  if (!server.hasArg("path")) {
+    sendJson(400, "{\"error\":\"missing path\"}");
+    return;
+  }
+  std::string path = server.arg("path").c_str();
+  if (!isSafePath(path)) {
+    sendJson(400, "{\"error\":\"invalid path\"}");
+    return;
+  }
+
+  const std::string full = vfsPath(path);
+  if (!LittleFS.exists(lfsPath(path).c_str())) {
+    sendJson(404, "{\"error\":\"not found\"}");
+    return;
+  }
+  if (!LittleFS.remove(lfsPath(path).c_str())) {
+    sendJson(500, "{\"error\":\"delete failed\"}");
+    return;
+  }
+  if (path == "HaSettings.json")
+    config_reload::markHaSettingsDirty();
+  else if (path.rfind("Pages/", 0) == 0 || path == "Scenes.json" || path.rfind("Scenes/", 0) == 0)
+    config_reload::markPagesDirty();
+  sendJson(200, "{\"ok\":true}");
+}
+
 void handleFsWrite() {
   if (!server.hasArg("path")) {
     sendJson(400, "{\"error\":\"missing path\"}");
@@ -277,6 +304,7 @@ void registerRoutes() {
   server.on("/api/fs/read", HTTP_GET, handleFsRead);
   server.on("/api/fs/write", HTTP_POST, handleFsWrite);
   server.on("/api/fs/write", HTTP_PUT, handleFsWrite);
+  server.on("/api/fs/delete", HTTP_POST, handleFsDelete);
   server.on("/api/device/reboot", HTTP_POST, handleReboot);
   server.on("/api/device/sync-mode", HTTP_GET, handleEditorSyncGet);
   server.on("/api/device/sync-mode", HTTP_POST, handleEditorSyncPost);
@@ -289,6 +317,7 @@ void registerRoutes() {
   server.on("/api/fs/tree", HTTP_OPTIONS, handleOptions);
   server.on("/api/fs/read", HTTP_OPTIONS, handleOptions);
   server.on("/api/fs/write", HTTP_OPTIONS, handleOptions);
+  server.on("/api/fs/delete", HTTP_OPTIONS, handleOptions);
   server.on("/api/device/reboot", HTTP_OPTIONS, handleOptions);
   server.on("/api/device/sync-mode", HTTP_OPTIONS, handleOptions);
   server.on("/api/ir/learn/start", HTTP_OPTIONS, handleOptions);

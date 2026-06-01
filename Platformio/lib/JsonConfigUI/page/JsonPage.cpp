@@ -259,30 +259,42 @@ void JsonPage::applyWidgetLayout(UIElement *widget, const rapidjson::Value &valu
       sy = static_cast<unsigned int>(arr[1].GetInt());
     if (sx > 0 && sy > 0)
       widget->SetSize(lv_pct(sx), lv_pct(sy));
-  }
-
-  bool aligned = false;
-  unsigned int index = 0;
-  if (readJsonUint(value, "AlignTo", index)) {
-    if (index == 0) {
-      widget->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
-      aligned = true;
-    } else if (index <= mWidgets.size()) {
-      widget->AlignTo(mWidgets[index - 1], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
-      aligned = true;
-    }
-  }
-  if (!aligned) {
-    if (mWidgets.empty())
-      widget->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
-    else
-      widget->AlignTo(mWidgets.back(), LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+    else if (sx > 0)
+      widget->SetWidth(lv_pct(sx));
+    else if (sy > 0)
+      widget->SetHeight(lv_pct(sy));
+  } else if (!value.HasMember("HeightPct") && defaultHeightPct > 0) {
+    widget->SetWidth(lv_pct(90));
   }
 
   unsigned int posX = 0, posY = 0;
-  if (readJsonUint(value, "PosX", posX))
+  const bool hasPosX = readJsonUint(value, "PosX", posX);
+  const bool hasPosY = readJsonUint(value, "PosY", posY);
+  const bool useExplicitPos = hasPosX || hasPosY;
+
+  if (!useExplicitPos) {
+    bool aligned = false;
+    unsigned int index = 0;
+    if (readJsonUint(value, "AlignTo", index)) {
+      if (index == 0) {
+        widget->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
+        aligned = true;
+      } else if (index <= mWidgets.size()) {
+        widget->AlignTo(mWidgets[index - 1], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+        aligned = true;
+      }
+    }
+    if (!aligned) {
+      if (mWidgets.empty())
+        widget->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
+      else
+        widget->AlignTo(mWidgets.back(), LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
+    }
+  }
+
+  if (hasPosX)
     widget->SetX(lv_pct(posX));
-  if (readJsonUint(value, "PosY", posY))
+  if (hasPosY)
     widget->SetY(lv_pct(posY));
 
   clampWidgetHorizontal(widget);
@@ -314,11 +326,10 @@ void JsonPage::addHaToggle(const rapidjson::Value &value) {
   auto button = std::make_unique<Widget::Button>();
   if (!entityId.empty())
     button->OnShortClick([domain, service, entityId]() { HaRuntime::callService(domain, service, entityId); });
-  button->SetText(label);
   button->SetBgColor(UI::Color::BTN_PRIMARY);
   button->SetBgOpacity(LV_OPA_COVER);
-  button->SetWidth(lv_pct(90));
   applyWidgetLayout(button.get(), value, 12);
+  button->SetText(label);
 
   if (!entityId.empty()) {
     HaBinding binding;
@@ -344,7 +355,6 @@ void JsonPage::addHaLabel(const rapidjson::Value &value) {
     text = entityId;
 
   auto label = std::make_unique<Widget::Label>(text);
-  label->SetWidth(lv_pct(90));
   applyWidgetLayout(label.get(), value, 8);
 
   if (!entityId.empty()) {
@@ -394,7 +404,6 @@ void JsonPage::addHaSwitch(const rapidjson::Value &value) {
     mWidgets.push_back(AddElement(std::move(caption)));
   }
 
-  sw->SetWidth(lv_pct(90));
   applyWidgetLayout(sw.get(), value, 10);
 
   if (!entityId.empty()) {
@@ -468,7 +477,6 @@ void JsonPage::addHaSlider(const rapidjson::Value &value) {
     mWidgets.push_back(AddElement(std::move(caption)));
   }
 
-  slider->SetWidth(lv_pct(90));
   applyWidgetLayout(slider.get(), value, 8);
 
   if (!entityId.empty()) {
@@ -518,11 +526,10 @@ void JsonPage::addHaMomentary(const rapidjson::Value &value) {
     button->OnPress([domain, serviceOn, entityId]() { HaRuntime::callService(domain, serviceOn, entityId); });
     button->OnRelease([domain, serviceOff, entityId]() { HaRuntime::callService(domain, serviceOff, entityId); });
   }
-  button->SetText(label);
   button->SetBgColor(UI::Color::BTN_PRIMARY);
   button->SetBgOpacity(LV_OPA_COVER);
-  button->SetWidth(lv_pct(90));
   applyWidgetLayout(button.get(), value, 12);
+  button->SetText(label);
 
   if (!entityId.empty()) {
     mHaEntityIds.push_back(entityId);
@@ -623,30 +630,9 @@ void JsonPage::addButton(const std::string &aCommandPrefix, const rapidjson::Val
     // only process button if we have an action to associate with it
     if (actionProto != Command::NONE) {
       auto button = std::make_unique<Widget::Button>([this, commandStruct]() { Command::Commands::sendCommand(commandStruct); });
+      applyWidgetLayout(button.get(), value, 12);
       if (value.HasMember("Text") && value["Text"].IsString())
         button->SetText(value["Text"].GetString());
-      if (value.HasMember("HeightPct") && value["HeightPct"].IsUint()) {
-        unsigned int hp = value["HeightPct"].GetUint();
-        if (hp < 10)
-          hp = 10;
-        button->SetHeight(lv_pct(hp));
-      }
-      if (value.HasMember("SizeXY") && value["SizeXY"].IsArray())
-        if (value["SizeXY"].Size() == 2 && value["SizeXY"][0].IsUint() && value["SizeXY"][1].IsUint())
-          button->SetSize(lv_pct(value["SizeXY"][0].GetUint()), lv_pct(value["SizeXY"][1].GetUint()));
-      if (value.HasMember("AlignTo") && value["AlignTo"].IsUint()) {
-        unsigned int index = value["AlignTo"].GetUint();
-        if (index == 0)
-          button->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
-        else if (index <= mWidgets.size())
-          button->AlignTo(mWidgets[index - 1], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
-      }
-      // set position after align so can adjust
-      if (value.HasMember("PosX") && value["PosX"].IsUint())
-        button->SetX(lv_pct(value["PosX"].GetUint()));
-      if (value.HasMember("PosY") && value["PosY"].IsUint())
-        button->SetY(lv_pct(value["PosY"].GetUint()));
-      clampWidgetHorizontal(button.get());
       mWidgets.push_back(AddElement(std::move(button)));
     }
   }
@@ -689,13 +675,8 @@ void JsonPage::addColorButtons(const std::string &aCommandPrefix, const rapidjso
       }
     }
     auto colorButton = std::make_unique<Widget::ColorButtons>(commandStructs);
-    if (value.HasMember("AlignTo") && value["AlignTo"].IsUint()) {
-      unsigned int index = value["AlignTo"].GetUint();
-      if (index == 0)
-        colorButton->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
-      else if (index <= mWidgets.size())
-        colorButton->AlignTo(mWidgets[index - 1], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
-    }
+    applyWidgetLayout(colorButton.get(), value, 0);
+    clampWidgetHorizontal(colorButton.get());
     mWidgets.push_back(AddElement(std::move(colorButton)));
   }
 }
@@ -713,13 +694,8 @@ void JsonPage::addNumberPad(const std::string &aCommandPrefix, const rapidjson::
       }
     }
     auto numberPad = std::make_unique<Widget::NumberPad>(commandStructs);
-    if (value.HasMember("AlignTo") && value["AlignTo"].IsUint()) {
-      unsigned int index = value["AlignTo"].GetUint();
-      if (index == 0)
-        numberPad->AlignTo(this, LV_ALIGN_TOP_MID, 0, distBetweenWidgets);
-      else if (index <= mWidgets.size())
-        numberPad->AlignTo(mWidgets[index - 1], LV_ALIGN_OUT_BOTTOM_MID, 0, distBetweenWidgets);
-    }
+    applyWidgetLayout(numberPad.get(), value, 0);
+    clampWidgetHorizontal(numberPad.get());
     mWidgets.push_back(AddElement(std::move(numberPad)));
   }
 }

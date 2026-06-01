@@ -14,6 +14,9 @@ public:
 
   void SetText(std::string aText);
 
+  void SetHeight(lv_coord_t aHeight) override;
+  void SetSize(lv_coord_t aWidth, lv_coord_t aHeight) override;
+
   // Override in order to pass styling to label
   void SetTextStyle(TextStyle aNewStyle,
                     lv_part_t aStyle = LV_PART_MAIN) override;

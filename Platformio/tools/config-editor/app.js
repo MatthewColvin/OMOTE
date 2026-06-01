@@ -23,12 +23,15 @@ const FW_LAYOUT = {
   numberPad: { height: 180, btnW: 60, btnH: 30, spacingX: 20, spacingY: 15, pad: 10, cols: 3 },
 };
 
-const DRAGGABLE_WIDGET_TYPES = new Set([
-  'Button', 'Title', 'Label', 'Image',
-  'HaToggle', 'HaLabel', 'HaSwitch', 'HaSlider', 'HaMomentary', 'HaClimate'
-]);
 const HA_WIDGET_TYPES = new Set([
   'HaToggle', 'HaLabel', 'HaSwitch', 'HaSlider', 'HaMomentary', 'HaClimate'
+]);
+const DRAGGABLE_WIDGET_TYPES = new Set([
+  'Button', 'Title', 'Label', 'Image', 'ColorButtons', 'NumberPad',
+  ...HA_WIDGET_TYPES
+]);
+const LAYOUT_WIDGET_TYPES = new Set([
+  'Button', 'Title', 'Label', 'ColorButtons', 'NumberPad', ...HA_WIDGET_TYPES
 ]);
 
 const NUM_PAD_COMMANDS = [
@@ -1829,7 +1832,7 @@ function syncWidgetEditor() {
   $('w-fields-color')?.classList.toggle('hidden', !isColor);
   $('w-fields-numpad')?.classList.toggle('hidden', !isPad);
   $('w-fields-ha')?.classList.toggle('hidden', !isHa);
-  $('w-fields-layout')?.classList.toggle('hidden', isColor || isPad);
+  $('w-fields-layout')?.classList.remove('hidden');
 
   if ($('ha-service-row')) {
     $('ha-service-row').classList.toggle('hidden', !isHaToggle);
@@ -1915,9 +1918,7 @@ function updateSelectionPanel(friendlyLabel) {
     const w = currentPage().Widgets?.[selection.widgetIdx];
     const typeLabel = WIDGET_TYPES[w?.Type]?.label || w?.Type || 'Widget';
     $('selection-title').textContent = typeLabel;
-    if (w?.Type === 'NumberPad' || w?.Type === 'ColorButtons') {
-      $('selection-sub').textContent = 'Fixed layout · drag to reorder via widget list';
-    } else if (DRAGGABLE_WIDGET_TYPES.has(w?.Type)) {
+    if (DRAGGABLE_WIDGET_TYPES.has(w?.Type)) {
       $('selection-sub').textContent = `${widgetSummary(w)} · drag on preview to move`;
     } else {
       $('selection-sub').textContent = widgetSummary(w);
@@ -2048,10 +2049,12 @@ function applyWidgetEdits() {
     if (h) w.HeightPct = h;
   }
 
-  if (type === 'Button') {
+  if (LAYOUT_WIDGET_TYPES.has(type)) {
     const sx = parseInt($('w-sizex')?.value, 10);
     const sy = parseInt($('w-sizey')?.value, 10);
     if (sx && sy) w.SizeXY = [sx, sy];
+    else if (sx) w.SizeXY = [sx, w.SizeXY?.[1] || w.HeightPct || 10];
+    else if (sy) w.SizeXY = [w.SizeXY?.[0] || 90, sy];
     else delete w.SizeXY;
   }
 
@@ -2194,6 +2197,7 @@ function widgetLayoutHeight(w) {
     const hp = w.HeightPct || 58;
     return Math.max(120, Math.round((CONTENT_H - FW_LAYOUT.gap * 2) * hp / 100));
   }
+  if (w.SizeXY?.[1]) return Math.max(16, Math.round((CONTENT_H - FW_LAYOUT.gap * 2) * w.SizeXY[1] / 100));
   if (w.Type === 'ColorButtons') return FW_LAYOUT.colorButtons.height;
   if (w.Type === 'NumberPad') return FW_LAYOUT.numberPad.height;
   if (w.Type === 'Image' && w.SizeXYinPixels?.[1]) return w.SizeXYinPixels[1];

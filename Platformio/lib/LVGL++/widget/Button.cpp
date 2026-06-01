@@ -57,6 +57,16 @@ void Button::layoutLabelText() {
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
 }
 
+void Button::SetHeight(lv_coord_t aHeight) {
+  UIElement::SetHeight(aHeight);
+  layoutLabelText();
+}
+
+void Button::SetSize(lv_coord_t aWidth, lv_coord_t aHeight) {
+  UIElement::SetSize(aWidth, aHeight);
+  layoutLabelText();
+}
+
 void Button::SetText(std::string aText) {
   if (!mText) {
     mText = AddNewElement<Label>(aText);

@@ -10,8 +10,8 @@
 #include "Hardware/KeyPressAbstract.hpp"
 #include "Hardware/LoggingInterface.hpp"
 #include "Hardware/SystemStatsInterface.h"
-#include "Hardware/websockets/webSocketInterface.hpp"
-#include "Hardware/wifiHandlerInterface.h"
+#include "Hardware/wifi/websockets/webSocketInterface.hpp"
+#include "Hardware/wifi/wifiHandlerInterface.h"
 #include "Notification.hpp"
 
 class HardwareAbstract {

@@ -1,0 +1,53 @@
+name: PlatformIO Test
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+      - name: Set pip constraints for ESP-IDF
+        shell: bash
+        run: echo "PIP_CONSTRAINT=${{ github.workspace }}/Platformio/esp-idf-constraints.txt" >> $GITHUB_ENV
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Setup MSYS2 for Windows
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-SDL2
+            mingw-w64-x86_64-python
+            mingw-w64-x86_64-curl
+            python3-pip
+
+      - name: Put MSYS2_MinGW64 on PATH for Windows
+        if: matrix.os == 'windows-latest'
+        run: echo "${{ runner.temp }}/msys64/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Prepare PlatformIO environments
+        working-directory: ./Platformio
+        run: pio pkg install
+
+      - name: Run PlatformIO Tests
+        working-directory: ./Platformio
+        run: pio test --environment ${{ matrix.os == 'windows-latest' && 'x64_sim_windows' || 'x64_sim' }}

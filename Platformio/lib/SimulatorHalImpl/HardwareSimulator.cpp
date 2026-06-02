@@ -35,7 +35,9 @@ HardwareSimulator::HardwareSimulator()
     }
   });
 #ifdef INIT_SIM_DATA_FROM_DATA
-  initDirectory("./sim_data", "./data");
+  if (!std::filesystem::exists(SimWorkingDir)) {
+    initDirectory(SimWorkingDir, CheckedInDataDir);
+  }
 #endif
 
   mSDLEventHandler.SetNotification(mKeys->getSDLEventNotification());
@@ -131,9 +133,9 @@ void HardwareSimulator::handleExtraSDLEvents(SDL_Event *aEvent) {
   if (aEvent->type == SDL_KEYDOWN) {
     const auto SDLK_key = aEvent->key.keysym.sym;
     if (SDLK_key == SDLK_F1) {
-      dumpDirectory("./sim_data", "./data_backup");
+      dumpDirectory(SimWorkingDir, BackupDataDir);
     } else if (SDLK_key == SDLK_F2) {
-      initDirectory("./sim_data", "./data");
+      initDirectory(SimWorkingDir, CheckedInDataDir);
     }
   }
 }

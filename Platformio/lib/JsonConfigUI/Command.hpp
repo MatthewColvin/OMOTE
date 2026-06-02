@@ -1,7 +1,7 @@
 #pragma once
 #include "Hardware/IRInterface.h"
 #include "Hardware/KeyPressAbstract.hpp"
-#include "Hardware/wifiHandlerInterface.h"
+#include "Hardware/wifi/wifiHandlerInterface.h"
 #include "RapidJsonUtilty.hpp"
 
 namespace Command {

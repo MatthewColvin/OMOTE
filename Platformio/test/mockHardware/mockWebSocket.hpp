@@ -1,5 +1,5 @@
 #pragma once
-#include "Hardware/websockets/webSocketInterface.hpp"
+#include "Hardware/wifi/websockets/webSocketInterface.hpp"
 
 class MockWebSocket : public webSocketInterface {
 public:

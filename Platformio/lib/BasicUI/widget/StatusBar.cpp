@@ -129,7 +129,7 @@ void StatusBar::onTimer(_lv_timer_t *aTimer) {
   if (displayTime) {
     statusBar->mTopBarGeneralLabel->SetTextStyle(UI::TextStyle().Color(UI::Color::WHITE));
     if (timeinfo.tm_year < (2016 - 1900))
-      snprintf(strftime_buf, BUF_SIZE, "");
+      snprintf(strftime_buf, BUF_SIZE, " ");
     else
       strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
   } else {

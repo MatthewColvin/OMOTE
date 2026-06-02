@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Notification.hpp"
+#include <cstdint>
 
 class IRInterface {
 public:

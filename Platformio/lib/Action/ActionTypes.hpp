@@ -2,5 +2,6 @@
 
 enum class ActionTypes {
   IRAction,
+  HttpAction,
   COUNT
 };

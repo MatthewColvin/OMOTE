@@ -3,12 +3,15 @@
 
 #include <numeric>
 
-#include "IProcessMessage.hpp"
+#include "lib/RapidJsonUtility/IProcessMessage.hpp"
 #include "MockIProcessMessage.hpp"
-#include "SessionProcessors/DevicesQueryProcessor.hpp"
+#include "lib/HomeAssistUI/SessionProcessors/DevicesQueryProcessor.hpp"
 
 using namespace testing;
 using namespace Json;
+
+// Add explicit namespace to resolve MockIProcessMessage
+using HAL::WebSocket::Json::MockIProcessMessage;
 
 class DevicesQueryProcessorTest : public Test {
 protected:

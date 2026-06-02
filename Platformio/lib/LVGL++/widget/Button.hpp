@@ -8,8 +8,11 @@ namespace UI::Widget {
 class Button : public Base {
 public:
   Button();
+
+  Button(std::function<void()> aOnShortClickHandler);
+
   Button(std::function<void()> aOnPressHandler,
-         std::function<void()> aOnReleaseHandler = nullptr);
+         std::function<void()> aOnReleaseHandler);
   virtual ~Button() = default;
 
   void SetText(std::string aText);

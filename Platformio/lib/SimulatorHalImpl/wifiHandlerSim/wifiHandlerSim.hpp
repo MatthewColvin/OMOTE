@@ -3,7 +3,7 @@
 #include <memory>
 #include <thread>
 
-#include "Hardware/wifiHandlerInterface.h"
+#include "Hardware/wifi/wifiHandlerInterface.h"
 #include "Notification.hpp"
 
 class wifiHandlerSim : public wifiHandlerInterface {
@@ -16,6 +16,7 @@ public:
   void connect(std::string ssid, std::string password) override;
   void saveCredentialsOnConnect() override {};
   wifiStatus GetStatus() override { return mCurrentStatus; };
+  std::shared_ptr<HttpClientInterface> getHttpClient() override;
 
   void setupMqttBroker() override;
   void mqttSend(std::string aTopic, std::string aMessage) override;

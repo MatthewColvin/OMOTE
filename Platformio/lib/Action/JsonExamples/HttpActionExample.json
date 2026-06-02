@@ -1,0 +1,8 @@
+{
+  "name": "HTTP GET Request",
+  "type": "HttpAction",
+  "data": {
+    "url": "https://api.example.com/data",
+    "method": "GET"
+  }
+}

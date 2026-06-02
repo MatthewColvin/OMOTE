@@ -9,7 +9,13 @@ DeviceFactory::DeviceFactory() {
 }
 
 IDevice::Ptr DeviceFactory::Create(DeviceId id) {
-  return nullptr;
+  auto creatorFunc = sDeviceCreators[static_cast<int>(id)];
+  return !creatorFunc ? nullptr : creatorFunc();
+}
+
+bool DeviceFactory::RegisterDevice(DeviceId aId, std::function<IDevice::Ptr()> aCreator) {
+  sDeviceCreators[static_cast<int>(aId)] = aCreator;
+  return true;
 }
 
 void DeviceFactory::InitHomeAssistFactory(HomeAssist::WebSocket::Api &aHaApi) {
@@ -41,6 +47,19 @@ std::vector<std::shared_ptr<IDevice>> DeviceFactory::getJsonDevices(const std::f
     return mJsonFactory->getDevices(aDevicesDirectory);
   }
   return {};
+}
+
+std::vector<std::shared_ptr<IDevice>> DeviceFactory::getCompileTimeDevices() {
+  std::vector<std::shared_ptr<IDevice>> devices;
+  for (const auto &creatorFunc : sDeviceCreators) {
+    if (creatorFunc) {
+      auto device = creatorFunc();
+      if (device) {
+        devices.push_back(std::move(device));
+      }
+    }
+  }
+  return devices;
 }
 
 void DeviceFactory::restoreFromConfig() {

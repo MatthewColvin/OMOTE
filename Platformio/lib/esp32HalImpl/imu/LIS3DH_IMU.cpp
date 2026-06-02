@@ -2,6 +2,11 @@
 #include "Hardware/LoggingInterface.hpp"
 #include "omoteconfig.h"
 
+extern "C" {
+unsigned long millis(void);
+void delay(unsigned int ms);
+}
+
 LIS3DH_IMU::LIS3DH_IMU(LIS3DH &aIMU) : mIMU(aIMU), mLogger(std::make_unique<LoggingInterface>(LogModule::IMU)) {
 }
 
@@ -57,6 +62,53 @@ bool LIS3DH_IMU::activityDetection() {
     }
   }
   return activityDetected;
+}
+
+namespace {
+constexpr int kScreenOffMotionDeltaMin = 55;
+constexpr uint32_t kScreenOffMotionGraceMs = 600;
+constexpr uint32_t kScreenOffImuPollMs = 150;
+} // namespace
+
+void LIS3DH_IMU::onScreenPoweredOff() {
+  mLastScreenOffMotionWakeMs = 0;
+  mDisplayOffSinceMs = millis();
+  mLastOffImuPollMs = 0;
+  uint8_t junk = 0;
+  for (int i = 0; i < 4; i++) {
+    mIMU.readRegister(&junk, LIS3DH_INT1_SRC);
+    if ((junk & 0x40) == 0)
+      break;
+    delay(5);
+  }
+  mOffAccX = (int)(mIMU.readFloatAccelX() * 1000);
+  mOffAccY = (int)(mIMU.readFloatAccelY() * 1000);
+  mOffAccZ = (int)(mIMU.readFloatAccelZ() * 1000);
+}
+
+bool LIS3DH_IMU::pollScreenOffMotionWake() {
+  const uint32_t now = millis();
+  if (now - mDisplayOffSinceMs < kScreenOffMotionGraceMs)
+    return false;
+  if (now - mLastOffImuPollMs < kScreenOffImuPollMs)
+    return false;
+  if (now - mLastScreenOffMotionWakeMs <= 400)
+    return false;
+  mLastOffImuPollMs = now;
+
+  const int accX = (int)(mIMU.readFloatAccelX() * 1000);
+  const int accY = (int)(mIMU.readFloatAccelY() * 1000);
+  const int accZ = (int)(mIMU.readFloatAccelZ() * 1000);
+  const int delta =
+      abs(mOffAccX - accX) + abs(mOffAccY - accY) + abs(mOffAccZ - accZ);
+  if (delta < kScreenOffMotionDeltaMin)
+    return false;
+
+  mOffAccX = accX;
+  mOffAccY = accY;
+  mOffAccZ = accZ;
+  mLastScreenOffMotionWakeMs = now;
+  return true;
 }
 
 void LIS3DH_IMU::configIMUInterrupts(bool aWakeupByIMUEnabled) {

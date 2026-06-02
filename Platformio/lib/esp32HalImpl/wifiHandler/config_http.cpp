@@ -4,6 +4,7 @@
 #include "Hardware/LoggingInterface.hpp"
 #include "HardwareFactory.hpp"
 #include "RapidJsonUtilty.hpp"
+#include "device_settings.hpp"
 #include "editor_sync_mode.hpp"
 #include "ir/IRTransceiver.hpp"
 
@@ -179,6 +180,8 @@ void handleFsDelete() {
   }
   if (path == "HaSettings.json")
     config_reload::markHaSettingsDirty();
+  else if (path == "DeviceSettings.json")
+    config_reload::markDeviceSettingsDirty();
   else if (path.rfind("Pages/", 0) == 0 || path == "Scenes.json" || path.rfind("Scenes/", 0) == 0)
     config_reload::markPagesDirty();
   sendJson(200, "{\"ok\":true}");
@@ -213,8 +216,60 @@ void handleFsWrite() {
   file.close();
   if (path == "HaSettings.json")
     config_reload::markHaSettingsDirty();
+  else if (path == "DeviceSettings.json")
+    config_reload::markDeviceSettingsDirty();
   else if (path.rfind("Pages/", 0) == 0 || path == "Scenes.json" || path.rfind("Scenes/", 0) == 0)
     config_reload::markPagesDirty();
+  sendJson(200, "{\"ok\":true}");
+}
+
+void handleDeviceSettingsGet() {
+  const auto &s = device_settings::currentConst();
+  rapidjson::Document d;
+  d.SetObject();
+  auto &a = d.GetAllocator();
+  d.AddMember("display_timeout_ms", rapidjson::Value(static_cast<uint64_t>(s.displayTimeoutMs)), a);
+  d.AddMember("deep_sleep_timeout_ms", rapidjson::Value(static_cast<uint64_t>(s.deepSleepTimeoutMs)), a);
+  d.AddMember("dim_lead_ms", rapidjson::Value(static_cast<uint64_t>(s.dimLeadMs)), a);
+  d.AddMember("sleep_timeout_ms", rapidjson::Value(static_cast<uint64_t>(s.displayTimeoutMs)), a);
+  d.AddMember("motion_wake_enabled", s.motionWakeEnabled, a);
+  d.AddMember("key_wake_enabled", s.keyWakeEnabled, a);
+  d.AddMember("light_sleep_enabled", s.lightSleepEnabled, a);
+  d.AddMember("light_sleep_timeout_ms", rapidjson::Value(static_cast<uint64_t>(s.lightSleepTimeoutMs)), a);
+  d.AddMember("lcd_day_brightness", static_cast<unsigned>(s.lcdDayBrightness), a);
+  d.AddMember("display_off", device_settings::isScreenPoweredOff(), a);
+  if (!s.ntpServer.empty())
+    d.AddMember("ntp_server", rapidjson::Value(s.ntpServer.c_str(), a), a);
+  if (!s.timezone.empty())
+    d.AddMember("timezone", rapidjson::Value(s.timezone.c_str(), a), a);
+  d.AddMember("wifi_connected", WiFi.isConnected(), a);
+  if (WiFi.isConnected()) {
+    d.AddMember("wifi_ssid", rapidjson::Value(WiFi.SSID().c_str(), a), a);
+    d.AddMember("ip", rapidjson::Value(WiFi.localIP().toString().c_str(), a), a);
+  }
+  sendJson(200, OMOTE::JSON::ToString(d));
+}
+
+void handleDeviceSettingsPost() {
+  if (!server.hasArg("plain") && !server.hasArg("body")) {
+    sendJson(400, "{\"error\":\"missing body\"}");
+    return;
+  }
+  const std::string body =
+      server.hasArg("plain") ? server.arg("plain").c_str() : server.arg("body").c_str();
+  rapidjson::Document doc;
+  if (doc.Parse(body.c_str()).HasParseError() || !doc.IsObject()) {
+    sendJson(400, "{\"error\":\"invalid json\"}");
+    return;
+  }
+  if (!device_settings::mergeFromJson(doc)) {
+    sendJson(400, "{\"error\":\"invalid json\"}");
+    return;
+  }
+  device_settings::applyToHardware();
+  device_settings::saveToLittleFS();
+  HardwareFactory::getAbstract().saveSettings();
+  config_reload::markDeviceSettingsDirty();
   sendJson(200, "{\"ok\":true}");
 }
 
@@ -306,6 +361,8 @@ void registerRoutes() {
   server.on("/api/fs/write", HTTP_PUT, handleFsWrite);
   server.on("/api/fs/delete", HTTP_POST, handleFsDelete);
   server.on("/api/device/reboot", HTTP_POST, handleReboot);
+  server.on("/api/device/settings", HTTP_GET, handleDeviceSettingsGet);
+  server.on("/api/device/settings", HTTP_POST, handleDeviceSettingsPost);
   server.on("/api/device/sync-mode", HTTP_GET, handleEditorSyncGet);
   server.on("/api/device/sync-mode", HTTP_POST, handleEditorSyncPost);
   server.on("/api/ir/learn/start", HTTP_POST, handleIrLearnStart);
@@ -319,6 +376,7 @@ void registerRoutes() {
   server.on("/api/fs/write", HTTP_OPTIONS, handleOptions);
   server.on("/api/fs/delete", HTTP_OPTIONS, handleOptions);
   server.on("/api/device/reboot", HTTP_OPTIONS, handleOptions);
+  server.on("/api/device/settings", HTTP_OPTIONS, handleOptions);
   server.on("/api/device/sync-mode", HTTP_OPTIONS, handleOptions);
   server.on("/api/ir/learn/start", HTTP_OPTIONS, handleOptions);
   server.on("/api/ir/learn/stop", HTTP_OPTIONS, handleOptions);

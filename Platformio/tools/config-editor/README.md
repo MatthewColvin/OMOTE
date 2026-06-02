@@ -95,6 +95,18 @@ Toggle **Advanced** in the header to show:
 | AV receiver | Stock receiver page |
 | Blank | Empty page — learn every button yourself |
 
+## Settings tab — sleep & power
+
+`DeviceSettings.json` on the remote controls:
+
+- **Screen off** timeout (backlight fade down, then off; WiFi stays on)
+- **Dim lead** — fade to ~30% brightness before screen off
+- **Deep sleep** — existing OO light/deep sleep path after longer idle
+- **Motion wake** / **Key wake** — while screen is off
+- **Light sleep in scenes** — optional scene light sleep (on-device System Settings still writes NVS)
+
+Deploy `DeviceSettings.json` with **Save to remote** — no reboot required (same as `HaSettings.json`).
+
 ## API (device)
 
-See previous README section — `/api/fs/*`, `/api/ir/learn/*`, `/api/device/reboot`.
+`/api/fs/*`, `/api/ir/learn/*`, `/api/device/settings` (GET/POST), `/api/device/reboot`.

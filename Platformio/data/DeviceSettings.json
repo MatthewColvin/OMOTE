@@ -1,0 +1,15 @@
+{
+  "display_timeout_ms": 60000,
+  "deep_sleep_timeout_ms": 900000,
+  "dim_lead_ms": 2000,
+  "motion_wake_enabled": true,
+  "key_wake_enabled": true,
+  "light_sleep_enabled": false,
+  "light_sleep_timeout_ms": 60000,
+  "lcd_day_brightness": 0,
+  "lcd_night_brightness": 0,
+  "kbd_day_brightness": 0,
+  "kbd_night_brightness": 0,
+  "ntp_server": "",
+  "timezone": ""
+}

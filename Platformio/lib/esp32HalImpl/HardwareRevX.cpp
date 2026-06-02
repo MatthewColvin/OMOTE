@@ -4,6 +4,7 @@
 #include "IRTransceiver.hpp"
 #include "captive_portal.hpp"
 #include "config_http.hpp"
+#include "device_settings.hpp"
 #include "display.hpp"
 #include "driver/rtc_io.h"
 #include "editor_sync_mode.hpp"
@@ -128,15 +129,17 @@ void HardwareRevX::init() {
   //  mBattery->writeCustomModel();
 
   restorePreferences();
-  mStandbyTimer = getSleepTimeout();
+  device_settings::notifyActivity();
+  if (device_settings::loadFromLittleFS())
+    device_settings::applyToHardware();
+  else
+    device_settings::syncFromHardware();
 
   mTouchHandler.SetNotification(mDisplay->TouchNotification());
-  mTouchHandler = [this](auto aTouchPoint) {
-    // When we get touches reset sleep timeout
-    mStandbyTimer = this->getSleepTimeout();
-  };
+  mTouchHandler = [](auto) { device_settings::notifyActivity(); };
 
   mIMU_new->setup();
+  refreshImuMotionConfig();
 
   UI::observerHandles::registerTextHandle(GENERAL_STATUS, OBSERVER_BUF_SIZE, "");
 
@@ -228,6 +231,11 @@ void HardwareRevX::setInScene(bool inScene) {
   this->mInScene = inScene;
 }
 
+void HardwareRevX::refreshImuMotionConfig() {
+  if (mIMU_new)
+    mIMU_new->configIMUInterrupts(mWakeupByIMUEnabled);
+}
+
 void HardwareRevX::saveSettings() {
   // Save settings to internal flash memory
   mPreferences.begin("settings", false);
@@ -243,6 +251,9 @@ void HardwareRevX::saveSettings() {
   if (!mPreferences.getBool("alreadySetUp"))
     mPreferences.putBool("alreadySetUp", true);
   mPreferences.end();
+
+  device_settings::syncFromHardware();
+  device_settings::saveToLittleFS();
 
   mLogger->setLogModule(LogModule::Display);
   if (mLogger->isPrintWanted(LogLevel::Info))
@@ -410,7 +421,7 @@ void HardwareRevX::lightSleepWakeReint(SleepMode mode) {
   mDisplay->reInit();
 
   mIMUTaskTimer = millis();
-  mStandbyTimer = getSleepTimeout();
+  device_settings::notifyActivity();
   mIMU_new->setup();
 
   mLogger->setLogModule(LogModule::General);
@@ -469,32 +480,54 @@ void HardwareRevX::loopHandler() {
   mWifiHandler->networkSync();
 
   const bool keepAwake = captive_portal::isActive() || editor_sync_mode::isActive();
-  if (keepAwake) {
-    mStandbyTimer = mSleepTimeout;
-    mDisplay->wake();
-  }
+  const auto &ds = device_settings::currentConst();
+  if (keepAwake)
+    device_settings::notifyActivity();
 
   if (!keepAwake)
     mIr->loopHandleRx();
 
-  mStandbyTimer < 750 ? mDisplay->sleep() : mDisplay->wake();
+  if (!keepAwake) {
+    const uint32_t idle = device_settings::idleMs();
+    const uint32_t dimStart =
+        ds.displayTimeoutMs > ds.dimLeadMs ? ds.displayTimeoutMs - ds.dimLeadMs : ds.displayTimeoutMs;
+
+    if (idle >= ds.displayTimeoutMs) {
+      if (!device_settings::isScreenPoweredOff()) {
+        mDisplay->sleep();
+        device_settings::setScreenPoweredOff(true);
+        mIMU_new->onScreenPoweredOff();
+      }
+    } else if (idle >= dimStart) {
+      if (!mDisplay->isDisplayAsleep())
+        mDisplay->enterPreSleepDim();
+    } else if (!device_settings::isScreenPoweredOff() && mDisplay->isPreSleepDim()) {
+      mDisplay->wake();
+    }
+  }
 
   // Blink debug LED at 1 Hz
   digitalWrite(USER_LED, millis() % 1000 > 500);
 
   // Refresh IMU data at 40Hz
   if (millis() - mIMUTaskTimer >= 25) {
-    // Calculate time to standby
-    mStandbyTimer -= (millis() - mIMUTaskTimer);
     mIMUTaskTimer = millis();
-    if (mStandbyTimer < 0)
-      mStandbyTimer = 0;
 
-    if (mIMU_new->activityDetection())
-      mStandbyTimer = mSleepTimeout;
-
-    if (keyboardScan())
-      mStandbyTimer = mSleepTimeout;
+    if (!keepAwake) {
+      const bool screenOff = device_settings::isScreenPoweredOff();
+      if (ds.motionWakeEnabled) {
+        if (!screenOff) {
+          if (mIMU_new->activityDetection())
+            device_settings::notifyActivity();
+        } else if (mIMU_new->pollScreenOffMotionWake()) {
+          device_settings::notifyActivity();
+        }
+      }
+      if (keyboardScan()) {
+        if (!screenOff || ds.keyWakeEnabled)
+          device_settings::notifyActivity();
+      }
+    }
 
     uint16_t visPlusIrLevel, irLevel;
     if (lightSensorScan(visPlusIrLevel, irLevel)) {
@@ -526,7 +559,7 @@ void HardwareRevX::loopHandler() {
         mLogger->log(LogLevel::Info, mLogStream);
       }
 
-      if (mStandbyTimer == 0 && !keepAwake) {
+      if (device_settings::idleMs() >= ds.deepSleepTimeoutMs && !keepAwake) {
         mLogger->setLogModule(LogModule::General);
 
         if (mInScene && mLightSleepEnabled) {

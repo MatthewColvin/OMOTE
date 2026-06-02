@@ -4,6 +4,8 @@
 #include "driver/ledc.h"
 #include "omoteconfig.h"
 
+#include <algorithm>
+
 LGFX::LGFX(void) {
   {
     auto cfg = _bus_instance.config();
@@ -177,16 +179,29 @@ void Display::reInit() {
 }
 
 void Display::wake() {
+  mPreSleepDim = false;
   if (mIsAsleep) {
     mIsAsleep = false;
+    startLcdFade();
+    startKbdFade();
+  } else if (mPreSleepDim) {
     startLcdFade();
     startKbdFade();
   }
 }
 
 void Display::sleep() {
+  mPreSleepDim = false;
   if (!mIsAsleep) {
     mIsAsleep = true;
+    startLcdFade();
+    startKbdFade();
+  }
+}
+
+void Display::enterPreSleepDim() {
+  if (!mIsAsleep && !mPreSleepDim) {
+    mPreSleepDim = true;
     startLcdFade();
     startKbdFade();
   }
@@ -334,9 +349,12 @@ void Display::startLcdFade(bool instant, uint16_t delay) {
     // Only Create Task if it is needed
     if (mDisplayLcdFadeTask == nullptr) {
       uint8_t targetBrightness;
-      if (mIsAsleep)
+      if (mIsAsleep) {
         targetBrightness = 0;
-      else {
+      } else if (mPreSleepDim) {
+        const uint8_t base = mIsDay ? mLcdDayBrightness : mLcdNightBrightness;
+        targetBrightness = (uint8_t)std::max(4, (int)(base * 0.3f));
+      } else {
         if (mIsDay)
           targetBrightness = mLcdDayBrightness;
         else
@@ -393,9 +411,12 @@ void Display::startKbdFade(bool instant, uint16_t delay) {
     // Only Create Task if it is needed
     if (mDisplayKbdFadeTask == nullptr) {
       uint8_t targetBrightness;
-      if (mIsAsleep)
+      if (mIsAsleep) {
         targetBrightness = 0;
-      else {
+      } else if (mPreSleepDim) {
+        const uint8_t base = mIsDay ? mKbdDayBrightness : mKbdNightBrightness;
+        targetBrightness = (uint8_t)std::max(4, (int)(base * 0.3f));
+      } else {
         if (mIsDay)
           targetBrightness = mKbdDayBrightness;
         else

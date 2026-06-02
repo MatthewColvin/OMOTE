@@ -97,6 +97,10 @@ public:
 
   void wake();
   void sleep();
+  /** Fade toward ~30% of day/night level before full screen off. */
+  void enterPreSleepDim();
+  bool isDisplayAsleep() const { return mIsAsleep; }
+  bool isPreSleepDim() const { return mPreSleepDim; }
 
   void reInit();
 
@@ -153,6 +157,7 @@ private:
   uint8_t mKbdNightBrightness = 0;         // Current keyboard for brightness when night mode
 
   uint8_t mIsAsleep = false;
+  bool mPreSleepDim = false;
   uint8_t mIsDay = true;
 
   bool mHaveTouch = false;

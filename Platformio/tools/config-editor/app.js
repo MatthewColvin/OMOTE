@@ -7,6 +7,23 @@ const CONTENT_H = SCR_H - STATUS_H - TAB_BAR_H;
 const ADVANCED_KEY = 'omote_editor_advanced';
 const OMOTE_PACK_VERSION = 1;
 const HA_SETTINGS_PATH = 'HaSettings.json';
+const DEVICE_SETTINGS_PATH = 'DeviceSettings.json';
+const SOFT_RELOAD_PATHS = new Set([HA_SETTINGS_PATH, DEVICE_SETTINGS_PATH]);
+const DEFAULT_DEVICE_SETTINGS = {
+  display_timeout_ms: 60000,
+  deep_sleep_timeout_ms: 900000,
+  dim_lead_ms: 2000,
+  motion_wake_enabled: true,
+  key_wake_enabled: true,
+  light_sleep_enabled: false,
+  light_sleep_timeout_ms: 60000,
+  lcd_day_brightness: 0,
+  lcd_night_brightness: 0,
+  kbd_day_brightness: 0,
+  kbd_night_brightness: 0,
+  ntp_server: '',
+  timezone: '',
+};
 const HA_DOMAINS = ['light', 'switch', 'cover', 'climate', 'sensor', 'media_player', 'fan', 'scene', 'script', 'input_boolean', 'lock', 'button'];
 const HA_EDITOR_PREFS_KEY = 'omote_oo_ha_editor_prefs';
 
@@ -417,6 +434,84 @@ function saveHaSettingsToFiles() {
   localStorage.setItem(HA_EDITOR_PREFS_KEY, JSON.stringify({ ha_url: url, ha_token: token }));
 }
 
+function loadDeviceSettingsDoc() {
+  return { ...DEFAULT_DEVICE_SETTINGS, ...(parseJson(DEVICE_SETTINGS_PATH) || {}) };
+}
+
+function applyDeviceSettingsToForm(doc) {
+  const d = doc || loadDeviceSettingsDoc();
+  if ($('dev-display-timeout')) $('dev-display-timeout').value = Math.round((d.display_timeout_ms || 60000) / 1000);
+  if ($('dev-dim-lead')) $('dev-dim-lead').value = Math.round((d.dim_lead_ms || 2000) / 1000);
+  if ($('dev-deep-sleep')) $('dev-deep-sleep').value = Math.round((d.deep_sleep_timeout_ms || 900000) / 1000);
+  if ($('dev-motion-wake')) $('dev-motion-wake').checked = d.motion_wake_enabled !== false;
+  if ($('dev-key-wake')) $('dev-key-wake').checked = d.key_wake_enabled !== false;
+  if ($('dev-light-sleep')) $('dev-light-sleep').checked = !!d.light_sleep_enabled;
+  if ($('dev-light-sleep-timeout')) {
+    $('dev-light-sleep-timeout').value = Math.round((d.light_sleep_timeout_ms || 60000) / 1000);
+  }
+  if ($('dev-lcd-day')) $('dev-lcd-day').value = d.lcd_day_brightness ?? 0;
+}
+
+function deviceSettingsFromForm() {
+  const prev = loadDeviceSettingsDoc();
+  return {
+    display_timeout_ms: parseInt($('dev-display-timeout')?.value, 10) * 1000 || 60000,
+    deep_sleep_timeout_ms: parseInt($('dev-deep-sleep')?.value, 10) * 1000 || 900000,
+    dim_lead_ms: parseInt($('dev-dim-lead')?.value, 10) * 1000 || 2000,
+    motion_wake_enabled: $('dev-motion-wake')?.checked !== false,
+    key_wake_enabled: $('dev-key-wake')?.checked !== false,
+    light_sleep_enabled: $('dev-light-sleep')?.checked === true,
+    light_sleep_timeout_ms: parseInt($('dev-light-sleep-timeout')?.value, 10) * 1000 || 60000,
+    lcd_day_brightness: parseInt($('dev-lcd-day')?.value, 10) || 0,
+    lcd_night_brightness: prev.lcd_night_brightness || 0,
+    kbd_day_brightness: prev.kbd_day_brightness || 0,
+    kbd_night_brightness: prev.kbd_night_brightness || 0,
+    ntp_server: prev.ntp_server || '',
+    timezone: prev.timezone || '',
+  };
+}
+
+/** Strip live API fields so editor file matches LittleFS JSON. */
+function deviceSettingsFilePayload(src) {
+  const out = { ...DEFAULT_DEVICE_SETTINGS };
+  for (const key of Object.keys(DEFAULT_DEVICE_SETTINGS)) {
+    if (src[key] !== undefined && src[key] !== null) out[key] = src[key];
+  }
+  return out;
+}
+
+function saveDeviceSettingsToFiles() {
+  setFile(DEVICE_SETTINGS_PATH, deviceSettingsFromForm());
+}
+
+async function syncDeviceSettingsFileFromRemote() {
+  try {
+    const r = await api('/api/fs/read?path=' + encodeURIComponent(DEVICE_SETTINGS_PATH));
+    setFile(DEVICE_SETTINGS_PATH, r.content, false);
+    applyDeviceSettingsToForm(parseJson(DEVICE_SETTINGS_PATH));
+    return;
+  } catch { /* file may not exist yet */ }
+  const d = await api('/api/device/settings');
+  setFile(DEVICE_SETTINGS_PATH, deviceSettingsFilePayload(d), false);
+  applyDeviceSettingsToForm(loadDeviceSettingsDoc());
+}
+
+async function pullDeviceSettingsFromRemote() {
+  await syncDeviceSettingsFileFromRemote();
+}
+
+async function pushDeviceSettingsToRemote() {
+  const body = deviceSettingsFromForm();
+  saveDeviceSettingsToFiles();
+  await api('/api/device/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    timeout: 15000,
+  });
+  await syncDeviceSettingsFileFromRemote();
+}
+
 function getHaCredentials() {
   const url = ($('ha-url')?.value || '').trim().replace(/\/+$/, '');
   const token = ($('ha-token')?.value || '').trim();
@@ -614,9 +709,16 @@ function localFileMap() {
   return m;
 }
 
+function stableJsonStringify(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableJsonStringify).join(',')}]`;
+  const keys = Object.keys(value).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableJsonStringify(value[k])}`).join(',')}}`;
+}
+
 function normalizeContentForCompare(content) {
   const parsed = parseJsonText(content);
-  if (parsed !== null) return JSON.stringify(parsed);
+  if (parsed !== null) return stableJsonStringify(parsed);
   return (content || '').trim();
 }
 
@@ -1465,7 +1567,10 @@ function showTab(name) {
   } else {
     stopHaPreviewPolling();
   }
-  if (name === 'connect' || name === 'settings') loadHaSettingsForm();
+  if (name === 'connect' || name === 'settings') {
+    loadHaSettingsForm();
+    applyDeviceSettingsToForm();
+  }
   if (name === 'scenes') refreshScenesTab();
   if (name === 'commands') renderCommandsTable();
   if (name === 'raw') populateRawSelect();
@@ -1541,6 +1646,40 @@ async function connectAndLoad(options = {}) {
 }
 
 $('btn-connect').onclick = connectAndLoad;
+
+function setSettingsMsg(text, cls) {
+  const el = $('settings-msg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'msg ' + (cls || '');
+}
+
+$('btn-save-device-settings')?.addEventListener('click', async () => {
+  setSettingsMsg('Saving device settings…');
+  try {
+    const st = await api('/api/status').catch(() => null);
+    if (!st) {
+      saveDeviceSettingsToFiles();
+      setSettingsMsg('Saved in editor — connect and save again to push to remote.', 'ok');
+      return;
+    }
+    await pushDeviceSettingsToRemote();
+    setSettingsMsg('Device settings saved on remote and synced to editor.', 'ok');
+  } catch (e) {
+    saveDeviceSettingsToFiles();
+    setSettingsMsg(`Saved locally only. (${e.message})`, 'err');
+  }
+});
+
+$('btn-pull-device-settings')?.addEventListener('click', async () => {
+  setSettingsMsg('Loading from remote…');
+  try {
+    await pullDeviceSettingsFromRemote();
+    setSettingsMsg('Pulled device settings from remote.', 'ok');
+  } catch (e) {
+    setSettingsMsg(e.message, 'err');
+  }
+});
 
 $('btn-save-ha')?.addEventListener('click', async () => {
   saveHaSettingsToFiles();
@@ -1633,7 +1772,9 @@ function initAfterLoad() {
     $('deploy-msg').className = 'msg ok';
   }
   if (!files.has(HA_SETTINGS_PATH)) setFile(HA_SETTINGS_PATH, { Url: '', Token: '' }, false);
+  if (!files.has(DEVICE_SETTINGS_PATH)) setFile(DEVICE_SETTINGS_PATH, { ...DEFAULT_DEVICE_SETTINGS }, false);
   loadHaSettingsForm();
+  applyDeviceSettingsToForm();
   if (!selectedScenePath) {
     const reg = sceneRegistry();
     if (reg.Scenes?.[0]?.FileName) selectedScenePath = reg.Scenes[0].FileName;
@@ -3145,13 +3286,13 @@ $('btn-deploy').onclick = async () => {
         method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: content, timeout: 30000
       });
     }
-    const onlyHaSettings =
-      dirty.length > 0 && dirty.every(([p]) => p === HA_SETTINGS_PATH);
+    const onlySoftReload =
+      dirty.length > 0 && dirty.every(([p]) => SOFT_RELOAD_PATHS.has(p));
     const parts = [];
     if (dirty.length) parts.push(`saved ${dirty.length}`);
     if (toDelete.length) parts.push(`deleted ${toDelete.length}`);
     const summary = parts.join(', ');
-    if (!onlyHaSettings) {
+    if (!onlySoftReload) {
       await api('/api/device/reboot', { method: 'POST', timeout: 5000 }).catch(() => {});
       $('deploy-msg').textContent = `${summary}. Remote rebooting…`;
     } else {

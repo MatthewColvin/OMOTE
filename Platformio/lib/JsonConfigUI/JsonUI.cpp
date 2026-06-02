@@ -7,6 +7,7 @@
 #include "ScreenManager.hpp"
 #include "UIBase.hpp"
 #include "config_reload.hpp"
+#include "device_settings.hpp"
 #include "editor_sync_mode.hpp"
 
 using namespace UI;
@@ -25,6 +26,10 @@ void JsonUI::loopHandler() {
     syncUiShown = false;
   if (config_reload::consumeHaSettingsDirty())
     HaRuntime::reloadSettingsFromDisk();
+  if (config_reload::consumeDeviceSettingsDirty()) {
+    if (device_settings::loadFromLittleFS())
+      device_settings::applyToHardware();
+  }
   if (mJsonHomeScreen && config_reload::consumePagesDirty())
     mJsonHomeScreen->reloadCurrentSceneFromDisk();
   HaRuntime::tick();

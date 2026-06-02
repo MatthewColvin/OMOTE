@@ -67,6 +67,8 @@ public:
 
   virtual void saveSettings() override;
 
+  virtual void refreshImuMotionConfig() override;
+
   virtual void setInScene(bool inScene) override;
 
   /// @brief To be ran in loop out in main
@@ -114,7 +116,6 @@ protected: // Maybe todo: make private?
   Preferences mPreferences;
 
 private:
-  int mStandbyTimer = SLEEP_TIMEOUT;
   int mSleepTimeout = SLEEP_TIMEOUT;
   uint32_t mLightSleepTimeout = LIGHT_SLEEP_TIMEOUT;
   unsigned long mIMUTaskTimer = 0;

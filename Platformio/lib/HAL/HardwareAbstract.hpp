@@ -71,6 +71,9 @@ public:
 
   virtual void saveSettings() = 0;
 
+  /** Re-apply LIS3DH interrupt routing for motion wake (no-op on simulator). */
+  virtual void refreshImuMotionConfig() {}
+
   // TODO: Scenes are really a UI Structure
   // Lets try to refactor this out of HAL into some sort of UI structure.
   virtual void setInScene(bool inScene) = 0;

@@ -4,6 +4,7 @@ namespace {
 
 volatile bool sPagesDirty = false;
 volatile bool sHaSettingsDirty = false;
+volatile bool sDeviceSettingsDirty = false;
 
 } // namespace
 
@@ -12,6 +13,8 @@ namespace config_reload {
 void markPagesDirty() { sPagesDirty = true; }
 
 void markHaSettingsDirty() { sHaSettingsDirty = true; }
+
+void markDeviceSettingsDirty() { sDeviceSettingsDirty = true; }
 
 bool consumePagesDirty() {
   if (!sPagesDirty)
@@ -24,6 +27,13 @@ bool consumeHaSettingsDirty() {
   if (!sHaSettingsDirty)
     return false;
   sHaSettingsDirty = false;
+  return true;
+}
+
+bool consumeDeviceSettingsDirty() {
+  if (!sDeviceSettingsDirty)
+    return false;
+  sDeviceSettingsDirty = false;
   return true;
 }
 

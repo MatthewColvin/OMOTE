@@ -10,6 +10,18 @@
   "lcd_night_brightness": 0,
   "kbd_day_brightness": 0,
   "kbd_night_brightness": 0,
+  "mqtt_enabled": false,
+  "mqtt_broker": "broker",
+  "mqtt_port": "1883",
+  "mqtt_user": "user",
+  "mqtt_password": "password",
+  "mqtt_client_id": "OMOTE",
+  "ntp_enabled": false,
+  "ntp_display_mode": 0,
   "ntp_server": "",
-  "timezone": ""
+  "timezone": "",
+  "ftp_enabled": false,
+  "ftp_mdns_name": "omote",
+  "ftp_user": "OMOTE",
+  "ftp_password": "OMOTE"
 }

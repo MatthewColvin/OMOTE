@@ -5,6 +5,7 @@
 #include "captive_portal.hpp"
 #include "config_http.hpp"
 #include "device_settings.hpp"
+#include "device_settings_schema.hpp"
 #include "display.hpp"
 #include "driver/rtc_io.h"
 #include "editor_sync_mode.hpp"
@@ -129,6 +130,7 @@ void HardwareRevX::init() {
   //  mBattery->writeCustomModel();
 
   restorePreferences();
+  device_settings_schema::loadFromLittleFS();
   device_settings::notifyActivity();
   if (device_settings::loadFromLittleFS())
     device_settings::applyToHardware();

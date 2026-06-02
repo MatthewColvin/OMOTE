@@ -11,6 +11,9 @@ void markHaSettingsDirty();
 /** Set when DeviceSettings.json changes (sleep/brightness apply without reboot). */
 void markDeviceSettingsDirty();
 
+/** Set when DeviceSettings.schema.json changes (rebuild settings UI). */
+void markDeviceSettingsSchemaDirty();
+
 /** Returns true once per mark; JsonUI should reload the active scene. */
 bool consumePagesDirty();
 
@@ -19,5 +22,7 @@ bool consumeHaSettingsDirty();
 
 /** Returns true once per mark; apply sleep/brightness from DeviceSettings.json. */
 bool consumeDeviceSettingsDirty();
+
+bool consumeDeviceSettingsSchemaDirty();
 
 } // namespace config_reload

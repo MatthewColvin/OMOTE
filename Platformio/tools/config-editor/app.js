@@ -8,22 +8,14 @@ const ADVANCED_KEY = 'omote_editor_advanced';
 const OMOTE_PACK_VERSION = 1;
 const HA_SETTINGS_PATH = 'HaSettings.json';
 const DEVICE_SETTINGS_PATH = 'DeviceSettings.json';
-const SOFT_RELOAD_PATHS = new Set([HA_SETTINGS_PATH, DEVICE_SETTINGS_PATH]);
-const DEFAULT_DEVICE_SETTINGS = {
-  display_timeout_ms: 60000,
-  deep_sleep_timeout_ms: 900000,
-  dim_lead_ms: 2000,
-  motion_wake_enabled: true,
-  key_wake_enabled: true,
-  light_sleep_enabled: false,
-  light_sleep_timeout_ms: 60000,
-  lcd_day_brightness: 0,
-  lcd_night_brightness: 0,
-  kbd_day_brightness: 0,
-  kbd_night_brightness: 0,
-  ntp_server: '',
-  timezone: '',
-};
+const DEVICE_SETTINGS_SCHEMA_PATH = 'DeviceSettings.schema.json';
+const SOFT_RELOAD_PATHS = new Set([
+  HA_SETTINGS_PATH,
+  DEVICE_SETTINGS_PATH,
+  DEVICE_SETTINGS_SCHEMA_PATH,
+]);
+const DEFAULT_DEVICE_SETTINGS_SCHEMA = OmoteSettingsForm.DEFAULT_DEVICE_SETTINGS_SCHEMA;
+const DEFAULT_DEVICE_SETTINGS = OmoteSettingsForm.defaultsFromSchema(DEFAULT_DEVICE_SETTINGS_SCHEMA);
 const HA_DOMAINS = ['light', 'switch', 'cover', 'climate', 'sensor', 'media_player', 'fan', 'scene', 'script', 'input_boolean', 'lock', 'button'];
 const HA_EDITOR_PREFS_KEY = 'omote_oo_ha_editor_prefs';
 
@@ -434,47 +426,35 @@ function saveHaSettingsToFiles() {
   localStorage.setItem(HA_EDITOR_PREFS_KEY, JSON.stringify({ ha_url: url, ha_token: token }));
 }
 
-function loadDeviceSettingsDoc() {
-  return { ...DEFAULT_DEVICE_SETTINGS, ...(parseJson(DEVICE_SETTINGS_PATH) || {}) };
+function loadDeviceSettingsSchemaDoc() {
+  return parseJson(DEVICE_SETTINGS_SCHEMA_PATH) || DEFAULT_DEVICE_SETTINGS_SCHEMA;
 }
 
-function applyDeviceSettingsToForm(doc) {
-  const d = doc || loadDeviceSettingsDoc();
-  if ($('dev-display-timeout')) $('dev-display-timeout').value = Math.round((d.display_timeout_ms || 60000) / 1000);
-  if ($('dev-dim-lead')) $('dev-dim-lead').value = Math.round((d.dim_lead_ms || 2000) / 1000);
-  if ($('dev-deep-sleep')) $('dev-deep-sleep').value = Math.round((d.deep_sleep_timeout_ms || 900000) / 1000);
-  if ($('dev-motion-wake')) $('dev-motion-wake').checked = d.motion_wake_enabled !== false;
-  if ($('dev-key-wake')) $('dev-key-wake').checked = d.key_wake_enabled !== false;
-  if ($('dev-light-sleep')) $('dev-light-sleep').checked = !!d.light_sleep_enabled;
-  if ($('dev-light-sleep-timeout')) {
-    $('dev-light-sleep-timeout').value = Math.round((d.light_sleep_timeout_ms || 60000) / 1000);
-  }
-  if ($('dev-lcd-day')) $('dev-lcd-day').value = d.lcd_day_brightness ?? 0;
+function loadDeviceSettingsDoc() {
+  const schema = loadDeviceSettingsSchemaDoc();
+  return { ...OmoteSettingsForm.defaultsFromSchema(schema), ...(parseJson(DEVICE_SETTINGS_PATH) || {}) };
+}
+
+function refreshDeviceSettingsPanel() {
+  const panel = $('device-settings-dynamic');
+  if (!panel) return;
+  OmoteSettingsForm.renderDeviceSettingsForm(
+    panel,
+    loadDeviceSettingsSchemaDoc(),
+    loadDeviceSettingsDoc()
+  );
 }
 
 function deviceSettingsFromForm() {
-  const prev = loadDeviceSettingsDoc();
-  return {
-    display_timeout_ms: parseInt($('dev-display-timeout')?.value, 10) * 1000 || 60000,
-    deep_sleep_timeout_ms: parseInt($('dev-deep-sleep')?.value, 10) * 1000 || 900000,
-    dim_lead_ms: parseInt($('dev-dim-lead')?.value, 10) * 1000 || 2000,
-    motion_wake_enabled: $('dev-motion-wake')?.checked !== false,
-    key_wake_enabled: $('dev-key-wake')?.checked !== false,
-    light_sleep_enabled: $('dev-light-sleep')?.checked === true,
-    light_sleep_timeout_ms: parseInt($('dev-light-sleep-timeout')?.value, 10) * 1000 || 60000,
-    lcd_day_brightness: parseInt($('dev-lcd-day')?.value, 10) || 0,
-    lcd_night_brightness: prev.lcd_night_brightness || 0,
-    kbd_day_brightness: prev.kbd_day_brightness || 0,
-    kbd_night_brightness: prev.kbd_night_brightness || 0,
-    ntp_server: prev.ntp_server || '',
-    timezone: prev.timezone || '',
-  };
+  const panel = $('device-settings-dynamic');
+  return OmoteSettingsForm.collectDeviceSettingsFromForm(panel, loadDeviceSettingsSchemaDoc());
 }
 
 /** Strip live API fields so editor file matches LittleFS JSON. */
 function deviceSettingsFilePayload(src) {
-  const out = { ...DEFAULT_DEVICE_SETTINGS };
-  for (const key of Object.keys(DEFAULT_DEVICE_SETTINGS)) {
+  const schema = loadDeviceSettingsSchemaDoc();
+  const out = OmoteSettingsForm.defaultsFromSchema(schema);
+  for (const key of OmoteSettingsForm.schemaFieldKeys(schema)) {
     if (src[key] !== undefined && src[key] !== null) out[key] = src[key];
   }
   return out;
@@ -488,15 +468,23 @@ async function syncDeviceSettingsFileFromRemote() {
   try {
     const r = await api('/api/fs/read?path=' + encodeURIComponent(DEVICE_SETTINGS_PATH));
     setFile(DEVICE_SETTINGS_PATH, r.content, false);
-    applyDeviceSettingsToForm(parseJson(DEVICE_SETTINGS_PATH));
-    return;
-  } catch { /* file may not exist yet */ }
-  const d = await api('/api/device/settings');
-  setFile(DEVICE_SETTINGS_PATH, deviceSettingsFilePayload(d), false);
-  applyDeviceSettingsToForm(loadDeviceSettingsDoc());
+  } catch {
+    const d = await api('/api/device/settings');
+    setFile(DEVICE_SETTINGS_PATH, deviceSettingsFilePayload(d), false);
+  }
+  refreshDeviceSettingsPanel();
 }
 
 async function pullDeviceSettingsFromRemote() {
+  try {
+    const schema = await api('/api/device/settings/schema');
+    setFile(DEVICE_SETTINGS_SCHEMA_PATH, schema, false);
+  } catch {
+    try {
+      const r = await api('/api/fs/read?path=' + encodeURIComponent(DEVICE_SETTINGS_SCHEMA_PATH));
+      setFile(DEVICE_SETTINGS_SCHEMA_PATH, r.content, false);
+    } catch { /* keep local / bundled schema */ }
+  }
   await syncDeviceSettingsFileFromRemote();
 }
 
@@ -1569,7 +1557,7 @@ function showTab(name) {
   }
   if (name === 'connect' || name === 'settings') {
     loadHaSettingsForm();
-    applyDeviceSettingsToForm();
+    refreshDeviceSettingsPanel();
   }
   if (name === 'scenes') refreshScenesTab();
   if (name === 'commands') renderCommandsTable();
@@ -1772,9 +1760,12 @@ function initAfterLoad() {
     $('deploy-msg').className = 'msg ok';
   }
   if (!files.has(HA_SETTINGS_PATH)) setFile(HA_SETTINGS_PATH, { Url: '', Token: '' }, false);
+  if (!files.has(DEVICE_SETTINGS_SCHEMA_PATH)) {
+    setFile(DEVICE_SETTINGS_SCHEMA_PATH, DEFAULT_DEVICE_SETTINGS_SCHEMA, false);
+  }
   if (!files.has(DEVICE_SETTINGS_PATH)) setFile(DEVICE_SETTINGS_PATH, { ...DEFAULT_DEVICE_SETTINGS }, false);
   loadHaSettingsForm();
-  applyDeviceSettingsToForm();
+  refreshDeviceSettingsPanel();
   if (!selectedScenePath) {
     const reg = sceneRegistry();
     if (reg.Scenes?.[0]?.FileName) selectedScenePath = reg.Scenes[0].FileName;

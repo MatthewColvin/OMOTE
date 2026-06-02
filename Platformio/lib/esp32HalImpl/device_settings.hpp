@@ -20,9 +20,20 @@ struct Settings {
   uint8_t lcdNightBrightness = 0;
   uint8_t kbdDayBrightness = 0;
   uint8_t kbdNightBrightness = 0;
-  /** Reserved for editor / future NTP–MQTT wiring (stored in JSON only for now). */
+  bool mqttEnabled = false;
+  std::string mqttBroker = "broker";
+  std::string mqttPort = "1883";
+  std::string mqttUser = "user";
+  std::string mqttPassword = "password";
+  std::string mqttClientId = "OMOTE";
+  bool ntpEnabled = false;
+  int32_t ntpDisplayMode = 0;
   std::string ntpServer;
   std::string timezone;
+  bool ftpEnabled = false;
+  std::string ftpMdnsName = "omote";
+  std::string ftpUser = "OMOTE";
+  std::string ftpPassword = "OMOTE";
 };
 
 Settings &current();
@@ -30,6 +41,7 @@ const Settings &currentConst();
 
 bool loadFromLittleFS();
 bool saveToLittleFS();
+rapidjson::Document toJsonDocument();
 /** Merge keys from a JSON object; returns false if not an object. */
 bool mergeFromJson(const rapidjson::Value &doc);
 void applyToHardware();

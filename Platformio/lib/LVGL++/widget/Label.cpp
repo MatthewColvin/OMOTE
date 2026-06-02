@@ -10,6 +10,9 @@ using namespace UI::Widget;
 Label::Label(std::string aText)
     : Base(lv_label_create(UI::Screen::BackgroundScreen::getLvInstance()),
            ID::Widgets::Label) {
+  // Widget::Base defaults to lv_pct(100) height; labels must be content-sized
+  // or they inflate scroll areas (e.g. schema-driven settings pages).
+  SetHeight(LV_SIZE_CONTENT);
   SetText(aText);
 }
 

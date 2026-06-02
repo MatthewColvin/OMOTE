@@ -61,30 +61,11 @@ python -m http.server 8080</pre>
         </label>
         <p class="muted small">3661 adds Home, Guide, device keys (TV, Stream, STB…), and replaces the four color aux keys.</p>
 
-        <h3 class="section-title">Sleep &amp; power</h3>
-        <p class="muted small">Stored in <code>DeviceSettings.json</code> on the remote. WiFi stays on while the screen is off; deep sleep uses the existing firmware path (light sleep in scenes optional).</p>
-        <label>Screen off after (sec)
-          <input type="number" id="dev-display-timeout" min="10" max="3600" value="60" />
-        </label>
-        <label>Dim before off (sec)
-          <input type="number" id="dev-dim-lead" min="0" max="120" value="2" />
-        </label>
-        <label>Deep sleep after (sec)
-          <input type="number" id="dev-deep-sleep" min="120" max="86400" value="900" />
-        </label>
-        <label class="checkbox-row"><input type="checkbox" id="dev-motion-wake" checked /> Wake on motion</label>
-        <label class="checkbox-row"><input type="checkbox" id="dev-key-wake" checked /> Wake on key press</label>
-        <label class="checkbox-row"><input type="checkbox" id="dev-light-sleep" /> Light sleep in scenes</label>
-        <label>Light sleep duration (sec)
-          <input type="number" id="dev-light-sleep-timeout" min="10" max="7200" value="60" />
-        </label>
-        <p class="muted small">LCD/key brightness 0 = use values saved on the remote (NVS).</p>
-        <label>LCD day brightness (0–255)
-          <input type="number" id="dev-lcd-day" min="0" max="255" value="0" />
-        </label>
+        <p class="muted small">Layout from <code>DeviceSettings.schema.json</code>; values in <code>DeviceSettings.json</code>. Same files drive the on-device Settings → Device page.</p>
+        <div id="device-settings-dynamic"></div>
         <div class="row">
           <button type="button" id="btn-save-device-settings">Save device settings</button>
-          <button type="button" id="btn-pull-device-settings" class="small-btn" title="When connected, copy live values from the remote API">Pull from remote</button>
+          <button type="button" id="btn-pull-device-settings" class="small-btn" title="When connected, copy values from the remote">Pull from remote</button>
         </div>
 
         <h3 class="section-title">Home Assistant</h3>
@@ -399,6 +380,7 @@ python -m http.server 8080</pre>
     <span id="deploy-msg" class="msg"></span>
   </footer>
   <script src="./jszip.min.js"></script>
+  <script src="./settings-form.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

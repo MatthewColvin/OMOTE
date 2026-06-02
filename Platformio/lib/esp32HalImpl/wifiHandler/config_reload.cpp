@@ -5,6 +5,7 @@ namespace {
 volatile bool sPagesDirty = false;
 volatile bool sHaSettingsDirty = false;
 volatile bool sDeviceSettingsDirty = false;
+volatile bool sDeviceSettingsSchemaDirty = false;
 
 } // namespace
 
@@ -15,6 +16,8 @@ void markPagesDirty() { sPagesDirty = true; }
 void markHaSettingsDirty() { sHaSettingsDirty = true; }
 
 void markDeviceSettingsDirty() { sDeviceSettingsDirty = true; }
+
+void markDeviceSettingsSchemaDirty() { sDeviceSettingsSchemaDirty = true; }
 
 bool consumePagesDirty() {
   if (!sPagesDirty)
@@ -34,6 +37,13 @@ bool consumeDeviceSettingsDirty() {
   if (!sDeviceSettingsDirty)
     return false;
   sDeviceSettingsDirty = false;
+  return true;
+}
+
+bool consumeDeviceSettingsSchemaDirty() {
+  if (!sDeviceSettingsSchemaDirty)
+    return false;
+  sDeviceSettingsSchemaDirty = false;
   return true;
 }
 

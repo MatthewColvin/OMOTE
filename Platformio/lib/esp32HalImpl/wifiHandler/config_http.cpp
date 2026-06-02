@@ -5,6 +5,7 @@
 #include "HardwareFactory.hpp"
 #include "RapidJsonUtilty.hpp"
 #include "device_settings.hpp"
+#include "device_settings_schema.hpp"
 #include "editor_sync_mode.hpp"
 #include "ir/IRTransceiver.hpp"
 
@@ -182,6 +183,8 @@ void handleFsDelete() {
     config_reload::markHaSettingsDirty();
   else if (path == "DeviceSettings.json")
     config_reload::markDeviceSettingsDirty();
+  else if (path == "DeviceSettings.schema.json")
+    config_reload::markDeviceSettingsSchemaDirty();
   else if (path.rfind("Pages/", 0) == 0 || path == "Scenes.json" || path.rfind("Scenes/", 0) == 0)
     config_reload::markPagesDirty();
   sendJson(200, "{\"ok\":true}");
@@ -218,30 +221,27 @@ void handleFsWrite() {
     config_reload::markHaSettingsDirty();
   else if (path == "DeviceSettings.json")
     config_reload::markDeviceSettingsDirty();
+  else if (path == "DeviceSettings.schema.json")
+    config_reload::markDeviceSettingsSchemaDirty();
   else if (path.rfind("Pages/", 0) == 0 || path == "Scenes.json" || path.rfind("Scenes/", 0) == 0)
     config_reload::markPagesDirty();
   sendJson(200, "{\"ok\":true}");
 }
 
+void handleDeviceSettingsSchemaGet() {
+  if (!device_settings_schema::loadFromLittleFS()) {
+    sendJson(404, "{\"error\":\"schema not found\"}");
+    return;
+  }
+  sendJson(200, OMOTE::JSON::ToString(device_settings_schema::document()));
+}
+
 void handleDeviceSettingsGet() {
-  const auto &s = device_settings::currentConst();
-  rapidjson::Document d;
-  d.SetObject();
+  rapidjson::Document d = device_settings::toJsonDocument();
   auto &a = d.GetAllocator();
-  d.AddMember("display_timeout_ms", rapidjson::Value(static_cast<uint64_t>(s.displayTimeoutMs)), a);
-  d.AddMember("deep_sleep_timeout_ms", rapidjson::Value(static_cast<uint64_t>(s.deepSleepTimeoutMs)), a);
-  d.AddMember("dim_lead_ms", rapidjson::Value(static_cast<uint64_t>(s.dimLeadMs)), a);
+  const auto &s = device_settings::currentConst();
   d.AddMember("sleep_timeout_ms", rapidjson::Value(static_cast<uint64_t>(s.displayTimeoutMs)), a);
-  d.AddMember("motion_wake_enabled", s.motionWakeEnabled, a);
-  d.AddMember("key_wake_enabled", s.keyWakeEnabled, a);
-  d.AddMember("light_sleep_enabled", s.lightSleepEnabled, a);
-  d.AddMember("light_sleep_timeout_ms", rapidjson::Value(static_cast<uint64_t>(s.lightSleepTimeoutMs)), a);
-  d.AddMember("lcd_day_brightness", static_cast<unsigned>(s.lcdDayBrightness), a);
   d.AddMember("display_off", device_settings::isScreenPoweredOff(), a);
-  if (!s.ntpServer.empty())
-    d.AddMember("ntp_server", rapidjson::Value(s.ntpServer.c_str(), a), a);
-  if (!s.timezone.empty())
-    d.AddMember("timezone", rapidjson::Value(s.timezone.c_str(), a), a);
   d.AddMember("wifi_connected", WiFi.isConnected(), a);
   if (WiFi.isConnected()) {
     d.AddMember("wifi_ssid", rapidjson::Value(WiFi.SSID().c_str(), a), a);
@@ -363,6 +363,7 @@ void registerRoutes() {
   server.on("/api/device/reboot", HTTP_POST, handleReboot);
   server.on("/api/device/settings", HTTP_GET, handleDeviceSettingsGet);
   server.on("/api/device/settings", HTTP_POST, handleDeviceSettingsPost);
+  server.on("/api/device/settings/schema", HTTP_GET, handleDeviceSettingsSchemaGet);
   server.on("/api/device/sync-mode", HTTP_GET, handleEditorSyncGet);
   server.on("/api/device/sync-mode", HTTP_POST, handleEditorSyncPost);
   server.on("/api/ir/learn/start", HTTP_POST, handleIrLearnStart);
@@ -377,6 +378,7 @@ void registerRoutes() {
   server.on("/api/fs/delete", HTTP_OPTIONS, handleOptions);
   server.on("/api/device/reboot", HTTP_OPTIONS, handleOptions);
   server.on("/api/device/settings", HTTP_OPTIONS, handleOptions);
+  server.on("/api/device/settings/schema", HTTP_OPTIONS, handleOptions);
   server.on("/api/device/sync-mode", HTTP_OPTIONS, handleOptions);
   server.on("/api/ir/learn/start", HTTP_OPTIONS, handleOptions);
   server.on("/api/ir/learn/stop", HTTP_OPTIONS, handleOptions);

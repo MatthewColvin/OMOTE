@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 #include "LIS3DH_IMU.hpp"
 #include "Hardware/LoggingInterface.hpp"
 #include "omoteconfig.h"
@@ -173,3 +174,5 @@ void LIS3DH_IMU::configIMUInterruptPolarity() {
   mIMU.writeRegister(LIS3DH_CTRL_REG6, 0x00); // For active-high interrupt
 #endif
 }
+#endif // !IS_SIMULATOR
+

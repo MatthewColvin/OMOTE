@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 
 #include "display.hpp"
 
@@ -495,3 +496,5 @@ void Display::flushDisplay(lv_disp_t *disp, const lv_area_t *area,
 
   lv_display_flush_ready(disp);
 }
+#endif // !IS_SIMULATOR
+

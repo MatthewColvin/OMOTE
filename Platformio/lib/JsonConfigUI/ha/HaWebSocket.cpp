@@ -1,3 +1,5 @@
+#if !defined(IS_SIMULATOR)
+
 #include "HaWebSocket.hpp"
 
 #include "editor_sync_mode.hpp"
@@ -558,3 +560,5 @@ bool fetchEntityStateRest(const std::string &entityId, std::string &stateOut, st
 }
 
 } // namespace HaWebSocket
+
+#endif // !IS_SIMULATOR

@@ -92,3 +92,8 @@ void List::ForEachItem(std::function<void(ListItem &)> aFunction) {
     aFunction(*static_cast<ListItem *>(item.get()));
   }
 }
+
+void List::ClearItems() {
+  auto lock = LvglResourceManager::GetInstance().scopeLock();
+  mListItems.clear();
+}

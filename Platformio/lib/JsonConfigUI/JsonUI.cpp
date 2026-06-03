@@ -4,6 +4,8 @@
 #include "HaRuntime.hpp"
 #include "HardwareFactory.hpp"
 #include "JsonHomeScreen.hpp"
+#include "LvglResourceManager.hpp"
+#include "PopUpScreen.hpp"
 #include "ScreenManager.hpp"
 #include "UIBase.hpp"
 #include "config_reload.hpp"
@@ -18,13 +20,30 @@ JsonUI::JsonUI() : BasicUI() {
 
 void JsonUI::loopHandler() {
   static bool syncUiShown = false;
+#ifndef IS_SIMULATOR
+  static Screen::Base *editorSyncPopUp = nullptr;
+#endif
+  static bool pagesReloadPending = false;
+
   if (editor_sync_mode::isActive() && !syncUiShown) {
     syncUiShown = true;
-    Screen::Manager::getInstance().pushPopUp(
-        std::make_unique<Page::EditorSyncPage>(), LV_SCR_LOAD_ANIM_OVER_LEFT);
+#ifndef IS_SIMULATOR
+    auto popUp = std::make_unique<Screen::PopUpScreen>(std::make_unique<Page::EditorSyncPage>());
+    editorSyncPopUp = popUp.get();
+    Screen::Manager::getInstance().pushScreen(std::move(popUp), LV_SCR_LOAD_ANIM_OVER_LEFT);
+#endif
   }
-  if (!editor_sync_mode::isActive())
+
+  if (!editor_sync_mode::isActive() && syncUiShown) {
+#ifndef IS_SIMULATOR
+    if (editorSyncPopUp) {
+      Screen::Manager::getInstance().popScreen(editorSyncPopUp);
+      editorSyncPopUp = nullptr;
+    }
+#endif
     syncUiShown = false;
+  }
+
   if (config_reload::consumeHaSettingsDirty())
     HaRuntime::reloadSettingsFromDisk();
   if (config_reload::consumeDeviceSettingsSchemaDirty())
@@ -33,10 +52,21 @@ void JsonUI::loopHandler() {
     if (device_settings::loadFromLittleFS())
       device_settings::applyToHardware();
   }
-  if (mJsonHomeScreen && config_reload::consumePagesDirty())
-    mJsonHomeScreen->reloadCurrentSceneFromDisk();
+
+  if (config_reload::consumePagesDirty())
+    pagesReloadPending = true;
+
   HaRuntime::tick();
   UIBase::loopHandler();
+
+  // Apply scene reload after lv_timer_handler (never during HTTP / mid-LVGL tick).
+  if (!editor_sync_mode::isActive() && pagesReloadPending && mJsonHomeScreen) {
+    pagesReloadPending = false;
+    Screen::JsonHomeScreen *home = mJsonHomeScreen;
+    LvglResourceManager::GetInstance().QueueForLater([home]() {
+      home->reloadCurrentSceneFromDisk();
+    });
+  }
 }
 
 void JsonUI::InitHomeScreen() {

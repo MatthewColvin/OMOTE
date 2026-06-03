@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 #include "BatteryRevX.hpp"
 #include <Preferences.h>
 
@@ -110,3 +111,5 @@ int BatteryRevX::loadCalMode() {
   preferences.end();
   return mCalMode;
 }
+#endif // !IS_SIMULATOR
+

@@ -53,6 +53,9 @@ protected:
 
   void sendExitSequence();
 
+  /** Rebuild scene picker and key bindings from Scenes.json. */
+  void populateSceneListFromDisk();
+
 private:
   DeviceFactory &mFactory;
 

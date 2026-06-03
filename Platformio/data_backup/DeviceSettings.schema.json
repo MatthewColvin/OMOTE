@@ -1,0 +1,261 @@
+{
+  "version": 1,
+  "title": "Device settings",
+  "sections": [
+    {
+      "id": "sleep",
+      "placement": "submenu",
+      "title": "Sleep & power",
+      "hint": "WiFi stays on while the screen is off.",
+      "fields": [
+        {
+          "key": "display_timeout_ms",
+          "type": "choice",
+          "label": "Screen off after",
+          "options": [
+            { "label": "10 sec", "value": 10000 },
+            { "label": "15 sec", "value": 15000 },
+            { "label": "20 sec", "value": 20000 },
+            { "label": "1 min", "value": 60000 },
+            { "label": "10 min", "value": 600000 },
+            { "label": "30 min", "value": 1800000 },
+            { "label": "1 hour", "value": 3600000 }
+          ],
+          "default": 60000
+        },
+        {
+          "key": "dim_lead_ms",
+          "type": "choice",
+          "label": "Dim before off",
+          "options": [
+            { "label": "Off", "value": 0 },
+            { "label": "1 sec", "value": 1000 },
+            { "label": "2 sec", "value": 2000 },
+            { "label": "5 sec", "value": 5000 }
+          ],
+          "default": 2000
+        },
+        {
+          "key": "deep_sleep_timeout_ms",
+          "type": "choice",
+          "label": "Deep sleep after",
+          "options": [
+            { "label": "2 min", "value": 120000 },
+            { "label": "5 min", "value": 300000 },
+            { "label": "15 min", "value": 900000 },
+            { "label": "30 min", "value": 1800000 },
+            { "label": "1 hour", "value": 3600000 }
+          ],
+          "default": 900000
+        },
+        {
+          "key": "motion_wake_enabled",
+          "type": "boolean",
+          "label": "Wake on motion",
+          "default": true
+        },
+        {
+          "key": "key_wake_enabled",
+          "type": "boolean",
+          "label": "Wake on key press",
+          "default": true
+        },
+        {
+          "key": "light_sleep_enabled",
+          "type": "boolean",
+          "label": "Light sleep in scenes",
+          "default": false
+        },
+        {
+          "key": "light_sleep_timeout_ms",
+          "type": "choice",
+          "label": "Light sleep duration",
+          "options": [
+            { "label": "10 sec", "value": 10000 },
+            { "label": "1 min", "value": 60000 },
+            { "label": "10 min", "value": 600000 },
+            { "label": "30 min", "value": 1800000 },
+            { "label": "1 hour", "value": 3600000 },
+            { "label": "2 hours", "value": 7200000 }
+          ],
+          "default": 60000
+        }
+      ]
+    },
+    {
+      "id": "display",
+      "placement": "submenu",
+      "title": "Backlight",
+      "hint": "0 = keep current saved level.",
+      "fields": [
+        {
+          "key": "lcd_day_brightness",
+          "type": "slider",
+          "label": "LCD day",
+          "min": 0,
+          "max": 255,
+          "default": 0
+        },
+        {
+          "key": "lcd_night_brightness",
+          "type": "slider",
+          "label": "LCD night",
+          "min": 0,
+          "max": 255,
+          "default": 0
+        },
+        {
+          "key": "kbd_day_brightness",
+          "type": "slider",
+          "label": "Keypad day",
+          "min": 0,
+          "max": 255,
+          "default": 0
+        },
+        {
+          "key": "kbd_night_brightness",
+          "type": "slider",
+          "label": "Keypad night",
+          "min": 0,
+          "max": 255,
+          "default": 0
+        }
+      ]
+    },
+    {
+      "id": "mqtt",
+      "placement": "menu",
+      "menu_icon": "home",
+      "menu_title": "MQTT",
+      "title": "MQTT",
+      "fields": [
+        {
+          "key": "mqtt_enabled",
+          "type": "boolean",
+          "label": "Enable MQTT",
+          "default": false
+        },
+        {
+          "key": "mqtt_broker",
+          "type": "string",
+          "label": "Broker",
+          "default": "broker"
+        },
+        {
+          "key": "mqtt_port",
+          "type": "string",
+          "label": "Port",
+          "default": "1883"
+        },
+        {
+          "key": "mqtt_user",
+          "type": "string",
+          "label": "User",
+          "default": "user"
+        },
+        {
+          "key": "mqtt_password",
+          "type": "string",
+          "label": "Password",
+          "default": "password"
+        },
+        {
+          "key": "mqtt_client_id",
+          "type": "string",
+          "label": "Client ID",
+          "default": "OMOTE"
+        }
+      ]
+    },
+    {
+      "id": "ntp",
+      "placement": "menu",
+      "menu_icon": "refresh",
+      "menu_title": "NTP",
+      "title": "NTP",
+      "fields": [
+        {
+          "key": "ntp_enabled",
+          "type": "boolean",
+          "label": "Enable NTP",
+          "default": false
+        },
+        {
+          "key": "ntp_display_mode",
+          "type": "choice",
+          "label": "Display mode",
+          "options": [
+            { "label": "Constant", "value": 0 },
+            { "label": "Alternating", "value": 1 },
+            { "label": "First 5 sec", "value": 2 }
+          ],
+          "default": 0
+        },
+        {
+          "key": "ntp_server",
+          "type": "string",
+          "label": "Server",
+          "default": "pool.ntp.org",
+          "options": [
+            { "label": "pool.ntp.org", "value": "pool.ntp.org" },
+            { "label": "Google", "value": "time.google.com" },
+            { "label": "Cloudflare", "value": "time.cloudflare.com" },
+            { "label": "Windows", "value": "time.windows.com" },
+            { "label": "Ubuntu", "value": "ntp.ubuntu.com" },
+            { "label": "Apple", "value": "time.apple.com" }
+          ]
+        },
+        {
+          "key": "timezone",
+          "type": "string",
+          "label": "Timezone",
+          "default": "GMT0BST,M3.5.0/1,M10.5.0",
+          "options": [
+            { "label": "UK (GMT/BST)", "value": "GMT0BST,M3.5.0/1,M10.5.0" },
+            { "label": "UTC", "value": "UTC0" },
+            { "label": "US Eastern", "value": "EST5EDT,M3.2.0,M11.1.0" },
+            { "label": "US Central", "value": "CST6CDT,M3.2.0,M11.1.0" },
+            { "label": "US Mountain", "value": "MST7MDT,M3.2.0,M11.1.0" },
+            { "label": "US Pacific", "value": "PST8PDT,M3.2.0,M11.1.0" },
+            { "label": "Central Europe", "value": "CET-1CEST,M3.5.0,M10.5.0" },
+            { "label": "Israel", "value": "IST-2IDT,M3.4.4/26,M10.5.0" },
+            { "label": "Australia (Sydney)", "value": "AEST-10AEDT,M10.1.0,M4.1.0/3" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ftp",
+      "placement": "menu",
+      "menu_icon": "directory",
+      "menu_title": "FTP",
+      "title": "FTP",
+      "fields": [
+        {
+          "key": "ftp_enabled",
+          "type": "boolean",
+          "label": "Enable FTP",
+          "default": false
+        },
+        {
+          "key": "ftp_mdns_name",
+          "type": "string",
+          "label": "mDNS name",
+          "default": "omote"
+        },
+        {
+          "key": "ftp_user",
+          "type": "string",
+          "label": "User",
+          "default": "OMOTE"
+        },
+        {
+          "key": "ftp_password",
+          "type": "string",
+          "label": "Password",
+          "default": "OMOTE"
+        }
+      ]
+    }
+  ]
+}

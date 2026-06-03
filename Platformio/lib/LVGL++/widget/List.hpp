@@ -42,6 +42,9 @@ public:
 
   void ForEachItem(std::function<void(ListItem &)> aFunction);
 
+  /** Remove all list buttons (e.g. before rebuilding from Scenes.json). */
+  void ClearItems();
+
 protected:
   ListItem *AddItem(std::unique_ptr<ListItem> aItemToAdd);
 

@@ -2,6 +2,9 @@
 #include "HardwareFactory.hpp"
 #include "HomeAssistUI.hpp"
 #include "JsonUI.hpp"
+#ifdef IS_SIMULATOR
+#include <cstdio>
+#endif
 #ifdef OMOTE_HARDWARE_REV5
 #include "Arduino.h"
 #endif
@@ -41,7 +44,15 @@ void setup() {
   HardwareFactory::getAbstract().wifi()->begin();
 
   createUI();
+#ifdef IS_SIMULATOR
+  std::fprintf(stderr, "[sim] setup: UI created, running first LVGL tick\n");
+  std::fflush(stderr);
+#endif
   lv_timer_handler(); // Run the LVGL UI once before the loop takes over
+#ifdef IS_SIMULATOR
+  std::fprintf(stderr, "[sim] setup complete — sim running (close SDL window only hides UI; process stays in terminal)\n");
+  std::fflush(stderr);
+#endif
 }
 
 void loop() {

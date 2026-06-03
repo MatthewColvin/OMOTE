@@ -1,3 +1,5 @@
+#if !defined(IS_SIMULATOR)
+
 #include "editor_sync_mode.hpp"
 
 #include "HardwareFactory.hpp"
@@ -59,3 +61,5 @@ void exit(bool reboot) {
 }
 
 } // namespace editor_sync_mode
+
+#endif // !IS_SIMULATOR

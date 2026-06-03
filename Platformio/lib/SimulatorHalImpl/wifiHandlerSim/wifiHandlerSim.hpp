@@ -61,7 +61,21 @@ public:
   void ntpSaveCredentials() override {};
   void setupNtp() override {};
 
+  void networkSync() override;
+  bool isPortalActive() const override;
+  bool hasStoredCredentials() const override;
+  const char *portalStatusText() const override;
+
 private:
+  void loadWifiCredentials();
+  void saveWifiCredentials(const std::string &ssid, const std::string &password);
+  void startPortalIfNeeded();
+
+  static constexpr auto WIFI_SETTINGS_FILE = FS_PATH "wifi_settings.json";
+
+  std::string mWifiSsid;
+  std::string mWifiPassword;
+  bool mConnectPending = false;
   void init_mqtt();
   void stop_mqtt();
   void restoreCredentials();

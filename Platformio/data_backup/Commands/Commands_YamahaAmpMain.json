@@ -1,0 +1,27 @@
+{
+  "Manufacturer":"Roku",
+  "DeviceClass":"Streaming",
+  "Commands": [
+    {"Command":"PWR_ON",    "Mode":"IR", "Protocol":"NEC", "Data":["0x7E817E81"]},
+    {"Command":"PWR_OFF",   "Mode":"IR", "Protocol":"NEC", "Data":["0x7E81FE01"]},
+    {"Command":"PWR_TOGGLE","Mode":"IR", "Protocol":"NEC", "Data":["0x7E8154AB"]},
+    {"Command":"LEFT",        "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA1F906"]},
+    {"Command":"RIGHT",       "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA17986"]},
+    {"Command":"UP",          "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA1B946"]},
+    {"Command":"DOWN",        "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA139C6"]},
+    {"Command":"SELECT",      "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA17B84"]},
+    {"Command":"TOP_MENU",    "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA105FB"]},
+    {"Command":"RETURN",      "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA155AA"]},
+    {"Command":"PURE_DIRECT", "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA1BB44"]},
+    {"Command":"MUTE",        "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA138C7"]},
+    {"Command":"VOL_UP",      "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA158A7"]},
+    {"Command":"VOL_DOWN",    "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA1D827"]},
+    {"Command":"PROG_UP",     "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA11AE5"]},
+    {"Command":"PROG_DOWN",   "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA19A65"]},
+    {"Command":"BD_DVD",      "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA100FE"]},
+    {"Command":"TV",          "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA1C03E"]},
+    {"Command":"NET",         "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA1609E"]},
+    {"Command":"RADIO",       "Mode":"IR", "Protocol":"NEC", "Data":["0x5EA1906E"]},
+    {"Command":"DELAY_PWR_ON","Mode":"IR", "Protocol":"DELAY","Data":["500"]}
+  ]
+}

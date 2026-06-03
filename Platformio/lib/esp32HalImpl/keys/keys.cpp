@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 #include "keys.hpp"
 
 Keys::Keys() {}
@@ -7,3 +8,5 @@ void Keys::HandleKeyPresses(const KeyEvent &aJustOccuredKeyEvent) {
       mKeyEventHandler(aJustOccuredKeyEvent);
     }
 }
+#endif // !IS_SIMULATOR
+

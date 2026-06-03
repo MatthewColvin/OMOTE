@@ -10,6 +10,8 @@
 #include <rapidjson/filewritestream.h>
 #include <rapidjson/writer.h>
 
+#include "captive_portal_sim.hpp"
+#include "config_http.hpp"
 #include "observerHandles.hpp"
 #include "wifiHandlerSim.hpp"
 #include <../examples/templates/posix_sockets.h>
@@ -25,9 +27,70 @@ struct mqtt_client mMqttClient;
 
 wifiHandlerSim::wifiHandlerSim() {}
 
+void wifiHandlerSim::loadWifiCredentials() {
+  mWifiSsid.clear();
+  mWifiPassword.clear();
+  std::filesystem::path path(WIFI_SETTINGS_FILE);
+  rapidjson::Document d = OMOTE::JSON::GetDocument(path);
+  if (d.HasParseError() || d.IsNull())
+    return;
+  if (d.HasMember("SSID") && d["SSID"].IsString())
+    mWifiSsid = d["SSID"].GetString();
+  if (d.HasMember("password") && d["password"].IsString())
+    mWifiPassword = d["password"].GetString();
+}
+
+void wifiHandlerSim::saveWifiCredentials(const std::string &ssid, const std::string &password) {
+  mWifiSsid = ssid;
+  mWifiPassword = password;
+  Document d;
+  d.SetObject();
+  auto &a = d.GetAllocator();
+  d.AddMember("SSID", rapidjson::Value(ssid.c_str(), a), a);
+  d.AddMember("password", rapidjson::Value(password.c_str(), a), a);
+  OMOTE::JSON::WriteDocumentToFile(d, std::filesystem::path(WIFI_SETTINGS_FILE));
+}
+
+void wifiHandlerSim::startPortalIfNeeded() {
+  if (!mWifiSsid.empty())
+    return;
+  captive_portal_sim::start(8080, [this](const std::string &ssid, const std::string &password) {
+    saveWifiCredentials(ssid, password);
+    connect(ssid, password);
+    restoreCredentials();
+    setupMqttBroker();
+    UI::observerHandles::setText(GENERAL_STATUS, mCurrentStatus.ssid.c_str());
+  });
+  if (const char *msg = portalStatusText())
+    UI::observerHandles::setText(GENERAL_STATUS, msg);
+}
+
 void wifiHandlerSim::begin() {
+  config_http::begin(mmDNSName.c_str());
+  loadWifiCredentials();
+  if (mWifiSsid.empty()) {
+    startPortalIfNeeded();
+    restoreCredentials();
+    return;
+  }
+  connect(mWifiSsid, mWifiPassword);
   restoreCredentials();
   setupMqttBroker();
+}
+
+bool wifiHandlerSim::hasStoredCredentials() const { return !mWifiSsid.empty(); }
+
+bool wifiHandlerSim::isPortalActive() const { return captive_portal_sim::isActive(); }
+
+const char *wifiHandlerSim::portalStatusText() const {
+  return captive_portal_sim::isActive() ? captive_portal_sim::statusText() : nullptr;
+}
+
+void wifiHandlerSim::networkSync() {
+  if (captive_portal_sim::isActive())
+    captive_portal_sim::loop();
+  config_http::sync();
+  mqttSync();
 }
 
 void wifiHandlerSim::connect(std::string ssid, std::string password) {
@@ -119,6 +182,13 @@ struct reconnect_state_t {
   wifiHandlerSim *thisPtr;
 };
 
+namespace {
+/** mqtt_init_reconnect keeps a pointer — must outlive init_mqtt() stack frames. */
+reconnect_state_t gMqttReconnectState;
+uint8_t gMqttSendBuf[1024];
+uint8_t gMqttRecvBuf[1024];
+} // namespace
+
 void reconnect_mqtt_cb(struct mqtt_client *client, void **reconnect_state_vptr) {
   struct reconnect_state_t *reconnect_state = *((struct reconnect_state_t **)reconnect_state_vptr);
 
@@ -168,22 +238,19 @@ void wifiHandlerSim::setupMqttBroker() {
 }
 
 void wifiHandlerSim::init_mqtt() {
-  static uint8_t sendBuf[1024], recvBuf[1024];
+  gMqttReconnectState.hostname = mMqttBroker.c_str();
+  gMqttReconnectState.port = mMqttPort.c_str();
+  gMqttReconnectState.clientName = mMqttClientName.c_str();
+  gMqttReconnectState.user = mMqttUser.c_str();
+  gMqttReconnectState.password = mMqttPassword.c_str();
+  gMqttReconnectState.sendbuf = gMqttSendBuf;
+  gMqttReconnectState.sendbufsz = sizeof(gMqttSendBuf);
+  gMqttReconnectState.recvbuf = gMqttRecvBuf;
+  gMqttReconnectState.recvbufsz = sizeof(gMqttRecvBuf);
+  gMqttReconnectState.thisPtr = this;
 
-  struct reconnect_state_t reconnect_state;
-  reconnect_state.hostname = mMqttBroker.c_str();
-  reconnect_state.port = mMqttPort.c_str();
-  reconnect_state.clientName = mMqttClientName.c_str();
-  reconnect_state.user = mMqttUser.c_str();
-  reconnect_state.password = mMqttPassword.c_str();
-  reconnect_state.sendbuf = sendBuf;
-  reconnect_state.sendbufsz = sizeof(sendBuf);
-  reconnect_state.recvbuf = recvBuf;
-  reconnect_state.recvbufsz = sizeof(recvBuf);
-  reconnect_state.thisPtr = this;
-
-  mqtt_init_reconnect(&mMqttClient, reconnect_mqtt_cb, &reconnect_state, publish_cb);
-  void *structPtr = &reconnect_state;
+  mqtt_init_reconnect(&mMqttClient, reconnect_mqtt_cb, &gMqttReconnectState, publish_cb);
+  void *structPtr = &gMqttReconnectState;
   reconnect_mqtt_cb(&mMqttClient, &structPtr); // ensure connection completes before subscriptions start
 }
 

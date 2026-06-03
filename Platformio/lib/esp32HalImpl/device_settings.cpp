@@ -1,13 +1,19 @@
 #include "device_settings.hpp"
 
 #include "HardwareFactory.hpp"
+#include "HardwareAbstract.hpp"
 #include "RapidJsonUtilty.hpp"
+#ifndef IS_SIMULATOR
 #include "display.hpp"
-#include "omoteconfig.h"
+#endif
 
 #include <fstream>
 
+#ifdef IS_SIMULATOR
 extern "C" unsigned long millis(void);
+#else
+extern "C" unsigned long millis(void);
+#endif
 
 #ifndef FS_PATH
 #define FS_PATH "/littlefs/"
@@ -217,17 +223,16 @@ void applyToHardware() {
   hw.setLightSleepTimeout(sSettings.lightSleepTimeoutMs);
   hw.setSleepTimeout(sSettings.displayTimeoutMs);
 
-  auto disp = std::static_pointer_cast<Display>(hw.display());
-  if (!disp)
-    return;
-  if (sSettings.lcdDayBrightness >= 10)
-    disp->setLcdDayBrightness(sSettings.lcdDayBrightness, true);
-  if (sSettings.lcdNightBrightness >= 10)
-    disp->setLcdNightBrightness(sSettings.lcdNightBrightness, true);
-  if (sSettings.kbdDayBrightness >= 10)
-    disp->setKbdDayBrightness(sSettings.kbdDayBrightness, true);
-  if (sSettings.kbdNightBrightness >= 10)
-    disp->setKbdNightBrightness(sSettings.kbdNightBrightness, true);
+  if (auto disp = hw.display()) {
+    if (sSettings.lcdDayBrightness >= 10)
+      disp->setLcdDayBrightness(sSettings.lcdDayBrightness, true);
+    if (sSettings.lcdNightBrightness >= 10)
+      disp->setLcdNightBrightness(sSettings.lcdNightBrightness, true);
+    if (sSettings.kbdDayBrightness >= 10)
+      disp->setKbdDayBrightness(sSettings.kbdDayBrightness, true);
+    if (sSettings.kbdNightBrightness >= 10)
+      disp->setKbdNightBrightness(sSettings.kbdNightBrightness, true);
+  }
 
   if (wifi) {
     wifi->enableMqtt(sSettings.mqttEnabled);
@@ -263,8 +268,7 @@ void syncFromHardware() {
   sSettings.lightSleepTimeoutMs = hw.getLightSleepTimeout();
   sSettings.displayTimeoutMs = hw.getSleepTimeout();
 
-  auto disp = std::static_pointer_cast<Display>(hw.display());
-  if (disp) {
+  if (auto disp = hw.display()) {
     sSettings.lcdDayBrightness = disp->getLcdDayBrightness();
     sSettings.lcdNightBrightness = disp->getLcdNightBrightness();
     sSettings.kbdDayBrightness = disp->getKbdDayBrightness();
@@ -294,6 +298,7 @@ void syncFromHardware() {
 
 void notifyActivity() {
   sLastActivityMs = millis();
+#ifndef IS_SIMULATOR
   if (sScreenPoweredOff) {
     sScreenPoweredOff = false;
     if (auto disp = std::static_pointer_cast<Display>(HardwareFactory::getAbstract().display())) {
@@ -304,6 +309,10 @@ void notifyActivity() {
     if (disp->isPreSleepDim())
       disp->wake();
   }
+#else
+  if (sScreenPoweredOff)
+    sScreenPoweredOff = false;
+#endif
 }
 
 uint32_t idleMs() {

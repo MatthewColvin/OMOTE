@@ -74,9 +74,10 @@ public:
   void ftpRestoreCredentials();
 
   /** HTTP config API + captive portal / connect polling */
-  void networkSync();
-  bool isPortalActive();
-  bool hasStoredCredentials();
+  void networkSync() override;
+  bool isPortalActive() const override;
+  bool hasStoredCredentials() const override;
+  const char *portalStatusText() const override;
 
 protected:
   wifiHandler() = default;

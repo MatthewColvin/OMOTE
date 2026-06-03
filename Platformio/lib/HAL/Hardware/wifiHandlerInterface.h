@@ -99,6 +99,13 @@ public:
   virtual void ntpSaveCredentials() = 0;
   virtual void setupNtp() = 0;
 
+  /** Captive portal + WiFi connect polling (hardware AP or sim HTTP server). */
+  virtual void networkSync() = 0;
+  virtual bool isPortalActive() const = 0;
+  virtual bool hasStoredCredentials() const = 0;
+  /** Status line while portal is active (may be nullptr). */
+  virtual const char *portalStatusText() const = 0;
+
 protected:
   std::shared_ptr<ScanNotificationTy> mScanNotification =
       std::make_shared<ScanNotificationTy>();

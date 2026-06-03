@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 
 #include "BackgroundThread.hpp"
 
@@ -92,3 +93,5 @@ void BackgroundThread::ThreadImpl(void *aThread) {
   self->mKeepAliveSelf = nullptr;
   vTaskDelete(nullptr);
 }
+#endif // !IS_SIMULATOR
+

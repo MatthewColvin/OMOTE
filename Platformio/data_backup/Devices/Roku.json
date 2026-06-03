@@ -1,0 +1,115 @@
+{
+    "name": "Roku",
+    "keys": {
+        "Back": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuBack",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x57436699"
+                }
+            }
+        },
+        "Menu": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuHome",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x5743C03F"
+                }
+            }
+        },
+        "Up": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuUp",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x57439867"
+                }
+            }
+        },
+        "Down": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuDown",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x5743CC33"
+                }
+            }
+        },
+        "Left": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuLeft",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x57437887"
+                }
+            }
+        },
+        "Right": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuRight",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x5743B44B"
+                }
+            }
+        },
+        "Center": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuSelect",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x574354AB"
+                }
+            }
+        },
+        "Info": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuInfo",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x57438679"
+                }
+            }
+        },
+        "Rewind": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuRewind",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x57432CD3"
+                }
+            }
+        },
+        "Play": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuPlay",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x574332CD"
+                }
+            }
+        },
+        "FastForward": {
+            "Press": {
+                "type": "IRAction",
+                "name": "RokuFastForward",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x5743AA55"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,43 @@
+{
+  "Type": "Scene",
+  "ScreenName": "TV",
+  "Pages": [
+    {
+      "PageName": "TV",
+      "ShortName": "TV",
+      "FileName": "Pages/Page_TV.json",
+      "OverrideKeys": [
+        "VolUp",
+        "VolDown",
+        "Mute"
+      ]
+    },
+    {
+      "PageName": "HVAC",
+      "ShortName": "HVAC",
+      "FileName": "Pages/Page_Heating.json",
+      "CommandPrefix": "KITCHEN_"
+    },
+    {
+      "PageName": "HA Test",
+      "ShortName": "HA Test",
+      "FileName": "Pages/Page_Living_room_TV.json"
+    }
+  ],
+  "StartCommandSequence": [
+    {
+      "CommandFile": "Commands/Commands_PanasonicTV.json",
+      "Command": "PWR_ON"
+    },
+    {
+      "CommandFile": "Commands/Commands_PanasonicTV.json",
+      "Command": "DELAY_1S"
+    }
+  ],
+  "ExitCommandSequence": [
+    {
+      "CommandFile": "Commands/Commands_PanasonicTV.json",
+      "Command": "PWR_OFF"
+    }
+  ]
+}

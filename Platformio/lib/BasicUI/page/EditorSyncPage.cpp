@@ -2,8 +2,10 @@
 
 #include "HardwareFactory.hpp"
 #include "Label.hpp"
-#include "WiFi.h"
 #include "editor_sync_mode.hpp"
+#ifndef IS_SIMULATOR
+#include "WiFi.h"
+#endif
 
 using namespace UI::Page;
 
@@ -27,8 +29,14 @@ EditorSyncPage::EditorSyncPage()
   mBody->AlignTo(mTitle, LV_ALIGN_OUT_BOTTOM_MID, 0, 12);
 
   std::string ipLine = "Waiting for WiFi…";
+#ifdef IS_SIMULATOR
+  const auto st = HardwareFactory::getAbstract().wifi()->GetStatus();
+  if (st.isConnected)
+    ipLine = std::string("IP: ") + st.IP;
+#else
   if (WiFi.isConnected())
     ipLine = std::string("IP: ") + WiFi.localIP().toString().c_str();
+#endif
   mIp->SetText(ipLine);
   mIp->SetHeight(LV_SIZE_CONTENT);
   mIp->AlignTo(mBody, LV_ALIGN_OUT_BOTTOM_MID, 0, 16);

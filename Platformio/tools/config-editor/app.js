@@ -254,7 +254,25 @@ const DEVICE_TEMPLATES = {
   }
 };
 
-let API = localStorage.getItem('omote_oo_api') || 'http://omote.local';
+/** Ensure fetch hits the device/sim host, not a path on the editor origin (needs http://). */
+function normalizeDeviceApiUrl(raw) {
+  let u = (raw || '').trim().replace(/\/$/, '');
+  if (!u) return 'http://omote.local';
+  if (!/^https?:\/\//i.test(u)) u = 'http://' + u;
+  return u;
+}
+
+/** Windows/macOS simulator (config HTTP on loopback, no on-device sync overlay). */
+function isSimDeviceApi(url) {
+  try {
+    const h = new URL(normalizeDeviceApiUrl(url || API)).hostname;
+    return h === '127.0.0.1' || h === 'localhost';
+  } catch {
+    return false;
+  }
+}
+
+let API = normalizeDeviceApiUrl(localStorage.getItem('omote_oo_api') || 'http://omote.local');
 let advancedMode = localStorage.getItem(ADVANCED_KEY) === '1';
 const files = new Map();
 /** Scene/page paths to remove from LittleFS on next Save to remote. */
@@ -1586,7 +1604,8 @@ async function setEditorSyncMode(on) {
 }
 
 async function connectAndLoad(options = {}) {
-  API = $('device-url').value.trim().replace(/\/$/, '') || 'http://omote.local';
+  API = normalizeDeviceApiUrl($('device-url').value);
+  $('device-url').value = API;
   localStorage.setItem('omote_oo_api', API);
   setConnectMsg('Connecting…');
   try {
@@ -1732,7 +1751,7 @@ $('omote-import-file')?.addEventListener('change', async (ev) => {
 
 $('btn-enter-sync').onclick = async () => {
   try {
-    API = $('device-url').value.trim().replace(/\/$/, '') || API;
+    API = normalizeDeviceApiUrl($('device-url').value || API);
     await setEditorSyncMode(true);
     $('connect-msg').textContent = 'Sync mode enabled on remote.';
     $('connect-msg').className = 'msg ok';
@@ -1744,7 +1763,7 @@ $('btn-enter-sync').onclick = async () => {
 
 $('btn-exit-sync').onclick = async () => {
   try {
-    API = $('device-url').value.trim().replace(/\/$/, '') || API;
+    API = normalizeDeviceApiUrl($('device-url').value || API);
     await setEditorSyncMode(false);
     $('connect-msg').textContent = 'Remote rebooting…';
     $('connect-msg').className = 'msg ok';
@@ -3265,7 +3284,7 @@ $('btn-deploy').onclick = async () => {
   }
   try {
     const st = await api('/api/status').catch(() => null);
-    if (st && !st.editor_sync) {
+    if (st && !st.editor_sync && !isSimDeviceApi(API)) {
       try { await setEditorSyncMode(true); } catch { /* device may lack API until flash */ }
     }
     for (const path of toDelete) {

@@ -1,4 +1,8 @@
+#if !defined(IS_SIMULATOR)
+
 #include "captive_portal.hpp"
+
+#include "Hardware/captive_portal_html.hpp"
 
 #include <DNSServer.h>
 #include <Preferences.h>
@@ -35,7 +39,7 @@ void handleSave() {
   preferences.putString("password", portalServer.arg("password"));
   preferences.end();
 
-  portalServer.send(200, "text/html", "<html><body><h2>Saved. Rebooting OMOTE...</h2></body></html>");
+  portalServer.send(200, "text/html", captive_portal_html::savedPage(false));
   portalServer.client().flush();
   delay(800);
   ESP.restart();
@@ -92,3 +96,5 @@ bool isActive() { return portalActive; }
 const char *statusText() { return "Join WiFi: OMOTE-Setup"; }
 
 } // namespace captive_portal
+
+#endif // !IS_SIMULATOR

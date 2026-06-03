@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 /*----------------------------------------------------------------------------/
   Lovyan GFX - Graphics library for embedded devices.
 
@@ -161,3 +162,5 @@ uint_fast8_t Touch_FT5x26::getTouchRaw(touch_point_t *tp, uint_fast8_t count) {
 //----------------------------------------------------------------------------
 } // namespace v1
 } // namespace lgfx
+#endif // !IS_SIMULATOR
+

@@ -1,0 +1,12 @@
+[sim] crash diagnostics on (log = this terminal)
+[sim] reset ./sim_data from ./data
+[config_http_sim] Editor API: http://127.0.0.1:9080 (Connect tab in config editor)
+[captive_portal_sim] Open WiFi setup: http://127.0.0.1:8080 in a browser
+HA> HaSettings.json missing Url or Token
+[config_http_sim] wrote Pages/Page_Living_room_TV.json (1054 bytes)
+[config_http_sim] POST /api/device/reboot
+[config_http_sim] Config applied in-process (sim stays running)
+JsonPage Pages/Page_TV.json: 3 widgets (0 HA)
+JsonPage Pages/Page_ImageTest.json: 1 widgets (0 HA)
+JsonPage Pages/Page_Heating.json: 7 widgets (0 HA)
+JsonPage Pages/Page_Heating.json: 7 widgets (0 HA)

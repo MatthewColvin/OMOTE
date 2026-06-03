@@ -12,8 +12,6 @@
     ],
     "dependencies": {
         "HAL": "HAL",
-        "HardwareCreation": "HardwareCreation",
-        "LovyanGFX": "lovyan03/LovyanGFX@^1.2.0",
         "RapidJsonUtility": "RapidJsonUtility"
     },
     "build": {
@@ -30,6 +28,9 @@
             "-I imu"
         ]
     },
-    "frameworks": "arduino",
-    "platforms": "espressif32"
+    "frameworks": "*",
+    "platforms": [
+        "espressif32",
+        "native"
+    ]
 }

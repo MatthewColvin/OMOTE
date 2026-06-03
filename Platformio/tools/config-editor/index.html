@@ -28,7 +28,7 @@
       <p class="muted">Run this editor on your computer — the remote only needs WiFi and a small API.</p>
       <pre class="code-hint">cd Platformio/tools/config-editor
 python -m http.server 8080</pre>
-      <label>Device URL <input id="device-url" placeholder="http://omote.local" /></label>
+      <label>Device URL <input id="device-url" placeholder="http://127.0.0.1:9080" title="Include http:// — e.g. http://omote.local or http://127.0.0.1:9080 for sim" /></label>
       <button id="btn-connect" class="primary">Connect &amp; load</button>
       <div class="row">
         <button type="button" id="btn-enter-sync">Enter sync mode on remote</button>

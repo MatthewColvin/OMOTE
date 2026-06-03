@@ -1,8 +1,8 @@
+#if !defined(IS_SIMULATOR)
 #include "HardwareRevX.hpp"
 #include "Esp32Logger.hpp"
 #include "Hardware/KeyPressAbstract.hpp"
 #include "IRTransceiver.hpp"
-#include "captive_portal.hpp"
 #include "config_http.hpp"
 #include "device_settings.hpp"
 #include "device_settings_schema.hpp"
@@ -481,7 +481,7 @@ void HardwareRevX::loopHandler() {
 
   mWifiHandler->networkSync();
 
-  const bool keepAwake = captive_portal::isActive() || editor_sync_mode::isActive();
+  const bool keepAwake = mWifiHandler->isPortalActive() || editor_sync_mode::isActive();
   const auto &ds = device_settings::currentConst();
   if (keepAwake)
     device_settings::notifyActivity();
@@ -617,3 +617,5 @@ bool HardwareRevX::lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) 
   } else
     return false;
 };
+#endif // !IS_SIMULATOR
+

@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 #include "EspStats.hpp"
 #include "esp_system.h"
 
@@ -17,3 +18,5 @@ void EspStats::NotifyFreeHeapTask(void *aSelf) {
     self->SendFreeHeapNotification();
   }
 }
+#endif // !IS_SIMULATOR
+

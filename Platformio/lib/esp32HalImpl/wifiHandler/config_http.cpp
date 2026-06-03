@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 #include "config_http.hpp"
 #include "config_reload.hpp"
 
@@ -443,3 +444,5 @@ void stop() {
 bool isRunning() { return running; }
 
 } // namespace config_http
+#endif // !IS_SIMULATOR
+

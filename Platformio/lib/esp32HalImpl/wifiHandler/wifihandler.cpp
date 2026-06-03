@@ -1,3 +1,5 @@
+#if !defined(IS_SIMULATOR)
+
 #include "wifihandler.hpp"
 
 #define RAPIDJSON_HAS_STDSTRING 1
@@ -155,7 +157,7 @@ void wifiHandler::begin() {
   WiFi.setSleep(true);
 }
 
-bool wifiHandler::hasStoredCredentials() {
+bool wifiHandler::hasStoredCredentials() const {
   Preferences preferences;
   preferences.begin("wifiSettings", false);
   const bool ok = !preferences.getString("SSID").isEmpty();
@@ -163,7 +165,11 @@ bool wifiHandler::hasStoredCredentials() {
   return ok;
 }
 
-bool wifiHandler::isPortalActive() { return captive_portal::isActive(); }
+bool wifiHandler::isPortalActive() const { return captive_portal::isActive(); }
+
+const char *wifiHandler::portalStatusText() const {
+  return captive_portal::isActive() ? captive_portal::statusText() : nullptr;
+}
 
 void wifiHandler::networkSync() {
   if (captive_portal::isActive()) {
@@ -536,3 +542,5 @@ void wifiHandler::ftpRestoreCredentials() {
   } else
     mLogger->info("FTP defaults used");
 }
+
+#endif // !IS_SIMULATOR

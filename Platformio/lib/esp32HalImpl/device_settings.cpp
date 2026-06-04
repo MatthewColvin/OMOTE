@@ -299,15 +299,17 @@ void syncFromHardware() {
 void notifyActivity() {
   sLastActivityMs = millis();
 #ifndef IS_SIMULATOR
-  if (sScreenPoweredOff) {
-    sScreenPoweredOff = false;
-    if (auto disp = std::static_pointer_cast<Display>(HardwareFactory::getAbstract().display())) {
+  if (auto disp = std::static_pointer_cast<Display>(HardwareFactory::getAbstract().display())) {
+    const bool needWake = sScreenPoweredOff || disp->isDisplayAsleep() ||
+                          disp->isPreSleepDim() || disp->needsBacklightRestore();
+    if (needWake) {
+      sScreenPoweredOff = false;
       disp->wake();
-      disp->startFade(0);
+    } else {
+      disp->pokeTouchController();
     }
-  } else if (auto disp = std::static_pointer_cast<Display>(HardwareFactory::getAbstract().display())) {
-    if (disp->isPreSleepDim())
-      disp->wake();
+  } else if (sScreenPoweredOff) {
+    sScreenPoweredOff = false;
   }
 #else
   if (sScreenPoweredOff)

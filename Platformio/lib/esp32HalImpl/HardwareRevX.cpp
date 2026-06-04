@@ -16,6 +16,16 @@
 #include <Wire.h>
 
 namespace {
+
+void restoreSharedI2cForTouch(const std::shared_ptr<Display> &disp) {
+  // LIS3DH beginCore() may call Wire.begin() without Rev1 SDA/SCL pins and break LovyanGFX touch.
+  Wire.end();
+  delay(1);
+  Wire.begin(SDA, SCL);
+  if (disp)
+    disp->ensureTouchReady();
+}
+
 void quietNoisyEspLogs() {
   // Matrix keypad scan toggles pin modes often; gpio driver logs at INFO drown HA> lines.
   esp_log_level_set("gpio", ESP_LOG_ERROR);
@@ -142,6 +152,10 @@ void HardwareRevX::init() {
 
   mIMU_new->setup();
   refreshImuMotionConfig();
+  restoreSharedI2cForTouch(mDisplay);
+
+  if (auto disp = std::static_pointer_cast<Display>(mDisplay))
+    disp->wake();
 
   UI::observerHandles::registerTextHandle(GENERAL_STATUS, OBSERVER_BUF_SIZE, "");
 
@@ -415,7 +429,7 @@ void HardwareRevX::lightSleepWakeReint(SleepMode mode) {
 
   initIO();
 
-  Wire.begin();
+  Wire.begin(SDA, SCL);
 
   mIMU.settings.accelSampleRate = 100;
   mIMU.applySettings();
@@ -425,6 +439,7 @@ void HardwareRevX::lightSleepWakeReint(SleepMode mode) {
   mIMUTaskTimer = millis();
   device_settings::notifyActivity();
   mIMU_new->setup();
+  restoreSharedI2cForTouch(mDisplay);
 
   mLogger->setLogModule(LogModule::General);
   if (mLogger->isPrintWanted(LogLevel::Info)) {
@@ -481,11 +496,11 @@ void HardwareRevX::loopHandler() {
 
   mWifiHandler->networkSync();
 
-  const bool keepAwake = mWifiHandler->isPortalActive() || editor_sync_mode::isActive();
+  const bool portalActive = mWifiHandler->isPortalActive();
+  const bool editorActive = editor_sync_mode::isActive();
+  const bool remoteActive = config_http::isRemoteSessionActive();
+  const bool keepAwake = portalActive || editorActive || remoteActive;
   const auto &ds = device_settings::currentConst();
-  if (keepAwake)
-    device_settings::notifyActivity();
-
   if (!keepAwake)
     mIr->loopHandleRx();
 
@@ -515,6 +530,19 @@ void HardwareRevX::loopHandler() {
   if (millis() - mIMUTaskTimer >= 25) {
     mIMUTaskTimer = millis();
 
+    if (keyboardScan())
+      device_settings::notifyActivity();
+
+    if (device_settings::isScreenPoweredOff()) {
+      if (auto disp = std::static_pointer_cast<Display>(mDisplay))
+        disp->pokeTouchController();
+    }
+    mDisplay->getTouchData();
+    if (device_settings::isScreenPoweredOff()) {
+      if (auto disp = std::static_pointer_cast<Display>(mDisplay); disp && disp->hasTouch())
+        device_settings::notifyActivity();
+    }
+
     if (!keepAwake) {
       const bool screenOff = device_settings::isScreenPoweredOff();
       if (ds.motionWakeEnabled) {
@@ -524,10 +552,6 @@ void HardwareRevX::loopHandler() {
         } else if (mIMU_new->pollScreenOffMotionWake()) {
           device_settings::notifyActivity();
         }
-      }
-      if (keyboardScan()) {
-        if (!screenOff || ds.keyWakeEnabled)
-          device_settings::notifyActivity();
       }
     }
 
@@ -543,8 +567,6 @@ void HardwareRevX::loopHandler() {
       }
     }
 
-    mDisplay->getTouchData(); // trigger read here to keep all I2C accesses
-                              // together
     battVoltage = battery()->getVoltage();
 
     static uint16_t secCount = 20; // update immediately on power up

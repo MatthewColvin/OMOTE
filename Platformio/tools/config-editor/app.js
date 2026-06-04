@@ -5,6 +5,7 @@ const STATUS_H = 22;
 const TAB_BAR_H = Math.round(SCR_H * 0.1);
 const CONTENT_H = SCR_H - STATUS_H - TAB_BAR_H;
 const ADVANCED_KEY = 'omote_editor_advanced';
+const LAST_DEVICE_IP_KEY = 'omote_last_device_ip';
 const OMOTE_PACK_VERSION = 1;
 const HA_SETTINGS_PATH = 'HaSettings.json';
 const DEVICE_SETTINGS_PATH = 'DeviceSettings.json';
@@ -293,6 +294,17 @@ const $ = (id) => document.getElementById(id);
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
+/** Let the browser handle clicks and paint between long remote reads. */
+function yieldToUi() {
+  return new Promise((r) => setTimeout(r, 0));
+}
+
+/** Close full-screen modals that block clicks on the editor (footer, canvas, etc.). */
+function dismissBlockingOverlays() {
+  $('connect-conflict-modal')?.classList.add('hidden');
+  $('device-settings-section-modal')?.classList.add('hidden');
+}
+
 /** Firmware JSON allows // and block comments (RapidJSON kParseCommentsFlag). */
 function stripJsonComments(text) {
   let out = '';
@@ -354,10 +366,141 @@ function defaultApi() {
   return API;
 }
 
+function fsReadTimeoutMs() {
+  return isSimDeviceApi(API) ? 20000 : 90000;
+}
+
+/** ESP32 streams up to 64 KiB per file via /api/fs/read/raw; chunk only when larger. */
+const FS_RAW_MAX_BYTES = 64 * 1024;
+const FS_CHUNK_BYTES = 8192;
+
+let activeConnectCtrl = null;
+
+function sortPathsForRemoteLoad(paths) {
+  const rank = (p) => {
+    if (p.startsWith('Commands/')) return 3;
+    if (p.startsWith('Pages/')) return 2;
+    if (p.startsWith('Scenes/')) return 1;
+    return 0;
+  };
+  return [...paths].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+}
+
+async function apiText(path, opts = {}) {
+  const base = API.replace(/\/$/, '');
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), opts.timeout || fsReadTimeoutMs());
+  const extSignal = connectFetchSignal(opts);
+  if (extSignal) extSignal.addEventListener('abort', () => ctrl.abort(), { once: true });
+  try {
+    const res = await fetch(base + path, { ...opts, signal: ctrl.signal });
+    clearTimeout(t);
+    if (!res.ok) throw new Error(res.status + ' ' + (await res.text().catch(() => '')));
+    return await res.text();
+  } catch (e) {
+    clearTimeout(t);
+    throw e;
+  }
+}
+
+function connectFetchSignal(opts = {}) {
+  if (opts.signal) return opts.signal;
+  if (activeConnectCtrl) return activeConnectCtrl.signal;
+  return undefined;
+}
+
+async function apiFsReadChunked(path, { signal } = {}) {
+  const enc = encodeURIComponent(path);
+  const parts = [];
+  let offset = 0;
+  for (;;) {
+    const chunkPath =
+      `/api/fs/read/chunk?path=${enc}&offset=${offset}&max=${FS_CHUNK_BYTES}`;
+    const base = API.replace(/\/$/, '');
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), fsReadTimeoutMs());
+    const sig = signal;
+    if (sig) sig.addEventListener('abort', () => ctrl.abort(), { once: true });
+    let res;
+    try {
+      res = await fetch(base + chunkPath, { signal: ctrl.signal });
+      clearTimeout(t);
+    } catch (e) {
+      clearTimeout(t);
+      throw e;
+    }
+    if (!res.ok) throw new Error(res.status + ' ' + (await res.text().catch(() => '')));
+    const buf = new Uint8Array(await res.arrayBuffer());
+    const n = buf.length;
+    if (n === 0) break;
+    parts.push(buf);
+    offset += n;
+    const more = res.headers.get('X-OMOTE-More');
+    if (more === '0' || (more === null && n < FS_CHUNK_BYTES)) break;
+  }
+  let totalLen = 0;
+  for (const p of parts) totalLen += p.length;
+  const merged = new Uint8Array(totalLen);
+  let at = 0;
+  for (const p of parts) {
+    merged.set(p, at);
+    at += p.length;
+  }
+  return { path, content: new TextDecoder().decode(merged) };
+}
+
+async function apiFsRead(path, { index = 0, total = 0, signal } = {}) {
+  const enc = encodeURIComponent(path);
+  const retries = 2;
+  let lastErr;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      if (isSimDeviceApi(API)) {
+        const content = await apiText(`/api/fs/read/raw?path=${enc}`, {
+          timeout: fsReadTimeoutMs(),
+          signal
+        });
+        return { path, content };
+      }
+      try {
+        const content = await apiText(`/api/fs/read/raw?path=${enc}`, {
+          timeout: fsReadTimeoutMs(),
+          signal
+        });
+        return { path, content };
+      } catch (rawErr) {
+        if (!/^413/.test(String(rawErr.message || ''))) throw rawErr;
+        return await apiFsReadChunked(path, { signal });
+      }
+    } catch (e) {
+      lastErr = e;
+      if (e.name === 'AbortError') throw e;
+      const msg = String(e.message || '');
+      const retryable =
+        msg === 'Failed to fetch' || /^507/.test(msg) || /^500/.test(msg) || /^413/.test(msg);
+      if (attempt < retries && retryable) {
+        await sleep(200);
+        continue;
+      }
+      const err = new Error(
+        `${path}${index ? ` (${index}/${total})` : ''}: ${e.message || e.name || 'read failed'}`
+      );
+      err.path = path;
+      err.index = index;
+      err.total = total;
+      err.cause = e;
+      throw err;
+    }
+  }
+  throw lastErr;
+}
+
 async function api(path, opts = {}) {
   const base = API.replace(/\/$/, '');
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), opts.timeout || 15000);
+  const extSignal = connectFetchSignal(opts);
+  if (extSignal) extSignal.addEventListener('abort', () => ctrl.abort(), { once: true });
   try {
     const res = await fetch(base + path, { ...opts, signal: ctrl.signal });
     clearTimeout(t);
@@ -411,6 +554,26 @@ function setConnectMsg(text, kind = '') {
   if (!el) return;
   el.textContent = text;
   el.className = 'msg' + (kind ? ' ' + kind : '');
+}
+
+function deviceReachabilityError(err, apiUrl) {
+  if (err?.path) {
+    return (
+      `Stopped while reading ${err.path}` +
+      (err.index ? ` (${err.index}/${err.total})` : '') +
+      `: ${err.message}. The device was reachable — try Connect again (large command files load last).`
+    );
+  }
+  const m = String(err?.message || err || '');
+  if (m === 'Failed to fetch' || err?.name === 'TypeError' || err?.name === 'AbortError') {
+    const lastIp = localStorage.getItem(LAST_DEVICE_IP_KEY);
+    let msg =
+      `Cannot reach ${apiUrl}. Use http:// plus the device LAN IP (same Wi‑Fi as this PC). ` +
+      'If loading stopped partway through, retry Connect — the device may have timed out on a large file.';
+    if (lastIp) msg += ` Last IP: http://${lastIp}`;
+    return msg;
+  }
+  return m;
 }
 
 function defaultHaService(domain, widgetType) {
@@ -484,7 +647,7 @@ function saveDeviceSettingsToFiles() {
 
 async function syncDeviceSettingsFileFromRemote() {
   try {
-    const r = await api('/api/fs/read?path=' + encodeURIComponent(DEVICE_SETTINGS_PATH));
+    const r = await apiFsRead(DEVICE_SETTINGS_PATH);
     setFile(DEVICE_SETTINGS_PATH, r.content, false);
   } catch {
     const d = await api('/api/device/settings');
@@ -499,7 +662,7 @@ async function pullDeviceSettingsFromRemote() {
     setFile(DEVICE_SETTINGS_SCHEMA_PATH, schema, false);
   } catch {
     try {
-      const r = await api('/api/fs/read?path=' + encodeURIComponent(DEVICE_SETTINGS_SCHEMA_PATH));
+      const r = await apiFsRead(DEVICE_SETTINGS_SCHEMA_PATH);
       setFile(DEVICE_SETTINGS_SCHEMA_PATH, r.content, false);
     } catch { /* keep local / bundled schema */ }
   }
@@ -751,22 +914,59 @@ function diffEditorVsRemote(localMap, remoteMap) {
 
 async function fetchRemoteFileMap(tree) {
   const remote = new Map();
-  for (const p of tree.files || []) {
-    if (!isPackConfigPath(p)) continue;
-    const r = await api('/api/fs/read?path=' + encodeURIComponent(p));
+  const paths = sortPathsForRemoteLoad((tree.files || []).filter(isPackConfigPath));
+  for (let i = 0; i < paths.length; i++) {
+    const p = paths[i];
+    if (i === 0 || (i & 3) === 0)
+      setConnectMsg(`Reading remote (${i + 1}/${paths.length})…`);
+    const r = await apiFsRead(p, {
+      index: i + 1,
+      total: paths.length,
+      signal: activeConnectCtrl?.signal
+    });
     remote.set(normalizePackPath(p), r.content);
+    await yieldToUi();
   }
   return remote;
 }
 
-async function loadRemoteIntoEditor(tree) {
-  files.clear();
+function applyRemoteFileMap(remoteMap, tree) {
   remoteDeletes.clear();
-  for (const p of tree.files || []) {
-    const r = await api('/api/fs/read?path=' + encodeURIComponent(p));
-    setFile(p, r.content, false);
+  const paths = sortPathsForRemoteLoad((tree.files || []).filter(isPackConfigPath));
+  files.clear();
+  for (const p of paths) {
+    const content = remoteMap.get(normalizePackPath(p));
+    if (content !== undefined) files.set(p, { content, dirty: false });
   }
   if (!files.has('Scenes.json')) setFile('Scenes.json', { Scenes: [] }, false);
+}
+
+async function loadRemoteIntoEditor(tree) {
+  remoteDeletes.clear();
+  const paths = sortPathsForRemoteLoad((tree.files || []).filter(isPackConfigPath));
+  const nextFiles = new Map();
+  for (let i = 0; i < paths.length; i++) {
+    if (i === 0 || (i & 3) === 0)
+      setConnectMsg(`Loading from remote (${i + 1}/${paths.length})…`);
+    const p = paths[i];
+    const r = await apiFsRead(p, {
+      index: i + 1,
+      total: paths.length,
+      signal: activeConnectCtrl?.signal
+    });
+    nextFiles.set(p, { content: r.content, dirty: false });
+    await yieldToUi();
+  }
+  files.clear();
+  for (const [p, entry] of nextFiles) files.set(p, entry);
+  if (!files.has('Scenes.json')) setFile('Scenes.json', { Scenes: [] }, false);
+  await yieldToUi();
+  initAfterLoad();
+}
+
+async function finishEditorFromRemoteMap(remoteMap, tree) {
+  applyRemoteFileMap(remoteMap, tree);
+  await yieldToUi();
   initAfterLoad();
 }
 
@@ -1595,60 +1795,172 @@ if ($('remote-pcb-variant')) {
 }
 refreshSceneBindKeyOptions();
 
-async function setEditorSyncMode(on) {
+let editorSessionOnDevice = false;
+
+async function setEditorSyncMode(on, { showOverlay = false, reboot = false } = {}) {
+  const body = JSON.stringify({ on, show_overlay: showOverlay, reboot: on ? false : reboot });
   await api('/api/device/sync-mode', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ on })
+    body,
+    timeout: 12000
   });
+  editorSessionOnDevice = !!on;
+}
+
+async function beginEditorSession() {
+  if (isSimDeviceApi(API)) return;
+  await setEditorSyncMode(true, { showOverlay: true });
+}
+
+async function endEditorSession({ reboot = false } = {}) {
+  if (isSimDeviceApi(API)) return;
+  try {
+    await setEditorSyncMode(false, { reboot });
+  } catch (e) {
+    editorSessionOnDevice = false;
+    throw e;
+  }
+}
+
+function finishConnectUi(st, msg, kind = 'ok') {
+  $('status-bar').textContent = formatStatusBar(st, editorSessionOnDevice ? ' · editor session' : '');
+  setConnectMsg(msg, kind);
+}
+
+function markPathDirty(path) {
+  const norm = normalizePackPath(path);
+  for (const key of [path, norm]) {
+    const entry = files.get(key);
+    if (entry) {
+      entry.dirty = true;
+      return;
+    }
+  }
+}
+
+/** After "keep editor" on connect, remote still differs — deploy must see dirty flags. */
+function markFilesDirtyFromDiff(diff) {
+  diff.changed.forEach(markPathDirty);
+  diff.onlyLocal.forEach(markPathDirty);
+}
+
+async function connectAndLoadInner(options = {}) {
+  let sessionStarted = false;
+  try {
+    setConnectMsg('Connecting (checking device)…');
+    const st = await api('/api/status', { timeout: 8000 });
+    if (st.ip) {
+      localStorage.setItem(LAST_DEVICE_IP_KEY, st.ip);
+      if (API.includes('.local')) {
+        const ipUrl = `http://${st.ip}`;
+        API = ipUrl;
+        $('device-url').value = API;
+        localStorage.setItem('omote_oo_api', API);
+      }
+    }
+    await beginEditorSession();
+    sessionStarted = true;
+    setConnectMsg('Editor session on remote — loading file list…');
+    const tree = await api('/api/fs/tree', { timeout: 12000 });
+    const hadEditorFiles = files.size > 0;
+
+    if (!hadEditorFiles || options.forceRemote) {
+      await loadRemoteIntoEditor(tree);
+      finishConnectUi(
+        st,
+        `Loaded ${files.size} files. Remote in sync mode (awake) until you leave the session.`,
+        'ok'
+      );
+      showTab('scenes');
+      return;
+    }
+
+    setConnectMsg('Comparing editor with remote (reading files)…');
+    const remoteMap = await fetchRemoteFileMap(tree);
+    const diff = diffEditorVsRemote(localFileMap(), remoteMap);
+
+    if (!diff.hasDiff) {
+      finishConnectUi(
+        st,
+        `Connected — editor matches remote (${files.size} files). Session active on remote.`,
+        'ok'
+      );
+      return;
+    }
+
+    const choice = await askConnectConflictChoice(diff);
+    if (choice === 'cancel') {
+      finishConnectUi(
+        st,
+        `Connect cancelled — kept editor files. Remote still in editor session.`,
+        'ok'
+      );
+      return;
+    }
+    if (choice === 'remote') {
+      await finishEditorFromRemoteMap(remoteMap, tree);
+      finishConnectUi(st, `Loaded ${files.size} files from remote (editor copy replaced).`, 'ok');
+      showTab('scenes');
+      return;
+    }
+
+    markFilesDirtyFromDiff(diff);
+    const dirtyN = unsavedFileCount();
+    finishConnectUi(
+      st,
+      `Connected — kept editor copy (${dirtyN} file(s) differ). Save to remote when ready.`,
+      'ok'
+    );
+  } catch (e) {
+    if (sessionStarted) await endEditorSession({ reboot: false }).catch(() => {});
+    throw e;
+  }
+}
+
+function abortActiveConnect() {
+  if (activeConnectCtrl) {
+    activeConnectCtrl.abort();
+    activeConnectCtrl = null;
+  }
 }
 
 async function connectAndLoad(options = {}) {
   API = normalizeDeviceApiUrl($('device-url').value);
   $('device-url').value = API;
   localStorage.setItem('omote_oo_api', API);
-  setConnectMsg('Connecting…');
+  abortActiveConnect();
+  activeConnectCtrl = new AbortController();
   try {
-    const st = await api('/api/status');
-    const tree = await api('/api/fs/tree');
-    const hadEditorFiles = files.size > 0;
-
-    if (!hadEditorFiles || options.forceRemote) {
-      await loadRemoteIntoEditor(tree);
-      $('status-bar').textContent = formatStatusBar(st);
-      setConnectMsg(`Loaded ${files.size} files from remote. Start with Scenes to pick or edit “Watch TV”, etc.`, 'ok');
-      showTab('scenes');
-      return;
-    }
-
-    setConnectMsg('Comparing editor with remote…');
-    const remoteMap = await fetchRemoteFileMap(tree);
-    const diff = diffEditorVsRemote(localFileMap(), remoteMap);
-
-    if (!diff.hasDiff) {
-      $('status-bar').textContent = formatStatusBar(st, unsavedFileCount() ? ` · ${unsavedFileCount()} unsaved` : '');
-      setConnectMsg(`Connected — editor matches remote (${files.size} files).`, 'ok');
-      return;
-    }
-
-    const choice = await askConnectConflictChoice(diff);
-    if (choice === 'cancel') {
-      $('status-bar').textContent = formatStatusBar(st, ` · editor copy${unsavedFileCount() ? ` · ${unsavedFileCount()} unsaved` : ''}`);
-      setConnectMsg('Connect cancelled — kept your editor files.', 'ok');
-      return;
-    }
-    if (choice === 'remote') {
-      await loadRemoteIntoEditor(tree);
-      $('status-bar').textContent = formatStatusBar(st);
-      setConnectMsg(`Loaded ${files.size} files from remote (editor copy replaced).`, 'ok');
-      showTab('scenes');
-      return;
-    }
-
-    $('status-bar').textContent = formatStatusBar(st, ` · editor copy${unsavedFileCount() ? ` · ${unsavedFileCount()} unsaved` : ''}`);
-    setConnectMsg(`Connected — kept your editor config (${files.size} files). Save to remote when ready.`, 'ok');
+    await connectAndLoadInner(options);
   } catch (e) {
-    setConnectMsg(e.message, 'err');
+    if (e.name === 'AbortError') {
+      setConnectMsg('Connect cancelled.', 'ok');
+      return;
+    }
+    if (e.path) {
+      setConnectMsg(deviceReachabilityError(e, API), 'err');
+      return;
+    }
+    const lastIp = localStorage.getItem(LAST_DEVICE_IP_KEY);
+    const unreachable =
+      e.message === 'Failed to fetch' || e.name === 'TypeError' || e.name === 'AbortError';
+    if (unreachable && lastIp && !API.includes(lastIp)) {
+      setConnectMsg(`Retrying with http://${lastIp}…`);
+      API = `http://${lastIp}`;
+      $('device-url').value = API;
+      localStorage.setItem('omote_oo_api', API);
+      try {
+        await connectAndLoadInner(options);
+        return;
+      } catch (e2) {
+        setConnectMsg(deviceReachabilityError(e2, API), 'err');
+        return;
+      }
+    }
+    setConnectMsg(deviceReachabilityError(e, API), 'err');
+  } finally {
+    activeConnectCtrl = null;
   }
 }
 
@@ -1749,28 +2061,36 @@ $('omote-import-file')?.addEventListener('change', async (ev) => {
   }
 });
 
-$('btn-enter-sync').onclick = async () => {
+async function handleLeaveSessionClick() {
+  abortActiveConnect();
+  API = normalizeDeviceApiUrl($('device-url').value || API);
+  setConnectMsg('Leaving editor session…', 'muted');
   try {
-    API = normalizeDeviceApiUrl($('device-url').value || API);
-    await setEditorSyncMode(true);
-    $('connect-msg').textContent = 'Sync mode enabled on remote.';
-    $('connect-msg').className = 'msg ok';
+    await endEditorSession({ reboot: false });
+    setConnectMsg('Left editor session — remote back to normal (no reboot).', 'ok');
   } catch (e) {
-    $('connect-msg').textContent = e.message;
-    $('connect-msg').className = 'msg err';
+    setConnectMsg(e.message, 'err');
   }
-};
+}
 
-$('btn-exit-sync').onclick = async () => {
+async function handleFinishRebootClick() {
+  abortActiveConnect();
+  API = normalizeDeviceApiUrl($('device-url').value || API);
+  setConnectMsg('Finishing session and rebooting remote…', 'muted');
   try {
-    API = normalizeDeviceApiUrl($('device-url').value || API);
-    await setEditorSyncMode(false);
-    $('connect-msg').textContent = 'Remote rebooting…';
-    $('connect-msg').className = 'msg ok';
+    await endEditorSession({ reboot: true });
+    setConnectMsg('Remote rebooting…', 'ok');
   } catch (e) {
-    $('connect-msg').textContent = e.message;
-    $('connect-msg').className = 'msg err';
+    setConnectMsg(e.message, 'err');
   }
+}
+
+$('btn-leave-session')?.addEventListener('click', () => {
+  handleLeaveSessionClick().catch(() => {});
+});
+
+$('btn-exit-sync').onclick = () => {
+  handleFinishRebootClick().catch(() => {});
 };
 
 function initAfterLoad() {
@@ -3061,54 +3381,6 @@ function applyWidgetDragPos(w, x, y, width, height, widgets) {
   delete w.AlignTo;
 }
 
-$('preview').onmousedown = (ev) => {
-  const { x, y } = canvasCoords(ev);
-  const tabHit = canvasHitTab(x, y);
-  if (tabHit >= 0) {
-    activeTabIdx = tabHit;
-    selectedPagePath = resolvePagePath(parseJson(selectedScenePath)?.Pages?.[activeTabIdx]?.FileName);
-    clearSelection();
-    refreshRemoteTab();
-    return;
-  }
-  if (y > SCR_H - TAB_BAR_H || y < STATUS_H) return;
-
-  const hit = findWidgetHit(x, y);
-  if (!hit) { clearSelection(); return; }
-  selectWidget(hit.i);
-
-  if (DRAGGABLE_WIDGET_TYPES.has(hit.widget.Type)) {
-    drag = {
-      idx: hit.i,
-      ox: x - hit.x,
-      oy: y - hit.y,
-      width: hit.w,
-      height: hit.h
-    };
-  }
-};
-
-$('preview').onmousemove = (ev) => {
-  if (!drag) return;
-  const { x, y } = canvasCoords(ev);
-  const page = currentPage();
-  const w = page.Widgets[drag.idx];
-  const nx = clampWidgetX(x - drag.ox, drag.width);
-  const ny = y - drag.oy + canvasScrollY;
-  applyWidgetDragPos(w, nx, ny, drag.width, drag.height, page.Widgets);
-  savePage(page);
-  drawCanvas();
-};
-
-$('preview').addEventListener('wheel', (ev) => {
-  const widgets = currentPage().Widgets || [];
-  const maxScroll = maxCanvasScroll(widgets);
-  if (maxScroll <= 0) return;
-  ev.preventDefault();
-  canvasScrollY = Math.max(0, Math.min(maxScroll, canvasScrollY + ev.deltaY));
-  drawCanvas();
-}, { passive: false });
-
 window.addEventListener('mouseup', () => { drag = null; });
 
 /* ── Advanced: commands + raw ── */
@@ -3273,20 +3545,24 @@ $('btn-apply-raw')?.addEventListener('click', () => {
   refreshAll();
 });
 
-$('btn-deploy').onclick = async () => {
-  $('deploy-msg').textContent = 'Saving…';
-  $('deploy-msg').className = 'msg';
+function setDeployMsg(text, kind = '') {
+  const el = $('deploy-msg');
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'msg' + (kind ? ' ' + kind : '');
+}
+
+$('btn-deploy')?.addEventListener('click', async () => {
+  setDeployMsg('Saving…');
   const dirty = [...files.entries()].filter(([, v]) => v.dirty);
   const toDelete = [...remoteDeletes];
   if (!dirty.length && !toDelete.length) {
-    $('deploy-msg').textContent = 'No changes to save.';
+    setDeployMsg('No changes to save — edit something first (or Connect loaded a clean copy).', 'muted');
     return;
   }
   try {
-    const st = await api('/api/status').catch(() => null);
-    if (st && !st.editor_sync && !isSimDeviceApi(API)) {
-      try { await setEditorSyncMode(true); } catch { /* device may lack API until flash */ }
-    }
+    // Do not enable editor_sync on deploy — that shows a full-screen overlay on the
+    // remote which captures touch (only Power exits). HTTP keep-awake on the device is enough.
     for (const path of toDelete) {
       await api('/api/fs/delete?path=' + encodeURIComponent(path), { method: 'POST', timeout: 15000 });
       remoteDeletes.delete(path);
@@ -3303,19 +3579,76 @@ $('btn-deploy').onclick = async () => {
     if (toDelete.length) parts.push(`deleted ${toDelete.length}`);
     const summary = parts.join(', ');
     if (!onlySoftReload) {
-      await api('/api/device/reboot', { method: 'POST', timeout: 5000 }).catch(() => {});
-      $('deploy-msg').textContent = `${summary}. Remote rebooting…`;
+      await api('/api/device/reboot', { method: 'POST', timeout: 20000 });
+      editorSessionOnDevice = false;
+      setDeployMsg(`${summary}. Remote rebooting…`, 'ok');
     } else {
-      $('deploy-msg').textContent = `${summary} on remote (no reboot).`;
+      setDeployMsg(`${summary} on remote (no reboot).`, 'ok');
     }
-    $('deploy-msg').className = 'msg ok';
     dirty.forEach(([p]) => { files.get(p).dirty = false; });
   } catch (e) {
-    $('deploy-msg').textContent = e.message;
-    $('deploy-msg').className = 'msg err';
+    setDeployMsg(e.message, 'err');
   }
-};
+});
 
-if (defaultApi().includes('.local') || defaultApi().match(/^http:\/\/192\.168\./)) {
-  connectAndLoad().catch(() => {});
+function bindCanvasPreview() {
+  const c = $('preview');
+  if (!c || c.dataset.uiBound === '1') return;
+  c.dataset.uiBound = '1';
+  c.onmousedown = (ev) => {
+    const { x, y } = canvasCoords(ev);
+    const tabHit = canvasHitTab(x, y);
+    if (tabHit >= 0) {
+      activeTabIdx = tabHit;
+      selectedPagePath = resolvePagePath(parseJson(selectedScenePath)?.Pages?.[activeTabIdx]?.FileName);
+      clearSelection();
+      refreshRemoteTab();
+      return;
+    }
+    if (y > SCR_H - TAB_BAR_H || y < STATUS_H) return;
+
+    const hit = findWidgetHit(x, y);
+    if (!hit) { clearSelection(); return; }
+    selectWidget(hit.i);
+
+    if (DRAGGABLE_WIDGET_TYPES.has(hit.widget.Type)) {
+      drag = {
+        idx: hit.i,
+        ox: x - hit.x,
+        oy: y - hit.y,
+        width: hit.w,
+        height: hit.h
+      };
+    }
+  };
+  c.onmousemove = (ev) => {
+    if (!drag) return;
+    const { x, y } = canvasCoords(ev);
+    const page = currentPage();
+    const w = page.Widgets[drag.idx];
+    const nx = clampWidgetX(x - drag.ox, drag.width);
+    const ny = y - drag.oy + canvasScrollY;
+    applyWidgetDragPos(w, nx, ny, drag.width, drag.height, page.Widgets);
+    savePage(page);
+    drawCanvas();
+  };
+  c.addEventListener('wheel', (ev) => {
+    const widgets = currentPage().Widgets || [];
+    const maxScroll = maxCanvasScroll(widgets);
+    if (maxScroll <= 0) return;
+    ev.preventDefault();
+    canvasScrollY = Math.max(0, Math.min(maxScroll, canvasScrollY + ev.deltaY));
+    drawCanvas();
+  }, { passive: false });
+}
+
+dismissBlockingOverlays();
+bindCanvasPreview();
+applyAdvancedMode();
+
+if (
+  localStorage.getItem('omote_auto_connect') === '1' &&
+  (defaultApi().includes('.local') || defaultApi().match(/^http:\/\/192\.168\./))
+) {
+  setTimeout(() => connectAndLoad().catch(() => {}), 400);
 }

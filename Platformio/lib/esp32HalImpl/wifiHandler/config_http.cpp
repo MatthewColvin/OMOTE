@@ -7,10 +7,14 @@
 #include "RapidJsonUtilty.hpp"
 #include "device_settings.hpp"
 #include "device_settings_schema.hpp"
+#include "display.hpp"
 #include "editor_sync_mode.hpp"
 #include "ir/IRTransceiver.hpp"
+#include "LvglResourceManager.hpp"
 
 #include <Arduino.h>
+#include <lvgl.h>
+#include <ESP.h>
 #include <ESPmDNS.h>
 #include <LittleFS.h>
 #include <WebServer.h>
@@ -18,8 +22,12 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iterator>
 #include <sstream>
 #include <vector>
+
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 namespace {
 
@@ -32,11 +40,45 @@ bool running = false;
 bool mdnsStarted = false;
 std::string mdnsHost = "omote";
 uint32_t rebootAtMs = 0;
+uint32_t lastRemoteHttpMs = 0;
 
 std::unique_ptr<LoggingInterface> logger;
 
+void noteRemoteConfigActivity() {
+  lastRemoteHttpMs = millis();
+  // keepAwake blocks display sleep; do not wake/fade on every fs read (breaks touch/backlight).
+}
+
+/** HTTP handlers run on the main loop thread; yield + one LVGL tick so touch/UI stay responsive. */
+void pumpUiDuringHttp() {
+  yield();
+  LvglResourceManager::GetInstance().AttemptNow([]() { lv_timer_handler(); });
+}
+
 IRTransceiver *irHw() {
   return static_cast<IRTransceiver *>(HardwareFactory::getAbstract().ir().get());
+}
+
+/** Copy into the document pool — never pass .c_str() from a temporary std::string or Arduino String. */
+rapidjson::Value jsonCopy(const std::string &s, rapidjson::Document::AllocatorType &a) {
+  return rapidjson::Value(s.c_str(), static_cast<rapidjson::SizeType>(s.size()), a);
+}
+
+std::string arduinoStringCopy(const String &s) {
+  return std::string(s.c_str(), static_cast<size_t>(s.length()));
+}
+
+/** Max /api/fs/read JSON wrapper (legacy); prefer /api/fs/read/chunk. */
+constexpr size_t kMaxFsReadBytes = 64 * 1024;
+constexpr uint32_t kMinHeapReserve = 28000;
+constexpr size_t kFsChunkMax = 8192;
+
+size_t maxFsReadBytesForHeap() {
+  const uint32_t freeHeap = ESP.getFreeHeap();
+  if (freeHeap <= kMinHeapReserve + 4096)
+    return 0;
+  const size_t byHeap = static_cast<size_t>((freeHeap - kMinHeapReserve) / 2);
+  return std::min(kMaxFsReadBytes, byHeap);
 }
 
 void sendCors() {
@@ -46,9 +88,41 @@ void sendCors() {
 }
 
 void sendJson(int code, const std::string &body) {
+  noteRemoteConfigActivity();
   sendCors();
   server.sendHeader("Connection", "close");
   server.send(code, "application/json", body.c_str());
+}
+
+bool sendFsReadJson(const std::string &path, const std::string &content) {
+  const size_t need = content.size() * 2 + path.size() + 128;
+  if (ESP.getFreeHeap() < kMinHeapReserve + need) {
+    sendJson(507, "{\"error\":\"insufficient memory\"}");
+    return false;
+  }
+
+  rapidjson::StringBuffer buff;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buff);
+  writer.StartObject();
+  writer.Key("path");
+  writer.String(path.c_str(), static_cast<rapidjson::SizeType>(path.size()));
+  writer.Key("content");
+  writer.String(content.c_str(), static_cast<rapidjson::SizeType>(content.size()));
+  writer.EndObject();
+
+  const size_t len = buff.GetSize();
+  if (!len) {
+    sendJson(500, "{\"error\":\"serialize failed\"}");
+    return false;
+  }
+
+  noteRemoteConfigActivity();
+  sendCors();
+  server.sendHeader("Connection", "close");
+  // Use const char* send — avoids Arduino String copy that exhausts heap during bulk editor reads.
+  server.send(200, "application/json", buff.GetString());
+  pumpUiDuringHttp();
+  return true;
 }
 
 bool isSafePath(const std::string &path) {
@@ -71,6 +145,7 @@ void collectFiles(const char *dirPath, std::vector<std::string> &out, const std:
   if (!root || !root.isDirectory())
     return;
 
+  uint32_t scanned = 0;
   File file = root.openNextFile();
   while (file) {
     std::string fullName = file.path() ? file.path() : file.name();
@@ -87,11 +162,14 @@ void collectFiles(const char *dirPath, std::vector<std::string> &out, const std:
     }
     file.close();
     file = root.openNextFile();
+    if ((++scanned & 15u) == 0)
+      pumpUiDuringHttp();
   }
   root.close();
 }
 
 void handleOptions() {
+  noteRemoteConfigActivity();
   sendCors();
   server.send(204);
 }
@@ -101,8 +179,11 @@ void handleStatus() {
   d.SetObject();
   auto &a = d.GetAllocator();
   d.AddMember("connected", WiFi.isConnected(), a);
-  d.AddMember("ip", rapidjson::Value(WiFi.localIP().toString().c_str(), a), a);
-  d.AddMember("hostname", rapidjson::Value(mdnsHost.c_str(), a), a);
+  if (WiFi.isConnected())
+    d.AddMember("ip", jsonCopy(arduinoStringCopy(WiFi.localIP().toString()), a), a);
+  else
+    d.AddMember("ip", "", a);
+  d.AddMember("hostname", jsonCopy(mdnsHost, a), a);
   d.AddMember("api", "omote-config-v1", a);
   d.AddMember("editor_sync", editor_sync_mode::isActive(), a);
   sendJson(200, OMOTE::JSON::ToString(d));
@@ -118,7 +199,7 @@ void handleFsTree() {
   rapidjson::Value arr(rapidjson::kArrayType);
   for (const auto &f : files) {
     if (f.find(".json") != std::string::npos || f.find("editor/") == 0)
-      arr.PushBack(rapidjson::Value(f.c_str(), a), a);
+      arr.PushBack(jsonCopy(f, a), a);
   }
   std::sort(files.begin(), files.end());
   arr.Clear();
@@ -126,13 +207,131 @@ void handleFsTree() {
     if (f.rfind("editor/", 0) == 0)
       continue;
     if (f.size() >= 5 && f.substr(f.size() - 5) == ".json")
-      arr.PushBack(rapidjson::Value(f.c_str(), a), a);
+      arr.PushBack(jsonCopy(f, a), a);
   }
   d.AddMember("files", arr, a);
   sendJson(200, OMOTE::JSON::ToString(d));
 }
 
+bool openFsPath(const std::string &path, File &out, size_t &outSize) {
+  if (!isSafePath(path))
+    return false;
+  const std::string lfs = lfsPath(path);
+  if (!LittleFS.exists(lfs.c_str()))
+    return false;
+  out = LittleFS.open(lfs.c_str(), "r");
+  if (!out)
+    return false;
+  outSize = out.size();
+  return true;
+}
+
+void handleFsStat() {
+  noteRemoteConfigActivity();
+  if (!server.hasArg("path")) {
+    sendJson(400, "{\"error\":\"missing path\"}");
+    return;
+  }
+  std::string path = server.arg("path").c_str();
+  File f;
+  size_t sz = 0;
+  if (!openFsPath(path, f, sz)) {
+    sendJson(404, "{\"error\":\"not found\"}");
+    return;
+  }
+  f.close();
+  rapidjson::Document d;
+  d.SetObject();
+  auto &a = d.GetAllocator();
+  d.AddMember("path", jsonCopy(path, a), a);
+  d.AddMember("size", static_cast<uint64_t>(sz), a);
+  sendJson(200, OMOTE::JSON::ToString(d));
+}
+
+/** Stream file bytes — no JSON envelope (editor default on hardware). */
+void handleFsReadRaw() {
+  noteRemoteConfigActivity();
+  if (!server.hasArg("path")) {
+    sendJson(400, "{\"error\":\"missing path\"}");
+    return;
+  }
+  std::string path = server.arg("path").c_str();
+  File f;
+  size_t sz = 0;
+  if (!openFsPath(path, f, sz)) {
+    sendJson(404, "{\"error\":\"not found\"}");
+    return;
+  }
+  if (sz > kMaxFsReadBytes) {
+    f.close();
+    sendJson(413, "{\"error\":\"file too large — use chunked read\"}");
+    return;
+  }
+  pumpUiDuringHttp();
+  sendCors();
+  server.sendHeader("Connection", "close");
+  server.sendHeader("X-OMOTE-Path", path.c_str());
+  server.streamFile(f, "application/json; charset=utf-8");
+  f.close();
+  pumpUiDuringHttp();
+}
+
+/** Fixed-size chunk read — constant RAM (~2 KiB) for large config packs. */
+void handleFsReadChunk() {
+  noteRemoteConfigActivity();
+  if (!server.hasArg("path")) {
+    sendJson(400, "{\"error\":\"missing path\"}");
+    return;
+  }
+  std::string path = server.arg("path").c_str();
+  File f;
+  size_t total = 0;
+  if (!openFsPath(path, f, total)) {
+    sendJson(404, "{\"error\":\"not found\"}");
+    return;
+  }
+
+  size_t offset = 0;
+  if (server.hasArg("offset"))
+    offset = static_cast<size_t>(strtoul(server.arg("offset").c_str(), nullptr, 10));
+  size_t maxLen = kFsChunkMax;
+  if (server.hasArg("max")) {
+    maxLen = static_cast<size_t>(strtoul(server.arg("max").c_str(), nullptr, 10));
+    if (maxLen == 0 || maxLen > kFsChunkMax)
+      maxLen = kFsChunkMax;
+  }
+  if (offset > total) {
+    f.close();
+    sendJson(416, "{\"error\":\"offset past end\"}");
+    return;
+  }
+  const size_t toRead = std::min(maxLen, total - offset);
+  if (!f.seek(offset)) {
+    f.close();
+    sendJson(500, "{\"error\":\"seek failed\"}");
+    return;
+  }
+
+  uint8_t buf[kFsChunkMax];
+  const size_t n = f.read(buf, toRead);
+  f.close();
+  pumpUiDuringHttp();
+
+  sendCors();
+  server.sendHeader("Connection", "close");
+  server.sendHeader("X-OMOTE-Path", path.c_str());
+  server.sendHeader("X-OMOTE-Offset", String(static_cast<unsigned>(offset)));
+  server.sendHeader("X-OMOTE-Total", String(static_cast<unsigned>(total)));
+  server.sendHeader("X-OMOTE-More", (offset + n < total) ? "1" : "0");
+  server.sendHeader("X-OMOTE-Length", String(static_cast<unsigned>(n)));
+  server.setContentLength(n);
+  server.send(200, "application/octet-stream", "");
+  server.sendContent(reinterpret_cast<const char *>(buf), n);
+  pumpUiDuringHttp();
+}
+
 void handleFsRead() {
+  noteRemoteConfigActivity();
   if (!server.hasArg("path")) {
     sendJson(400, "{\"error\":\"missing path\"}");
     return;
@@ -143,21 +342,33 @@ void handleFsRead() {
     return;
   }
 
+  const size_t maxRead = maxFsReadBytesForHeap();
+  if (!maxRead) {
+    sendJson(507, "{\"error\":\"insufficient memory\"}");
+    return;
+  }
+
   std::ifstream file(vfsPath(path), std::ios::in);
   if (!file) {
     sendJson(404, "{\"error\":\"not found\"}");
     return;
   }
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  file.close();
+  file.seekg(0, std::ios::end);
+  const auto fileSize = static_cast<size_t>(file.tellg());
+  if (fileSize > maxRead) {
+    sendJson(413, "{\"error\":\"file too large\"}");
+    return;
+  }
+  file.seekg(0, std::ios::beg);
 
-  rapidjson::Document d;
-  d.SetObject();
-  auto &a = d.GetAllocator();
-  d.AddMember("path", rapidjson::Value(path.c_str(), a), a);
-  d.AddMember("content", rapidjson::Value(buffer.str().c_str(), a), a);
-  sendJson(200, OMOTE::JSON::ToString(d));
+  std::string content;
+  content.reserve(fileSize);
+  content.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+  file.close();
+  pumpUiDuringHttp();
+
+  sendFsReadJson(path, content);
+  pumpUiDuringHttp();
 }
 
 void handleFsDelete() {
@@ -186,12 +397,11 @@ void handleFsDelete() {
     config_reload::markDeviceSettingsDirty();
   else if (path == "DeviceSettings.schema.json")
     config_reload::markDeviceSettingsSchemaDirty();
-  else if (path.rfind("Pages/", 0) == 0 || path == "Scenes.json" || path.rfind("Scenes/", 0) == 0)
-    config_reload::markPagesDirty();
   sendJson(200, "{\"ok\":true}");
 }
 
 void handleFsWrite() {
+  noteRemoteConfigActivity();
   if (!server.hasArg("path")) {
     sendJson(400, "{\"error\":\"missing path\"}");
     return;
@@ -224,8 +434,6 @@ void handleFsWrite() {
     config_reload::markDeviceSettingsDirty();
   else if (path == "DeviceSettings.schema.json")
     config_reload::markDeviceSettingsSchemaDirty();
-  else if (path.rfind("Pages/", 0) == 0 || path == "Scenes.json" || path.rfind("Scenes/", 0) == 0)
-    config_reload::markPagesDirty();
   sendJson(200, "{\"ok\":true}");
 }
 
@@ -245,8 +453,8 @@ void handleDeviceSettingsGet() {
   d.AddMember("display_off", device_settings::isScreenPoweredOff(), a);
   d.AddMember("wifi_connected", WiFi.isConnected(), a);
   if (WiFi.isConnected()) {
-    d.AddMember("wifi_ssid", rapidjson::Value(WiFi.SSID().c_str(), a), a);
-    d.AddMember("ip", rapidjson::Value(WiFi.localIP().toString().c_str(), a), a);
+    d.AddMember("wifi_ssid", jsonCopy(arduinoStringCopy(WiFi.SSID()), a), a);
+    d.AddMember("ip", jsonCopy(arduinoStringCopy(WiFi.localIP().toString()), a), a);
   }
   sendJson(200, OMOTE::JSON::ToString(d));
 }
@@ -274,8 +482,15 @@ void handleDeviceSettingsPost() {
   sendJson(200, "{\"ok\":true}");
 }
 
-void handleReboot() {
+void prepareForRestart() {
+  device_settings::notifyActivity();
+  if (auto disp = std::static_pointer_cast<Display>(HardwareFactory::getAbstract().display()))
+    disp->wake();
   rebootAtMs = millis() + 500;
+}
+
+void handleReboot() {
+  prepareForRestart();
   sendJson(200, "{\"ok\":true,\"restart\":true}");
 }
 
@@ -299,12 +514,21 @@ void handleEditorSyncPost() {
     return;
   }
   const bool on = d.HasMember("on") && d["on"].IsBool() && d["on"].GetBool();
+  bool showOverlay = false;
+  if (d.HasMember("show_overlay") && d["show_overlay"].IsBool())
+    showOverlay = d["show_overlay"].GetBool();
   if (on) {
-    editor_sync_mode::enter();
+    editor_sync_mode::enter(showOverlay);
     sendJson(200, "{\"ok\":true,\"editor_sync\":true}");
   } else {
-    sendJson(200, "{\"ok\":true,\"editor_sync\":false,\"restart\":true}");
-    rebootAtMs = millis() + 500;
+    bool reboot = true;
+    if (d.HasMember("reboot") && d["reboot"].IsBool())
+      reboot = d["reboot"].GetBool();
+    editor_sync_mode::exit(reboot);
+    if (reboot)
+      prepareForRestart();
+    sendJson(200, reboot ? "{\"ok\":true,\"editor_sync\":false,\"restart\":true}"
+                        : "{\"ok\":true,\"editor_sync\":false}");
   }
 }
 
@@ -358,6 +582,9 @@ void registerRoutes() {
   server.on("/api/status", HTTP_GET, handleStatus);
   server.on("/api/fs/tree", HTTP_GET, handleFsTree);
   server.on("/api/fs/read", HTTP_GET, handleFsRead);
+  server.on("/api/fs/stat", HTTP_GET, handleFsStat);
+  server.on("/api/fs/read/raw", HTTP_GET, handleFsReadRaw);
+  server.on("/api/fs/read/chunk", HTTP_GET, handleFsReadChunk);
   server.on("/api/fs/write", HTTP_POST, handleFsWrite);
   server.on("/api/fs/write", HTTP_PUT, handleFsWrite);
   server.on("/api/fs/delete", HTTP_POST, handleFsDelete);
@@ -375,6 +602,9 @@ void registerRoutes() {
   server.on("/api/status", HTTP_OPTIONS, handleOptions);
   server.on("/api/fs/tree", HTTP_OPTIONS, handleOptions);
   server.on("/api/fs/read", HTTP_OPTIONS, handleOptions);
+  server.on("/api/fs/stat", HTTP_OPTIONS, handleOptions);
+  server.on("/api/fs/read/raw", HTTP_OPTIONS, handleOptions);
+  server.on("/api/fs/read/chunk", HTTP_OPTIONS, handleOptions);
   server.on("/api/fs/write", HTTP_OPTIONS, handleOptions);
   server.on("/api/fs/delete", HTTP_OPTIONS, handleOptions);
   server.on("/api/device/reboot", HTTP_OPTIONS, handleOptions);
@@ -428,10 +658,16 @@ void sync() {
     server.begin();
     running = true;
   }
-  // Keep HTTP responsive without starving LVGL (16 passes froze the touchscreen UI).
-  const int passes = editor_sync_mode::isActive() ? 4 : 2;
+  const int passes = editor_sync_mode::isActive() ? 3 : 2;
   for (int i = 0; i < passes; i++)
     server.handleClient();
+
+  if (isRemoteSessionActive()) {
+    if (auto disp = std::static_pointer_cast<Display>(HardwareFactory::getAbstract().display())) {
+      disp->getTouchData();
+      disp->pokeTouchController();
+    }
+  }
 }
 
 void stop() {
@@ -442,6 +678,12 @@ void stop() {
 }
 
 bool isRunning() { return running; }
+
+bool isRemoteSessionActive() {
+  if (!lastRemoteHttpMs)
+    return false;
+  return (millis() - lastRemoteHttpMs) < 120000;
+}
 
 } // namespace config_http
 #endif // !IS_SIMULATOR

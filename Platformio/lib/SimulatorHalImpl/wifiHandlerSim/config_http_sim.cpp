@@ -15,8 +15,12 @@
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <sstream>
 #include <vector>
+
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 #ifndef FS_PATH
 #define FS_PATH "./sim_data/"
@@ -118,6 +122,59 @@ void handleFsTree() {
   gPendingBody = OMOTE::JSON::ToString(d);
 }
 
+void handleFsStat(const std::map<std::string, std::string> &query) {
+  const auto it = query.find("path");
+  if (it == query.end()) {
+    gPendingStatus = 400;
+    gPendingBody = "{\"error\":\"missing path\"}";
+    return;
+  }
+  const std::string &path = it->second;
+  if (!isSafePath(path)) {
+    gPendingStatus = 400;
+    gPendingBody = "{\"error\":\"invalid path\"}";
+    return;
+  }
+  std::ifstream file(vfsPath(path), std::ios::binary);
+  if (!file) {
+    gPendingStatus = 404;
+    gPendingBody = "{\"error\":\"not found\"}";
+    return;
+  }
+  file.seekg(0, std::ios::end);
+  const auto fileSize = static_cast<size_t>(file.tellg());
+  file.close();
+  rapidjson::Document d;
+  d.SetObject();
+  auto &a = d.GetAllocator();
+  d.AddMember("path", rapidjson::Value(path.c_str(), a), a);
+  d.AddMember("size", static_cast<uint64_t>(fileSize), a);
+  gPendingBody = OMOTE::JSON::ToString(d);
+}
+
+void handleFsReadRaw(const std::map<std::string, std::string> &query) {
+  const auto it = query.find("path");
+  if (it == query.end()) {
+    gPendingStatus = 400;
+    gPendingBody = "{\"error\":\"missing path\"}";
+    return;
+  }
+  const std::string &path = it->second;
+  if (!isSafePath(path)) {
+    gPendingStatus = 400;
+    gPendingBody = "{\"error\":\"invalid path\"}";
+    return;
+  }
+  std::ifstream file(vfsPath(path), std::ios::binary);
+  if (!file) {
+    gPendingStatus = 404;
+    gPendingBody = "{\"error\":\"not found\"}";
+    return;
+  }
+  gPendingBody.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+  gPendingType = "application/json; charset=utf-8";
+}
+
 void handleFsRead(const std::map<std::string, std::string> &query) {
   const auto it = query.find("path");
   if (it == query.end()) {
@@ -137,14 +194,28 @@ void handleFsRead(const std::map<std::string, std::string> &query) {
     gPendingBody = "{\"error\":\"not found\"}";
     return;
   }
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  rapidjson::Document d;
-  d.SetObject();
-  auto &a = d.GetAllocator();
-  d.AddMember("path", rapidjson::Value(path.c_str(), a), a);
-  d.AddMember("content", rapidjson::Value(buffer.str().c_str(), a), a);
-  gPendingBody = OMOTE::JSON::ToString(d);
+  file.seekg(0, std::ios::end);
+  const auto fileSize = static_cast<size_t>(file.tellg());
+  if (fileSize > 96 * 1024) {
+    gPendingStatus = 413;
+    gPendingBody = "{\"error\":\"file too large\"}";
+    return;
+  }
+  file.seekg(0, std::ios::beg);
+
+  std::string content;
+  content.reserve(fileSize);
+  content.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+
+  rapidjson::StringBuffer buff;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buff);
+  writer.StartObject();
+  writer.Key("path");
+  writer.String(path.c_str(), static_cast<rapidjson::SizeType>(path.size()));
+  writer.Key("content");
+  writer.String(content.c_str(), static_cast<rapidjson::SizeType>(content.size()));
+  writer.EndObject();
+  gPendingBody.assign(buff.GetString(), buff.GetSize());
 }
 
 /** Per-file marks for HA/device settings; scene/page hot-reload is batched on reboot (see handleReboot). */
@@ -292,14 +363,20 @@ void handleEditorSyncPost(const std::string &body) {
     return;
   }
   const bool on = d.HasMember("on") && d["on"].IsBool() && d["on"].GetBool();
+  bool reboot = true;
+  if (d.HasMember("reboot") && d["reboot"].IsBool())
+    reboot = d["reboot"].GetBool();
   if (on) {
     editor_sync_mode::enter();
     gPendingBody = "{\"ok\":true,\"editor_sync\":true}";
   } else {
     editor_sync_mode::exit(false);
-    config_reload::markPagesDirty();
-    simNotifyReload();
-    gPendingBody = "{\"ok\":true,\"editor_sync\":false,\"restart\":true}";
+    if (reboot) {
+      config_reload::markPagesDirty();
+      simNotifyReload();
+    }
+    gPendingBody = reboot ? "{\"ok\":true,\"editor_sync\":false,\"restart\":true}"
+                          : "{\"ok\":true,\"editor_sync\":false}";
   }
 }
 
@@ -348,6 +425,10 @@ void dispatch(SOCKET client, const std::string &method, const std::string &path,
     handleStatusImpl();
   } else if (method == "GET" && path == "/api/fs/tree") {
     handleFsTree();
+  } else if (method == "GET" && path == "/api/fs/stat") {
+    handleFsStat(query);
+  } else if (method == "GET" && path == "/api/fs/read/raw") {
+    handleFsReadRaw(query);
   } else if (method == "GET" && path == "/api/fs/read") {
     handleFsRead(query);
   } else if ((method == "POST" || method == "PUT") && path == "/api/fs/write") {

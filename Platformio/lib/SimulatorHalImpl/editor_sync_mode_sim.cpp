@@ -5,6 +5,7 @@
 namespace {
 
 bool sActive = false;
+bool sShowOverlay = false;
 uint32_t sSavedSleepTimeout = 0;
 uint32_t sSavedLightSleepTimeout = 0;
 bool sSavedLightSleepEnabled = false;
@@ -15,7 +16,10 @@ namespace editor_sync_mode {
 
 bool isActive() { return sActive; }
 
-bool enter() {
+bool overlayRequested() { return false; }
+
+bool enter(bool showOverlay) {
+  (void)showOverlay;
   if (sActive)
     return true;
 

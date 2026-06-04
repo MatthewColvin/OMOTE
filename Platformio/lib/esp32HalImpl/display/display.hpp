@@ -10,8 +10,8 @@
 #include "driver/ledc.h"
 #ifdef OMOTE_KEYBRD_3661
 #include "Panel_ST7789_NHD.h"
-#include "Touch_FT5x26.h"
 #endif
+#include "Touch_FT5x26.h"
 
 /*LEDC Channel to use for the LCD backlight*/
 #define LCD_BACKLIGHT_LEDC_CHANNEL LEDC_CHANNEL_5
@@ -30,6 +30,9 @@ class LGFX : public lgfx::LGFX_Device {
 public:
   LGFX(void);
 
+  void touchControllerWake() { _touch_instance.wakeup(); }
+  void touchControllerSleep() { _touch_instance.sleep(); }
+
 private:
 #ifdef OMOTE_KEYBRD_3661
   // use modified values from panel datasheet rather than LGFX defaults
@@ -43,11 +46,7 @@ private:
 #else
   lgfx::Bus_SPI _bus_instance;
 #endif
-#ifdef OMOTE_KEYBRD_3661
   lgfx::Touch_FT5x26 _touch_instance;
-#else
-  lgfx::Touch_FT5x06 _touch_instance;
-#endif
 };
 
 class Display : public DisplayAbstract {
@@ -96,11 +95,18 @@ public:
   }
 
   void wake();
+  /** FT5336 monitor wake — safe to call on every user activity. */
+  void pokeTouchController();
+  /** Re-run FT5336 monitor mode after shared I2C bus was reconfigured (e.g. IMU Wire.begin). */
+  void ensureTouchReady();
   void sleep();
   /** Fade toward ~30% of day/night level before full screen off. */
   void enterPreSleepDim();
   bool isDisplayAsleep() const { return mIsAsleep; }
   bool isPreSleepDim() const { return mPreSleepDim; }
+  bool hasTouch() const { return mHaveTouch; }
+  /** True when awake but backlight never came back (fade race / flag desync). */
+  bool needsBacklightRestore() const;
 
   void reInit();
 
@@ -115,6 +121,8 @@ protected:
   /// @brief Start the Fade task
   void startLcdFade(bool instant = false, uint16_t delay = 0);
   void startKbdFade(bool instant = false, uint16_t delay = 0);
+  void cancelLcdFadeTask();
+  void cancelKbdFadeTask();
 
   /// @brief Set the actual display brightness right now
   /// @param brightness

@@ -2,6 +2,7 @@
 
 #include "HaWebSocket.hpp"
 
+#include "config_http.hpp"
 #include "editor_sync_mode.hpp"
 #include "RapidJsonUtilty.hpp"
 
@@ -490,7 +491,7 @@ void start() {
 }
 
 void tick() {
-  if (wifiReady() && gSettings.ok() && !editor_sync_mode::isActive()) {
+  if (wifiReady() && gSettings.ok() && !editor_sync_mode::isActive() && !config_http::isRemoteSessionActive()) {
     if (gNetworkReadyMs == 0)
       gNetworkReadyMs = millis();
     if (gWantConnect && !gAuthOk && !gConnecting && networkSettled() &&

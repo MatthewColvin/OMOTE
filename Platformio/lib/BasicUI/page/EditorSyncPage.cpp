@@ -22,10 +22,10 @@ EditorSyncPage::EditorSyncPage()
   mBody->SetHeight(LV_SIZE_CONTENT);
   mBody->SetWidth(lv_pct(92));
   mBody->SetText(
-      "OMOTE is ready for the config editor.\n\n"
-      "On your computer open the local editor and connect to:\n"
-      "http://omote.local\n\n"
-      "Press Power when done to save and reboot.");
+      "Config editor session active.\n\n"
+      "The remote stays awake while you edit on your PC.\n"
+      "Touch still works — use Power when finished to reboot.\n\n"
+      "Or disconnect from the editor Leave session button.");
   mBody->AlignTo(mTitle, LV_ALIGN_OUT_BOTTOM_MID, 0, 12);
 
   std::string ipLine = "Waiting for WiFi…";

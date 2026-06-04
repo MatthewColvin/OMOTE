@@ -62,23 +62,25 @@ void HardwareRev1::configPinsForSleepInterrupts() {
 
 bool HardwareRev1::keyboardScan() {
   bool retVal = false;
+  bool matrixActivity = false;
   if (!customKeypad.getKeys()) {
     return false; // no activity return early.
   }
   for (int i = 0; i < LIST_MAX; i++) {
     if (customKeypad.key[i].kstate == PRESSED ||
         customKeypad.key[i].kstate == RELEASED) {
+      matrixActivity = true;
       auto eventType = customKeypad.key[i].kstate == PRESSED
                            ? KeyPressAbstract::KeyEvent::Type::Press
                            : KeyPressAbstract::KeyEvent::Type::Release;
       const auto keyChar = customKeypad.key[i].kchar;
       auto stateChange = customKeypad.key[i].stateChanged;
-      if (Keys::isValidId && stateChange) {
+      if (Keys::isValidId(keyChar) && stateChange) {
         mKeys->HandleKeyPresses(KeyPressAbstract::KeyEvent(Keys::CharKeyToKeyId(keyChar), eventType));
         if (eventType == KeyPressAbstract::KeyEvent::Type::Press)
           retVal = true;
       }
     }
   }
-  return retVal;
+  return retVal || matrixActivity;
 }

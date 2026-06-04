@@ -10,6 +10,10 @@
 #include "LvglResourceManager.hpp"
 #include "SettingsPage.hpp"
 #include "editor_sync_mode.hpp"
+#ifndef IS_SIMULATOR
+#include "display.hpp"
+#include "device_settings.hpp"
+#endif
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -62,7 +66,7 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   mStatusBar->SetTopButtonLabel("Select Scene");
 
   mStatusBar->AddExtraSettingItem({"Editor sync", LV_SYMBOL_REFRESH, [] {
-    editor_sync_mode::enter();
+    editor_sync_mode::enter(true);
     return UI::Page::Base::Ptr{};
   }});
 
@@ -402,6 +406,11 @@ void JsonHomeScreen::reloadCurrentSceneFromDisk() {
     mTabView->SetVisiblity(false);
     mList->SetVisiblity(true);
   }
+#endif
+#ifndef IS_SIMULATOR
+  device_settings::notifyActivity();
+  if (auto disp = std::static_pointer_cast<Display>(HardwareFactory::getAbstract().display()))
+    disp->wake();
 #endif
 }
 

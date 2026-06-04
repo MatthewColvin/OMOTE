@@ -12,6 +12,9 @@
 #include "device_settings.hpp"
 #include "device_settings_schema.hpp"
 #include "editor_sync_mode.hpp"
+#ifndef IS_SIMULATOR
+#include "display.hpp"
+#endif
 
 using namespace UI;
 
@@ -25,7 +28,7 @@ void JsonUI::loopHandler() {
 #endif
   static bool pagesReloadPending = false;
 
-  if (editor_sync_mode::isActive() && !syncUiShown) {
+  if (editor_sync_mode::overlayRequested() && !syncUiShown) {
     syncUiShown = true;
 #ifndef IS_SIMULATOR
     auto popUp = std::make_unique<Screen::PopUpScreen>(std::make_unique<Page::EditorSyncPage>());
@@ -34,7 +37,7 @@ void JsonUI::loopHandler() {
 #endif
   }
 
-  if (!editor_sync_mode::isActive() && syncUiShown) {
+  if (!editor_sync_mode::overlayRequested() && syncUiShown) {
 #ifndef IS_SIMULATOR
     if (editorSyncPopUp) {
       Screen::Manager::getInstance().popScreen(editorSyncPopUp);
@@ -51,15 +54,23 @@ void JsonUI::loopHandler() {
   if (config_reload::consumeDeviceSettingsDirty()) {
     if (device_settings::loadFromLittleFS())
       device_settings::applyToHardware();
+#ifndef IS_SIMULATOR
+    device_settings::notifyActivity();
+    if (auto disp = std::static_pointer_cast<Display>(HardwareFactory::getAbstract().display()))
+      disp->wake();
+#endif
   }
 
+#ifdef IS_SIMULATOR
   if (config_reload::consumePagesDirty())
     pagesReloadPending = true;
+#endif
 
   HaRuntime::tick();
   UIBase::loopHandler();
 
-  // Apply scene reload after lv_timer_handler (never during HTTP / mid-LVGL tick).
+#ifdef IS_SIMULATOR
+  // HW deploy uses reboot to pick up scene/page JSON; in-process reload can break touch.
   if (!editor_sync_mode::isActive() && pagesReloadPending && mJsonHomeScreen) {
     pagesReloadPending = false;
     Screen::JsonHomeScreen *home = mJsonHomeScreen;
@@ -67,6 +78,7 @@ void JsonUI::loopHandler() {
       home->reloadCurrentSceneFromDisk();
     });
   }
+#endif
 }
 
 void JsonUI::InitHomeScreen() {

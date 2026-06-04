@@ -1,3 +1,5 @@
+# Publishes docs/flasher/ to GitHub Pages (ESP Web Tools).
+# If deploy fails: Settings → Environments → github-pages → allow branch Webui.
 name: Deploy OMOTE web flasher
 
 on:

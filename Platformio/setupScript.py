@@ -272,7 +272,7 @@ def ensureManagedComponents():
         if dest_name == "joltwallet__littlefs":
             clone_args.append("--recurse-submodules")
         else:
-            clone_args[1:1] = ["--depth", "1"]
+            clone_args.extend(["--depth", "1"])
         clone_args.extend([spec["url"], clone_dir])
         result = subprocess.run(clone_args, capture_output=True, text=True)
         if result.returncode != 0:

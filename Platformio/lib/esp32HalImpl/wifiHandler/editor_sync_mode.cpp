@@ -7,7 +7,7 @@
 #include "display.hpp"
 #include "ir/IRTransceiver.hpp"
 
-#include <ESP.h>
+#include <Arduino.h>
 #include <WiFi.h>
 
 namespace {

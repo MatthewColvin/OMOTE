@@ -14,7 +14,6 @@
 
 #include <Arduino.h>
 #include <lvgl.h>
-#include <ESP.h>
 #include <ESPmDNS.h>
 #include <LittleFS.h>
 #include <WebServer.h>

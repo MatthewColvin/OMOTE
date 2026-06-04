@@ -4,6 +4,7 @@
 
 #include "Hardware/captive_portal_html.hpp"
 
+#include <Arduino.h>
 #include <DNSServer.h>
 #include <Preferences.h>
 #include <WebServer.h>

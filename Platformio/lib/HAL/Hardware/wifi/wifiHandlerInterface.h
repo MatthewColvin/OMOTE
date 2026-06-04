@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "Hardware/wifi/http/HttpClientInterface.hpp"
 #include "Notification.hpp"
 
 enum ntpDisplayMode { constant,
@@ -47,6 +48,9 @@ public:
   virtual void saveCredentialsOnConnect() = 0;
   /// @brief Get the status of the current wifi connection
   virtual wifiStatus GetStatus() = 0;
+
+  /// @brief Get an HTTP client interface to do HTTP operations
+  virtual std::shared_ptr<HttpClientInterface> getHttpClient() = 0;
 
   // Register for Scan Notification to handle when scans are completed
   std::shared_ptr<ScanNotificationTy> ScanCompleteNotification() {

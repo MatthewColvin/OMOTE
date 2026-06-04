@@ -36,11 +36,12 @@ HardwareSimulator::HardwareSimulator()
     }
   });
 #ifdef INIT_SIM_DATA_FROM_DATA
-  if (std::filesystem::exists("./sim_data/Scenes.json")) {
-    std::printf("[sim] using existing ./sim_data (editor saves kept)\n");
-    std::fflush(stdout);
+  if (!std::filesystem::exists(SimWorkingDir)) {
+    initDirectory(SimWorkingDir, CheckedInDataDir);
   } else {
-    initDirectory("./sim_data", "./data");
+    std::printf("[sim] using existing %s (editor saves kept)\n", SimWorkingDir);
+    std::fflush(stdout);
+  }
   }
 #endif
 
@@ -137,9 +138,9 @@ void HardwareSimulator::handleExtraSDLEvents(SDL_Event *aEvent) {
   if (aEvent->type == SDL_KEYDOWN) {
     const auto SDLK_key = aEvent->key.keysym.sym;
     if (SDLK_key == SDLK_F1) {
-      dumpDirectory("./sim_data", "./data_backup");
+      dumpDirectory(SimWorkingDir, BackupDataDir);
     } else if (SDLK_key == SDLK_F2) {
-      initDirectory("./sim_data", "./data");
+      initDirectory(SimWorkingDir, CheckedInDataDir);
     }
   }
 }

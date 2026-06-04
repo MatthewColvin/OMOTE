@@ -57,34 +57,39 @@ std::vector<IDevice::Ptr> ActiveDeviceConfig::loadDevices() {
   HardwareFactory::getAbstract().debugPrint("Restoring Devices");
 
   for (const auto &deviceObj : doc.GetArray()) {
+    if (!mDeviceJsonValidator.IsValidBaseObject(deviceObj)) {
+      // TODO Maybe error message?
+      continue;
+    }
     DeviceType type = static_cast<DeviceType>(deviceObj["type"].GetInt());
     DeviceId id = static_cast<DeviceId>(deviceObj["id"].GetInt());
+    auto &configObj = deviceObj["config"];
 
     HardwareFactory::getAbstract().debugPrint("Type:%d id:%d", type, id);
 
     std::shared_ptr<IDevice> device;
-    if (type == DeviceType::CompileTime) {
-      device = mFactory.Create(id);
-    }
-    if (deviceObj.HasMember("config")) {
-      auto &configObj = deviceObj["config"];
-      HardwareFactory::getAbstract().debugPrint("Found Config");
-      switch (type) {
-      case DeviceType::HomeAssist:
-        device = createHomeAssistDevice(configObj);
-        break;
-      case DeviceType::JSON:
-        device = createJsonDevice(configObj);
-        break;
-      default:
-        break;
-      }
 
-      if (device) {
-        rapidjson::Document configDoc;
-        configDoc.CopyFrom(configObj, configDoc.GetAllocator());
-        device->SetExtraConfig(configDoc);
+    switch (type) {
+    case DeviceType::CompileTime:
+      if (mDeviceJsonValidator.IsValidSecondaryData(id, configObj)) {
+        device = mFactory.Create(id);
+        break;
       }
+    case DeviceType::HomeAssist:
+      device = createHomeAssistDevice(configObj);
+      break;
+    case DeviceType::JSON:
+      device = createJsonDevice(configObj);
+      break;
+    default:
+      break;
+    }
+
+    if (device) {
+      // Tweak IDevice To Avoid Copy
+      rapidjson::Document configDoc;
+      configDoc.CopyFrom(configObj, configDoc.GetAllocator());
+      device->SetExtraConfig(configDoc);
     }
 
     if (device) {

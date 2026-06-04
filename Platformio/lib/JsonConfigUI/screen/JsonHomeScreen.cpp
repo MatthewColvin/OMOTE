@@ -96,6 +96,10 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
                                      auto jsonDevices = mFactory.getJsonDevices();
                                      return std::make_unique<UI::Page::AddDevice>(mFactory.getActiveDevices(), jsonDevices);
                                    }});
+  mStatusBar->AddDebugSettingItem({"Add Compile Time Device", LV_SYMBOL_EDIT, [this] {
+                                     auto compiledDevices = mFactory.getCompileTimeDevices();
+                                     return std::make_unique<UI::Page::AddDevice>(mFactory.getActiveDevices(), compiledDevices);
+                                   }});
 
   std::fprintf(stderr, "[JsonHomeScreen] home screen ready\n");
   std::fflush(stderr);

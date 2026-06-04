@@ -1,25 +1,15 @@
 #include "Validator.hpp"
+#include "ObjectSchemaBuilder.hpp"
 
 bool Validator::IsAction(const rapidjson::Value &aActionValue) {
-  static constexpr auto actionSchema = R"({
-    "type": "object",
-    "required": ["type", "name", "data"],
-    "properties": {
-      "type": { "type": "string" },
-      "name": { "type": "string" },
-      "data": { "type": "object" }
-    }
-  })";
 
-  if (!mActionSchema.IsObject()) { // Did we cache the schema yet?
-    mActionSchema.Parse(actionSchema);
-    if (mActionSchema.HasParseError()) {
-      // If the embedded schema invalid
-      return false;
-    }
-  }
+  static constexpr auto actionSchema = OMOTE::JSON::ObjectSchema()
+                                           .Require("type", "string")
+                                           .Require("name", "string")
+                                           .Require("data", "object")
+                                           .Build();
 
-  return IsValid(aActionValue, mActionSchema);
+  return OMOTE::JSON::IsJsonValid(aActionValue, actionSchema);
 }
 
 bool Validator::IsDataValid(ActionTypes aActionType,
@@ -29,12 +19,5 @@ bool Validator::IsDataValid(ActionTypes aActionType,
     return false;
   }
 
-  rapidjson::Document typeSpecificActionDataSchemaDoc = OMOTE::JSON::GetDocument(schemaJsonString);
-  return typeSpecificActionDataSchemaDoc.HasParseError() ? false : IsValid(aDataValue, typeSpecificActionDataSchemaDoc);
-}
-
-bool Validator::IsValid(const rapidjson::Value &aValueToValidate, const rapidjson::Document &aSchemaDocument) {
-  rapidjson::SchemaDocument schemaDoc(aSchemaDocument);
-  rapidjson::SchemaValidator validator(schemaDoc);
-  return aValueToValidate.Accept(validator);
+  return OMOTE::JSON::IsJsonValid(aDataValue, schemaJsonString);
 }

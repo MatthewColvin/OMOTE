@@ -22,6 +22,24 @@ Actions are a way to command Omote to do some sort of action.
 If you want to know what goes in data object of a specific Action type go to the File Associated with the ActionType via the ActionFactory. 
 For example IRAction.cpp has a Schema String that describes the value that goes with the data key. 
 
+2) HTTP Action
+```
+{
+    "type": "HttpAction",
+    "name": "Fetch Data",
+    "data": {
+        "url": "https://api.example.com/data",
+        "method": "GET"
+    }
+}
+```
+   1) **type** - Types in ActionTypes.hpp
+   2) **name** - User defined name
+   3) **data** - A RapidJson::Value object passed to the creation function of the IAction subclass(after Validation)
+      * **url** - The URL to request (required)
+      * **method** - HTTP method to use (GET, POST, PUT, DELETE), defaults to GET
+      * **body** - Request body for POST/PUT requests
+      * **headers** - Additional headers to include in the request
 
 ## Adding new action
 

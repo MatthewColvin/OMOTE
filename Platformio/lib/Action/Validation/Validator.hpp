@@ -18,9 +18,6 @@ public:
                        std::string_view aSchemaJson);
 
 private:
-  bool IsValid(const rapidjson::Value &aValueToValidate, const rapidjson::Document &aSchemaDocument);
-
-  rapidjson::Document mActionSchema;
   static inline std::array<std::string_view, static_cast<uint16_t>(ActionTypes::COUNT)> mSchemas;
 };
 

@@ -12,6 +12,7 @@
 
 #include "captive_portal_sim.hpp"
 #include "config_http.hpp"
+#include "CurlHttpClient.hpp"
 #include "observerHandles.hpp"
 #include "wifiHandlerSim.hpp"
 #include <../examples/templates/posix_sockets.h>
@@ -119,6 +120,10 @@ void wifiHandlerSim::scan() {
       mScanNotification->notify(info);
     });
   }
+}
+
+std::shared_ptr<HttpClientInterface> wifiHandlerSim::getHttpClient() {
+  return std::make_shared<CurlHttpClient>();
 }
 
 struct fieldIdStruct {

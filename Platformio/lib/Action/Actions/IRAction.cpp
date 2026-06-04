@@ -2,18 +2,14 @@
 #include "ActionFactory.hpp"
 #include "magic_enum.hpp"
 
-static constexpr auto irDataSchema = R"({
-        "type": "object",
-        "required": ["protocol", "data"],
-        "properties": {
-          "protocol": { "type": "string" },
-          "data": { "type": "string" }
-        }
-      })";
+static constexpr auto irDataSchema = OMOTE::JSON::ObjectSchema()
+                                         .Require("protocol", "string")
+                                         .Require("data", "string")
+                                         .Build();
 
 const auto mIRActionRegistered = ActionFactory::Register(
     ActionTypes::IRAction,
-    irDataSchema,
+    std::string_view(irDataSchema.data(), irDataSchema.size()),
     [](const std::string &aActionName, const rapidjson::Value &aDataJson) {
       return std::make_unique<IRAction>(aActionName, aDataJson["protocol"].GetString(), aDataJson["data"].GetString());
     });

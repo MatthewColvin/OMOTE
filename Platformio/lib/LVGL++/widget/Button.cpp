@@ -11,6 +11,10 @@ Button::Button() : Base(lv_btn_create(UI::Screen::BackgroundScreen::getLvInstanc
   SetBgOpacity(LV_OPA_COVER);
 }
 
+Button::Button(std::function<void()> aOnShortClickHandler) : Button() {
+  mOnShortClick = aOnShortClickHandler;
+}
+
 Button::Button(std::function<void()> aOnPressHandler,
                std::function<void()> aOnReleaseHandler)
     : Button() {

@@ -7,6 +7,7 @@
 #include <Preferences.h>
 #include <rapidjson/document.h>
 
+#include "Esp32HttpClient.hpp"
 #include "HardwareAbstract.hpp"
 #include "HardwareFactory.hpp"
 #include "WiFi.h"
@@ -211,6 +212,10 @@ void wifiHandler::connect(std::string ssid, std::string password) {
   WiFi.begin(mConnectionAttemptSSID.c_str(), mConnectionAttemptPassword.c_str());
   mConnectPending = true;
   mConnectStartMs = millis();
+}
+
+std::shared_ptr<HttpClientInterface> wifiHandler::getHttpClient() {
+  return std::make_shared<Esp32HttpClient>();
 }
 
 void wifiHandler::mqttSend(std::string aTopic, std::string aMessage) {

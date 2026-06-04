@@ -17,7 +17,7 @@ ListItem *SelectedItemsList::AddItem(std::string aTitle, const char *aSymbol,
   // Add Item to the base list and then update its behavior to handle being selected
   // and also allow support for long press still
   auto *item = List::AddItem(std::move(aTitle), aSymbol, nullptr, aHeight);
-  item->AddStyle(&mItemSelectedStyle, LV_PART_MAIN | LV_STATE_CHECKED);
+  item->AddStyle(&mItemSelectedStyle, LV_STATE_CHECKED);
   item->OnClick([this, item]() {
         item->ToggleCheck();
         if (item->IsChecked()) {

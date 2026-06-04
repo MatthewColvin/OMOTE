@@ -1,7 +1,8 @@
 /* OMOTE firmware config editor — beginner-first, auto-linked JSON files */
 const SCR_W = 240;
 const SCR_H = 320;
-const STATUS_H = 22;
+/** StatusBar.hpp: 0.0625 × SCREEN_HEIGHT → 20px at 320px tall. */
+const STATUS_H = Math.round(SCR_H * 0.0625);
 const TAB_BAR_H = Math.round(SCR_H * 0.1);
 const CONTENT_H = SCR_H - STATUS_H - TAB_BAR_H;
 const ADVANCED_KEY = 'omote_editor_advanced';
@@ -28,10 +29,328 @@ let haActiveDomain = 'light';
 /** Match LVGL++ widget constants (NumberPad.hpp, ColorButtons.hpp, JsonPage distBetweenWidgets). */
 const FW_LAYOUT = {
   gap: 5,
-  padX: 8,
+  /** JsonPage.cpp default widget width when SizeXY is omitted: SetWidth(lv_pct(90)). */
+  defaultWidthPct: 90,
+  /** Vertical scrollbar on scrollable pages (widgets > 6); used for right-align only. */
+  scrollbarGutter: 6,
   colorButtons: { height: 25, btnW: 40, spacingX: 20, marginX: 10 },
   numberPad: { height: 180, btnW: 60, btnH: 30, spacingX: 20, spacingY: 15, pad: 10, cols: 3 },
 };
+
+function firmwareDefaultWidthPx() {
+  return Math.round(SCR_W * FW_LAYOUT.defaultWidthPct / 100);
+}
+
+/** Match JsonPage scroll heuristic (pageNeedsScroll || widgets > 6). */
+function layoutPageWidth(widgets) {
+  const list = widgets || [];
+  return list.length > 6 ? SCR_W - FW_LAYOUT.scrollbarGutter : SCR_W;
+}
+
+function posXPctFromLeftPx(leftPx) {
+  return Math.max(0, Math.min(100, Math.round(leftPx / SCR_W * 100)));
+}
+
+/** Visual center on the editor canvas (matches TOP_MID / centered widgets on hardware). */
+function canvasCenterLeftPx(width, pageW = SCR_W) {
+  return clampWidgetX(Math.round((SCR_W - width) / 2), width, pageW);
+}
+
+/** Editor canvas uses the same 240×320 coords as the remote (lv_pct PosX of page width). */
+function canvasLeftPxFromPosX(posXPct, width, pageW = SCR_W) {
+  return clampWidgetX(Math.round((SCR_W * Number(posXPct)) / 100), width, pageW);
+}
+
+function posXPctFromCanvasLeft(canvasLeftPx) {
+  return posXPctFromLeftPx(Math.round(canvasLeftPx));
+}
+
+/** Editor snap / overlay grid: 10px tiles on 240×320 (24×32 cells). */
+const LAYOUT_GRID_PX = 10;
+const EDITOR_LAYOUT_PREFS_KEY = 'omote_editor_layout_prefs';
+
+function layoutPrefs() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(EDITOR_LAYOUT_PREFS_KEY) || '{}');
+    return {
+      snap: raw.snap !== false,
+      showGrid: raw.showGrid !== false
+    };
+  } catch {
+    return { snap: true, showGrid: true };
+  }
+}
+
+function saveLayoutPrefs(patch) {
+  const next = { ...layoutPrefs(), ...patch };
+  localStorage.setItem(EDITOR_LAYOUT_PREFS_KEY, JSON.stringify(next));
+}
+
+function snapPx(n, grid = LAYOUT_GRID_PX) {
+  return Math.round(n / grid) * grid;
+}
+
+function layoutContentHeightPx() {
+  return CONTENT_H - FW_LAYOUT.gap * 2;
+}
+
+function pageVirtualHeight(widgets) {
+  return layoutVirtualHeight(widgets || currentPage().Widgets || []);
+}
+
+/** Parse "50", "50%", "120px" → percent stored in JSON. */
+function parseDimToPct(raw, mode) {
+  const s = String(raw ?? '').trim();
+  if (!s) return null;
+  const m = s.match(/^(\d+(?:\.\d+)?)\s*(%|px|pct)?$/i);
+  if (!m) return null;
+  const num = parseFloat(m[1]);
+  let unit = (m[2] || '%').toLowerCase();
+  if (unit === 'pct') unit = '%';
+  if (num < 0 || Number.isNaN(num)) return null;
+
+  const virtualH = pageVirtualHeight();
+
+  switch (mode) {
+    case 'width':
+      return unit === 'px'
+        ? Math.max(1, Math.min(100, Math.round(num / SCR_W * 100)))
+        : Math.max(1, Math.min(100, Math.round(num)));
+    case 'height':
+      return unit === 'px'
+        ? Math.max(1, Math.min(100, Math.round(num / layoutContentHeightPx() * 100)))
+        : Math.max(1, Math.min(100, Math.round(num)));
+    case 'posX':
+      return unit === 'px'
+        ? posXPctFromLeftPx(num)
+        : Math.max(0, Math.min(100, Math.round(num)));
+    case 'posY':
+      if (unit === 'px') {
+        const py = num - STATUS_H;
+        return Math.max(0, Math.min(100, Math.round(py / virtualH * 100)));
+      }
+      return Math.max(0, Math.min(100, Math.round(num)));
+    default:
+      return null;
+  }
+}
+
+/** JsonPage HaClimate: width is always 100%; only HeightPct is stored (min 40). */
+const HA_CLIMATE_MIN_HEIGHT_PCT = 40;
+const HA_CLIMATE_DEFAULT_HEIGHT_PCT = 58;
+
+function normalizeHaClimateLayout(w) {
+  if (!w || w.Type !== 'HaClimate') return false;
+  let changed = false;
+  if (w.SizeXY) {
+    if (w.SizeXY[1] != null) {
+      const h = Math.max(HA_CLIMATE_MIN_HEIGHT_PCT, Math.min(100, w.SizeXY[1]));
+      if (w.HeightPct !== h) {
+        w.HeightPct = h;
+        changed = true;
+      }
+    }
+    delete w.SizeXY;
+    changed = true;
+  }
+  if (w.HeightPct != null && w.HeightPct < HA_CLIMATE_MIN_HEIGHT_PCT) {
+    w.HeightPct = HA_CLIMATE_MIN_HEIGHT_PCT;
+    changed = true;
+  }
+  return changed;
+}
+
+function syncLayoutFieldsFromWidget(w) {
+  if (!w) return;
+  const type = w.Type || '';
+  const fixedSize = type === 'ColorButtons' || type === 'NumberPad';
+  const isImage = type === 'Image';
+  const isClimate = type === 'HaClimate';
+
+  $('w-width-row')?.classList.toggle('hidden', fixedSize || isImage || isClimate);
+  $('w-height-row')?.classList.toggle('hidden', fixedSize || isImage);
+
+  if (isClimate) {
+    normalizeHaClimateLayout(w);
+    if ($('w-height-val')) {
+      $('w-height-val').value = `${w.HeightPct ?? HA_CLIMATE_DEFAULT_HEIGHT_PCT}%`;
+    }
+  } else if ($('w-width-val') && !fixedSize && !isImage) {
+    $('w-width-val').value = w.SizeXY?.[0] != null ? `${w.SizeXY[0]}%` : '';
+  }
+  if (!isClimate && $('w-height-val') && !fixedSize && !isImage) {
+    if (w.SizeXY?.[1] != null) $('w-height-val').value = `${w.SizeXY[1]}%`;
+    else if (w.HeightPct != null) $('w-height-val').value = `${w.HeightPct}%`;
+    else $('w-height-val').value = '';
+  }
+  if ($('w-posx-val')) $('w-posx-val').value = w.PosX != null ? `${w.PosX}%` : '';
+  if ($('w-posy-val')) $('w-posy-val').value = w.PosY != null ? `${w.PosY}%` : '';
+}
+
+function applyLayoutFieldsToWidget(w) {
+  const type = w.Type || '';
+  const fixedSize = type === 'ColorButtons' || type === 'NumberPad';
+  const isImage = type === 'Image';
+
+  if (type === 'HaClimate') {
+    const hPct = parseDimToPct($('w-height-val')?.value, 'height');
+    if (hPct != null) {
+      w.HeightPct = Math.max(HA_CLIMATE_MIN_HEIGHT_PCT, Math.min(100, hPct));
+    } else if (w.HeightPct == null) {
+      w.HeightPct = HA_CLIMATE_DEFAULT_HEIGHT_PCT;
+    }
+    delete w.SizeXY;
+  } else if (!fixedSize && !isImage && LAYOUT_WIDGET_TYPES.has(type)) {
+    const wPct = parseDimToPct($('w-width-val')?.value, 'width');
+    const hPct = parseDimToPct($('w-height-val')?.value, 'height');
+    if (wPct != null && hPct != null) {
+      w.SizeXY = [wPct, hPct];
+      delete w.HeightPct;
+    } else if (wPct != null) {
+      w.SizeXY = [wPct, w.SizeXY?.[1] || w.HeightPct || 10];
+    } else if (hPct != null) {
+      if (w.SizeXY?.[0]) w.SizeXY = [w.SizeXY[0], hPct];
+      else w.HeightPct = hPct;
+    }
+  } else if (
+    type !== 'HaClimate' &&
+    (type === 'Button' || type === 'Label' || type === 'Title' || HA_WIDGET_TYPES.has(type)) &&
+    !fixedSize
+  ) {
+    const hPct = parseDimToPct($('w-height-val')?.value, 'height');
+    if (hPct != null) {
+      w.HeightPct = hPct;
+      if (w.SizeXY?.[0] && !w.SizeXY[1]) delete w.SizeXY;
+      else if (w.SizeXY?.length === 2) w.SizeXY = [w.SizeXY[0], hPct];
+    }
+  }
+
+  const xPct = parseDimToPct($('w-posx-val')?.value, 'posX');
+  const yPct = parseDimToPct($('w-posy-val')?.value, 'posY');
+  if (xPct != null) {
+    w.PosX = xPct;
+    delete w.AlignTo;
+  }
+  if (yPct != null) {
+    w.PosY = yPct;
+    delete w.AlignTo;
+  }
+}
+
+function getSelectedWidgetRect() {
+  if (selection.kind !== 'widget') return null;
+  const rects = layoutFlowRects(currentPage().Widgets || [], true);
+  return rects.find((r) => r.i === selection.widgetIdx) || null;
+}
+
+function alignSelectedWidget(mode) {
+  const page = currentPage();
+  const widgets = page.Widgets || [];
+  const r = getSelectedWidgetRect();
+  if (!r) return;
+
+  const w = widgets[r.i];
+  const contentTop = STATUS_H;
+  const contentBottom = SCR_H - TAB_BAR_H;
+  const contentH = contentBottom - contentTop;
+
+  let x = r.x;
+  let y = r.y;
+  switch (mode) {
+    case 'left':
+      x = 0;
+      break;
+    case 'right':
+      x = layoutPageWidth(widgets) - r.w;
+      break;
+    case 'center-h':
+      x = canvasCenterLeftPx(r.w);
+      break;
+    case 'top':
+      y = contentTop + FW_LAYOUT.gap;
+      break;
+    case 'bottom':
+      y = contentBottom - r.h - FW_LAYOUT.gap;
+      break;
+    case 'center-v':
+      y = contentTop + Math.round((contentH - r.h) / 2);
+      break;
+    case 'center':
+      x = canvasCenterLeftPx(r.w);
+      y = contentTop + Math.round((contentH - r.h) / 2);
+      break;
+    default:
+      return;
+  }
+
+  if (layoutPrefs().snap) {
+    x = snapPx(x);
+    y = snapPx(y);
+    x = clampWidgetX(x, r.w, layoutPageWidth(widgets));
+  }
+
+  applyWidgetDragPos(w, x, y, r.w, r.h, widgets);
+  savePage(page);
+  syncLayoutFieldsFromWidget(w);
+  refreshRemoteTab();
+}
+
+function drawLayoutGrid(ctx, contentTop, contentBottom) {
+  if (!layoutPrefs().showGrid) return;
+  const g = LAYOUT_GRID_PX;
+  ctx.save();
+  ctx.strokeStyle = '#ffffff14';
+  ctx.lineWidth = 1;
+  // Anchor to full 240×320 screen so grid matches device pixel coords (not contentTop).
+  for (let x = 0; x <= SCR_W; x += g) {
+    ctx.beginPath();
+    ctx.moveTo(x + 0.5, contentTop);
+    ctx.lineTo(x + 0.5, contentBottom);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= SCR_H; y += g) {
+    if (y < contentTop || y > contentBottom) continue;
+    ctx.beginPath();
+    ctx.moveTo(0, y + 0.5);
+    ctx.lineTo(SCR_W, y + 0.5);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function bindLayoutTools() {
+  const snapEl = $('layout-snap-grid');
+  const gridEl = $('layout-show-grid');
+  const prefs = layoutPrefs();
+  if (snapEl) {
+    snapEl.checked = prefs.snap;
+    snapEl.onchange = () => {
+      saveLayoutPrefs({ snap: snapEl.checked });
+      drawCanvas();
+    };
+  }
+  if (gridEl) {
+    gridEl.checked = prefs.showGrid;
+    gridEl.onchange = () => {
+      saveLayoutPrefs({ showGrid: gridEl.checked });
+      drawCanvas();
+    };
+  }
+  const align = (mode) => () => {
+    if (selection.kind !== 'widget') {
+      $('connect-msg') && setConnectMsg('Select a screen widget first (Remote tab).', 'muted');
+      return;
+    }
+    alignSelectedWidget(mode);
+  };
+  $('btn-align-left')?.addEventListener('click', align('left'));
+  $('btn-align-center-h')?.addEventListener('click', align('center-h'));
+  $('btn-align-right')?.addEventListener('click', align('right'));
+  $('btn-align-top')?.addEventListener('click', align('top'));
+  $('btn-align-center-v')?.addEventListener('click', align('center-v'));
+  $('btn-align-bottom')?.addEventListener('click', align('bottom'));
+  $('btn-align-center')?.addEventListener('click', align('center'));
+}
 
 const HA_WIDGET_TYPES = new Set([
   'HaToggle', 'HaLabel', 'HaSwitch', 'HaSlider', 'HaMomentary', 'HaClimate'
@@ -2652,8 +2971,6 @@ function syncWidgetEditor() {
   $('w-fields-color')?.classList.toggle('hidden', !isColor);
   $('w-fields-numpad')?.classList.toggle('hidden', !isPad);
   $('w-fields-ha')?.classList.toggle('hidden', !isHa);
-  $('w-fields-layout')?.classList.remove('hidden');
-
   if ($('ha-service-row')) {
     $('ha-service-row').classList.toggle('hidden', !isHaToggle);
   }
@@ -2683,11 +3000,6 @@ function syncWidgetEditor() {
     populateHaEntityPicker({ selected: w.EntityId || '', autoApplyLabel: false });
   }
 
-  if (isTitle && $('w-fields-layout')) {
-    $('w-fields-layout').classList.remove('hidden');
-    $('w-height').parentElement.classList.remove('hidden');
-  }
-
   if (isButton || isLabel) {
     const hasCmd = !!(w.Command && (typeof w.Command === 'string' ? w.Command : w.Command[0]));
     $('widget-action-type').value = hasCmd ? 'ir_existing' : (w.Text && !hasCmd ? 'none' : 'ir');
@@ -2704,16 +3016,17 @@ function syncWidgetEditor() {
     populateImageFileList();
   }
 
-  const showHeight = isButton || isLabel || isTitle || isHa;
-  if ($('w-height')?.parentElement) {
-    $('w-height').parentElement.classList.toggle('hidden', !showHeight);
+  const showLayout = LAYOUT_WIDGET_TYPES.has(type) || isTitle;
+  $('w-fields-layout')?.classList.toggle('hidden', !showLayout);
+  if ($('w-fields-layout-hint')) {
+    $('w-fields-layout-hint').textContent = isHaClimate
+      ? 'Climate panel is always full width; height uses HeightPct only (device default 58%, min 40%).'
+      : 'Use % or px (saved as % for the device). Preview pixels match the remote 240×320 screen. Drag respects snap grid.';
   }
-  if (showHeight) $('w-height').value = w.HeightPct ?? 10;
-
-  if ($('w-sizex')) $('w-sizex').value = w.SizeXY?.[0] ?? '';
-  if ($('w-sizey')) $('w-sizey').value = w.SizeXY?.[1] ?? '';
-  if ($('w-posx')) $('w-posx').value = w.PosX ?? '';
-  if ($('w-posy')) $('w-posy').value = w.PosY ?? '';
+  if (showLayout) {
+    if (isHaClimate && normalizeHaClimateLayout(w)) savePage(currentPage());
+    syncLayoutFieldsFromWidget(w);
+  }
 }
 
 function updateSelectionPanel(friendlyLabel) {
@@ -2847,29 +3160,14 @@ function applyWidgetEdits() {
     w.SizeXYinPixels = [iw || 120, ih || 120];
   }
 
-  if (type === 'Button' || type === 'Label' || type === 'Title' || HA_WIDGET_TYPES.has(type)) {
-    const h = parseInt($('w-height').value, 10);
-    if (h) w.HeightPct = h;
-  }
-
-  if (LAYOUT_WIDGET_TYPES.has(type)) {
-    const sx = parseInt($('w-sizex')?.value, 10);
-    const sy = parseInt($('w-sizey')?.value, 10);
-    if (sx && sy) w.SizeXY = [sx, sy];
-    else if (sx) w.SizeXY = [sx, w.SizeXY?.[1] || w.HeightPct || 10];
-    else if (sy) w.SizeXY = [w.SizeXY?.[0] || 90, sy];
-    else delete w.SizeXY;
-  }
-
-  const px = parseInt($('w-posx')?.value, 10);
-  const py = parseInt($('w-posy')?.value, 10);
-  if (!Number.isNaN(px) && $('w-posx')?.value !== '') {
-    w.PosX = Math.round(clampWidgetX(SCR_W * px / 100, widgetLayoutWidth(w)) / SCR_W * 100);
-    delete w.AlignTo;
-  }
-  if (!Number.isNaN(py) && $('w-posy')?.value !== '') {
-    w.PosY = Math.max(0, py);
-    delete w.AlignTo;
+  if (LAYOUT_WIDGET_TYPES.has(type) || type === 'Title') {
+    applyLayoutFieldsToWidget(w);
+    if (w.PosX != null) {
+      const width = widgetLayoutWidth(w);
+      const pageW = layoutPageWidth(page.Widgets);
+      const pxX = Math.round(SCR_W * w.PosX / 100);
+      w.PosX = posXPctFromLeftPx(clampWidgetX(pxX, width, pageW));
+    }
   }
 
   savePage(page);
@@ -3010,6 +3308,7 @@ function widgetLayoutHeight(w) {
 }
 
 function widgetLayoutWidth(w) {
+  if (w.Type === 'HaClimate') return SCR_W;
   if (w.Type === 'ColorButtons') {
     const c = FW_LAYOUT.colorButtons;
     return c.marginX * 2 + c.btnW * 4 + c.spacingX * 3;
@@ -3020,14 +3319,15 @@ function widgetLayoutWidth(w) {
   }
   if (w.SizeXY?.[0]) return Math.round(SCR_W * w.SizeXY[0] / 100);
   if (w.Type === 'Image' && w.SizeXYinPixels?.[0]) return w.SizeXYinPixels[0];
-  return SCR_W - FW_LAYOUT.padX * 2;
+  return firmwareDefaultWidthPx();
 }
 
-function clampWidgetX(x, width) {
-  return Math.max(0, Math.min(SCR_W - width, x));
+function clampWidgetX(x, width, pageW = SCR_W) {
+  return Math.max(0, Math.min(pageW - width, x));
 }
 
 function computeWidgetLayout(widgets) {
+  const pageW = layoutPageWidth(widgets);
   const flowBottoms = [];
   const items = (widgets || []).map((w, i) => {
     const h = widgetLayoutHeight(w);
@@ -3041,7 +3341,7 @@ function computeWidgetLayout(widgets) {
       flowY = (flowBottoms[refIdx] ?? STATUS_H + FW_LAYOUT.gap) + FW_LAYOUT.gap;
     }
     flowBottoms[i] = flowY + h;
-    const flowX = clampWidgetX(Math.round((SCR_W - width) / 2), width);
+    const flowX = canvasCenterLeftPx(width);
     const positioned = w.PosX != null && w.PosY != null;
     return { i, w, h, width, flowX, flowY, positioned };
   });
@@ -3055,7 +3355,7 @@ function computeWidgetLayout(widgets) {
     let x;
     let y;
     if (item.positioned) {
-      x = clampWidgetX(Math.round(SCR_W * item.w.PosX / 100), item.width);
+      x = canvasLeftPxFromPosX(item.w.PosX, item.width, pageW);
       y = STATUS_H + Math.round(virtualH * item.w.PosY / 100);
     } else {
       x = item.flowX;
@@ -3145,11 +3445,20 @@ function drawNumberPadWidget(ctx, r) {
   drawMiniButton(ctx, bx0, by0, n.btnW, n.btnH, '0');
 }
 
+function repairPageClimateWidgets(widgets) {
+  let changed = false;
+  for (const w of widgets || []) {
+    if (normalizeHaClimateLayout(w)) changed = true;
+  }
+  if (changed) savePage(currentPage());
+}
+
 function drawCanvas() {
   const c = $('preview');
   if (!c) return;
   const ctx = c.getContext('2d');
   const widgets = currentPage().Widgets || [];
+  repairPageClimateWidgets(widgets);
 
   ctx.fillStyle = '#111';
   ctx.fillRect(0, 0, SCR_W, SCR_H);
@@ -3168,6 +3477,8 @@ function drawCanvas() {
   ctx.beginPath();
   ctx.rect(0, contentTop, SCR_W, contentBottom - contentTop);
   ctx.clip();
+
+  drawLayoutGrid(ctx, contentTop, contentBottom);
 
   rects.forEach((r) => {
     const w = r.widget;
@@ -3374,9 +3685,17 @@ function findWidgetHit(x, y) {
 
 function applyWidgetDragPos(w, x, y, width, height, widgets) {
   const virtualH = layoutVirtualHeight(widgets);
-  const px = clampWidgetX(x, width);
-  const py = Math.max(0, y - STATUS_H);
-  w.PosX = Math.round(px / SCR_W * 100);
+  const pageW = layoutPageWidth(widgets);
+  let px = clampWidgetX(x, width, pageW);
+  let py = Math.max(0, y - STATUS_H);
+  if (layoutPrefs().snap) {
+    px = snapPx(px);
+    py = snapPx(py);
+    const maxPy = Math.max(0, virtualH - height);
+    py = Math.min(py, snapPx(maxPy));
+    px = clampWidgetX(px, width, pageW);
+  }
+  w.PosX = posXPctFromCanvasLeft(px);
   w.PosY = Math.round(py / virtualH * 100);
   delete w.AlignTo;
 }
@@ -3630,6 +3949,7 @@ function bindCanvasPreview() {
     const ny = y - drag.oy + canvasScrollY;
     applyWidgetDragPos(w, nx, ny, drag.width, drag.height, page.Widgets);
     savePage(page);
+    syncLayoutFieldsFromWidget(w);
     drawCanvas();
   };
   c.addEventListener('wheel', (ev) => {
@@ -3644,6 +3964,7 @@ function bindCanvasPreview() {
 
 dismissBlockingOverlays();
 bindCanvasPreview();
+bindLayoutTools();
 applyAdvancedMode();
 
 if (

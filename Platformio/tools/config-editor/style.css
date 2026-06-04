@@ -470,6 +470,44 @@ button.danger-btn:hover { background: #f8514922; }
   margin-right: auto;
 }
 
+.layout-tools {
+  width: 100%;
+  max-width: var(--remote-w);
+  margin: 0 auto 8px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.layout-tools-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-bottom: 8px;
+}
+.layout-tools .inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.layout-tools .inline input { width: auto; margin: 0; }
+.align-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.align-toolbar .align-label { margin-right: 2px; }
+.align-toolbar .small-btn {
+  font-size: 0.72rem;
+  padding: 4px 8px;
+  margin: 0;
+}
+.align-toolbar .small-btn.primary { font-size: 0.72rem; }
+
 .remote-layout-wrap {
   width: 100%;
   display: flex;

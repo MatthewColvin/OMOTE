@@ -195,6 +195,26 @@ python -m http.server 8080</pre>
           <h2><span id="remote-device-label">Device</span></h2>
           <p id="editing-hint" class="muted small">Configure the touch screen and physical keys on the remote below.</p>
           <p id="canvas-scroll-hint" class="muted small hidden">Scroll the touch screen with the mouse wheel when content extends below the tab bar.</p>
+          <div id="layout-tools" class="layout-tools">
+            <div class="layout-tools-row">
+              <label class="inline" title="Snap drag and align to a 10px grid (24×32 on 240×320)">
+                <input type="checkbox" id="layout-snap-grid" checked /> Snap grid
+              </label>
+              <label class="inline" title="Show grid on the touch preview">
+                <input type="checkbox" id="layout-show-grid" checked /> Show grid
+              </label>
+            </div>
+            <div class="align-toolbar" role="group" aria-label="Align selected widget">
+              <span class="align-label muted small">Align:</span>
+              <button type="button" id="btn-align-left" class="small-btn" title="Align left edge">Left</button>
+              <button type="button" id="btn-align-center-h" class="small-btn" title="Center horizontally">H center</button>
+              <button type="button" id="btn-align-right" class="small-btn" title="Align right edge">Right</button>
+              <button type="button" id="btn-align-top" class="small-btn" title="Align top">Top</button>
+              <button type="button" id="btn-align-center-v" class="small-btn" title="Center vertically">V center</button>
+              <button type="button" id="btn-align-bottom" class="small-btn" title="Align bottom">Bottom</button>
+              <button type="button" id="btn-align-center" class="small-btn primary" title="Center on screen">Center</button>
+            </div>
+          </div>
           <div class="remote-layout-wrap">
             <div id="remote-keymap" class="remote-keymap">
               <div id="remote-power-row" class="remote-power-row"></div>
@@ -307,14 +327,11 @@ python -m http.server 8080</pre>
                 </div>
               </div>
               <div id="w-fields-layout">
-                <label>Height % <input id="w-height" type="number" min="1" max="100" /></label>
-                <details class="advanced-field hidden" id="widget-layout-advanced">
-                  <summary>Position &amp; size (advanced)</summary>
-                  <label>Width % / Height % <input id="w-sizex" type="number" min="1" max="100" placeholder="W" style="width:4em;display:inline" />
-                    <input id="w-sizey" type="number" min="1" max="100" placeholder="H" style="width:4em;display:inline" /></label>
-                  <label>PosX % <input id="w-posx" type="number" min="0" max="100" /></label>
-                  <label>PosY % <input id="w-posy" type="number" min="0" max="100" /></label>
-                </details>
+                <p id="w-fields-layout-hint" class="muted small">Use <strong>%</strong> or <strong>px</strong> (saved as % for the device). Preview pixels match the remote 240×320 screen. Drag respects snap grid.</p>
+                <label id="w-width-row">Width <input id="w-width-val" placeholder="e.g. 90% or 120px" /></label>
+                <label id="w-height-row">Height <input id="w-height-val" placeholder="e.g. 10% or 28px" /></label>
+                <label>Position X <input id="w-posx-val" placeholder="e.g. 0% or 8px" /></label>
+                <label>Position Y <input id="w-posy-val" placeholder="e.g. 5% or 16px (from screen top)" /></label>
               </div>
               <div class="row widget-action-row">
                 <button type="button" id="btn-widget-apply" class="primary">Apply</button>

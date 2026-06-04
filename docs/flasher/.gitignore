@@ -1,0 +1,2 @@
+# Built by CI before GitHub Pages deploy; do not commit binaries.
+*.bin

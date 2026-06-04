@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OMOTE Rev1 — Web Flasher</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --esp-tools-button-color: #238636;
+      --esp-tools-button-text-color: #fff;
+      --esp-tools-button-border-radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    main {
+      max-width: 420px;
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 28px 24px;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.35rem; }
+    p { margin: 0 0 14px; line-height: 1.5; color: var(--muted); font-size: 0.92rem; }
+    .warn {
+      background: #3d2a00;
+      border: 1px solid #9e6a03;
+      color: #f0c14d;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 18px;
+    }
+    ol { margin: 0 0 18px; padding-left: 1.2rem; color: var(--muted); font-size: 0.88rem; }
+    li { margin-bottom: 6px; }
+    esp-web-install-button { display: block; margin: 16px 0; }
+    footer { font-size: 0.8rem; color: var(--muted); margin-top: 12px; }
+    footer a { color: var(--accent); }
+    #build-info { font-family: ui-monospace, monospace; font-size: 0.8rem; }
+  </style>
+  <script
+    type="module"
+    src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+  ></script>
+</head>
+<body>
+  <main>
+    <h1>OMOTE Rev1 flasher</h1>
+    <p>Flash firmware and factory LittleFS over USB from the browser (Chrome or Edge).</p>
+    <div class="warn">
+      Experimental fork build — Rev1 only. Rev5 / 3661 not supported here yet.
+    </div>
+    <ol>
+      <li>Connect the OMOTE over USB.</li>
+      <li>Put the device in download mode if your board requires it.</li>
+      <li>Click install and pick the serial port when prompted.</li>
+      <li>Allow erasing when asked (full flash recommended for first install).</li>
+    </ol>
+    <esp-web-install-button manifest="manifest.json">
+      <button slot="activate" type="button">Install OMOTE Rev1</button>
+      <span slot="unsupported">Use Chrome or Edge on desktop (Web Serial required).</span>
+      <span slot="not-allowed">Open this page via HTTPS (GitHub Pages).</span>
+    </esp-web-install-button>
+    <p id="build-info">Build: …</p>
+    <footer>
+      Powered by <a href="https://esphome.github.io/esp-web-tools/" rel="noopener">ESP Web Tools</a>.
+      Firmware from <a href="https://github.com/OMOTE-Community/OMOTE-Firmware-object-oriented" rel="noopener">OMOTE firmware</a>.
+    </footer>
+  </main>
+  <script>
+    fetch('manifest.json')
+      .then((r) => r.json())
+      .then((m) => {
+        document.getElementById('build-info').textContent =
+          'Build: ' + (m.version || '?') + ' · chip ' + (m.builds?.[0]?.chipFamily || 'ESP32');
+      })
+      .catch(() => {});
+  </script>
+</body>
+</html>

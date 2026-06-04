@@ -39,7 +39,13 @@ pio run -e esp32_Rev1
 pio run -e esp32_Rev1 -t buildfs
 $out = ".pio/build/esp32_Rev1"
 $dest = "../docs/flasher"
-Copy-Item "$out/bootloader.bin","$out/partitions.bin","$out/boot_app0.bin","$out/firmware.bin","$out/littlefs.bin" $dest
+Copy-Item "$out/bootloader.bin","$out/partitions.bin","$out/firmware.bin","$out/littlefs.bin" $dest
+$bootApp0 = "$out/boot_app0.bin"
+if (-not (Test-Path $bootApp0)) {
+  $bootApp0 = Get-ChildItem "$env:USERPROFILE\.platformio\packages" -Recurse -Filter boot_app0.bin -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -match 'partitions\\boot_app0\.bin$' } | Select-Object -First 1 -ExpandProperty FullName
+}
+Copy-Item $bootApp0 "$dest\boot_app0.bin"
 ```
 
 Use any local HTTPS static server, or rely on GitHub Pages.

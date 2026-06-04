@@ -61,10 +61,23 @@ jobs:
         run: |
           OUT=Platformio/.pio/build/esp32_Rev1
           DEST=docs/flasher
-          for f in bootloader.bin partitions.bin boot_app0.bin firmware.bin littlefs.bin; do
+          mkdir -p "$DEST"
+          for f in bootloader.bin partitions.bin firmware.bin littlefs.bin; do
             test -f "$OUT/$f" || { echo "Missing $OUT/$f"; exit 1; }
             cp "$OUT/$f" "$DEST/"
           done
+          # Arduino+ESP-IDF build does not copy boot_app0 into $OUT; use framework stock image @ 0xE000.
+          if [ -f "$OUT/boot_app0.bin" ]; then
+            cp "$OUT/boot_app0.bin" "$DEST/"
+          else
+            BOOT_APP0=$(find "$HOME/.platformio/packages" -path '*/tools/partitions/boot_app0.bin' 2>/dev/null | head -1)
+            if [ -z "$BOOT_APP0" ] || [ ! -f "$BOOT_APP0" ]; then
+              echo "boot_app0.bin not in $OUT and not found under ~/.platformio/packages"
+              exit 1
+            fi
+            echo "Using framework boot_app0: $BOOT_APP0"
+            cp "$BOOT_APP0" "$DEST/boot_app0.bin"
+          fi
           python3 <<'PY'
           import json, os, subprocess
           path = "docs/flasher/manifest.json"

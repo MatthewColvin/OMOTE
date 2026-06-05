@@ -16,6 +16,7 @@ public:
   void InitHomeScreen() override;
   void AddPageToHomeScreen(Page::Base::Ptr aPageToAdd) override;
   bool GoToPage(ID anId) override;
+  void loopHandler() override;
 
 private:
   Screen::JsonHomeScreen *mJsonHomeScreen;

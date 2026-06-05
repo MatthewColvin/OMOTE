@@ -1,13 +1,36 @@
+#if !defined(IS_SIMULATOR)
 #include "HardwareRevX.hpp"
 #include "Esp32Logger.hpp"
 #include "Hardware/KeyPressAbstract.hpp"
 #include "IRTransceiver.hpp"
+#include "config_http.hpp"
+#include "device_settings.hpp"
+#include "device_settings_schema.hpp"
 #include "display.hpp"
 #include "driver/rtc_io.h"
+#include "editor_sync_mode.hpp"
 #include "esp32WebSocket.hpp"
+#include "esp_log.h"
 #include "observerHandles.hpp"
 #include "wifihandler.hpp"
 #include <Wire.h>
+
+namespace {
+
+void restoreSharedI2cForTouch(const std::shared_ptr<Display> &disp) {
+  // LIS3DH beginCore() may call Wire.begin() without Rev1 SDA/SCL pins and break LovyanGFX touch.
+  Wire.end();
+  delay(1);
+  Wire.begin(SDA, SCL);
+  if (disp)
+    disp->ensureTouchReady();
+}
+
+void quietNoisyEspLogs() {
+  // Matrix keypad scan toggles pin modes often; gpio driver logs at INFO drown HA> lines.
+  esp_log_level_set("gpio", ESP_LOG_ERROR);
+}
+} // namespace
 
 void HardwareRevX::initIO() {
   // Button Pin Definition
@@ -77,6 +100,7 @@ HardwareRevX::WakeReason getWakeReason() {
 }
 
 void HardwareRevX::init() {
+  quietNoisyEspLogs();
   // Make sure ESP32 is running at full speed
   setCpuFrequencyMhz(240);
   mWakeupReason = getWakeReason();
@@ -107,6 +131,7 @@ void HardwareRevX::init() {
   mWifiHandler->setupNtp();
 
   mWifiHandler->ftpRestoreCredentials();
+  config_http::begin(mWifiHandler->mDNSGetName().c_str());
 
   // TODO Could IR be a weak ref only used when needed then deallocate?
   mIr = std::make_shared<IRTransceiver>(logger());
@@ -115,15 +140,22 @@ void HardwareRevX::init() {
   //  mBattery->writeCustomModel();
 
   restorePreferences();
-  mStandbyTimer = getSleepTimeout();
+  device_settings_schema::loadFromLittleFS();
+  device_settings::notifyActivity();
+  if (device_settings::loadFromLittleFS())
+    device_settings::applyToHardware();
+  else
+    device_settings::syncFromHardware();
 
   mTouchHandler.SetNotification(mDisplay->TouchNotification());
-  mTouchHandler = [this](auto aTouchPoint) {
-    // When we get touches reset sleep timeout
-    mStandbyTimer = this->getSleepTimeout();
-  };
+  mTouchHandler = [](auto) { device_settings::notifyActivity(); };
 
   mIMU_new->setup();
+  refreshImuMotionConfig();
+  restoreSharedI2cForTouch(mDisplay);
+
+  if (auto disp = std::static_pointer_cast<Display>(mDisplay))
+    disp->wake();
 
   UI::observerHandles::registerTextHandle(GENERAL_STATUS, OBSERVER_BUF_SIZE, "");
 
@@ -215,6 +247,11 @@ void HardwareRevX::setInScene(bool inScene) {
   this->mInScene = inScene;
 }
 
+void HardwareRevX::refreshImuMotionConfig() {
+  if (mIMU_new)
+    mIMU_new->configIMUInterrupts(mWakeupByIMUEnabled);
+}
+
 void HardwareRevX::saveSettings() {
   // Save settings to internal flash memory
   mPreferences.begin("settings", false);
@@ -230,6 +267,9 @@ void HardwareRevX::saveSettings() {
   if (!mPreferences.getBool("alreadySetUp"))
     mPreferences.putBool("alreadySetUp", true);
   mPreferences.end();
+
+  device_settings::syncFromHardware();
+  device_settings::saveToLittleFS();
 
   mLogger->setLogModule(LogModule::Display);
   if (mLogger->isPrintWanted(LogLevel::Info))
@@ -389,7 +429,7 @@ void HardwareRevX::lightSleepWakeReint(SleepMode mode) {
 
   initIO();
 
-  Wire.begin();
+  Wire.begin(SDA, SCL);
 
   mIMU.settings.accelSampleRate = 100;
   mIMU.applySettings();
@@ -397,8 +437,9 @@ void HardwareRevX::lightSleepWakeReint(SleepMode mode) {
   mDisplay->reInit();
 
   mIMUTaskTimer = millis();
-  mStandbyTimer = getSleepTimeout();
+  device_settings::notifyActivity();
   mIMU_new->setup();
+  restoreSharedI2cForTouch(mDisplay);
 
   mLogger->setLogModule(LogModule::General);
   if (mLogger->isPrintWanted(LogLevel::Info)) {
@@ -453,31 +494,66 @@ void HardwareRevX::startTasks() {}
 void HardwareRevX::loopHandler() {
   static int32_t battVoltage = 0;
 
-  mWifiHandler->mqttSync();
-  mWifiHandler->ftpSync();
+  mWifiHandler->networkSync();
 
-  mWifiHandler->nptSync();
+  const bool portalActive = mWifiHandler->isPortalActive();
+  const bool editorActive = editor_sync_mode::isActive();
+  const bool remoteActive = config_http::isRemoteSessionActive();
+  const bool keepAwake = portalActive || editorActive || remoteActive;
+  const auto &ds = device_settings::currentConst();
+  if (!keepAwake)
+    mIr->loopHandleRx();
 
-  mIr->loopHandleRx();
+  if (!keepAwake) {
+    const uint32_t idle = device_settings::idleMs();
+    const uint32_t dimStart =
+        ds.displayTimeoutMs > ds.dimLeadMs ? ds.displayTimeoutMs - ds.dimLeadMs : ds.displayTimeoutMs;
 
-  mStandbyTimer < 750 ? mDisplay->sleep() : mDisplay->wake();
+    if (idle >= ds.displayTimeoutMs) {
+      if (!device_settings::isScreenPoweredOff()) {
+        mDisplay->sleep();
+        device_settings::setScreenPoweredOff(true);
+        mIMU_new->onScreenPoweredOff();
+      }
+    } else if (idle >= dimStart) {
+      if (!mDisplay->isDisplayAsleep())
+        mDisplay->enterPreSleepDim();
+    } else if (!device_settings::isScreenPoweredOff() && mDisplay->isPreSleepDim()) {
+      mDisplay->wake();
+    }
+  }
 
   // Blink debug LED at 1 Hz
   digitalWrite(USER_LED, millis() % 1000 > 500);
 
   // Refresh IMU data at 40Hz
   if (millis() - mIMUTaskTimer >= 25) {
-    // Calculate time to standby
-    mStandbyTimer -= (millis() - mIMUTaskTimer);
     mIMUTaskTimer = millis();
-    if (mStandbyTimer < 0)
-      mStandbyTimer = 0;
-
-    if (mIMU_new->activityDetection())
-      mStandbyTimer = mSleepTimeout;
 
     if (keyboardScan())
-      mStandbyTimer = mSleepTimeout;
+      device_settings::notifyActivity();
+
+    if (device_settings::isScreenPoweredOff()) {
+      if (auto disp = std::static_pointer_cast<Display>(mDisplay))
+        disp->pokeTouchController();
+    }
+    mDisplay->getTouchData();
+    if (device_settings::isScreenPoweredOff()) {
+      if (auto disp = std::static_pointer_cast<Display>(mDisplay); disp && disp->hasTouch())
+        device_settings::notifyActivity();
+    }
+
+    if (!keepAwake) {
+      const bool screenOff = device_settings::isScreenPoweredOff();
+      if (ds.motionWakeEnabled) {
+        if (!screenOff) {
+          if (mIMU_new->activityDetection())
+            device_settings::notifyActivity();
+        } else if (mIMU_new->pollScreenOffMotionWake()) {
+          device_settings::notifyActivity();
+        }
+      }
+    }
 
     uint16_t visPlusIrLevel, irLevel;
     if (lightSensorScan(visPlusIrLevel, irLevel)) {
@@ -491,8 +567,6 @@ void HardwareRevX::loopHandler() {
       }
     }
 
-    mDisplay->getTouchData(); // trigger read here to keep all I2C accesses
-                              // together
     battVoltage = battery()->getVoltage();
 
     static uint16_t secCount = 20; // update immediately on power up
@@ -509,7 +583,7 @@ void HardwareRevX::loopHandler() {
         mLogger->log(LogLevel::Info, mLogStream);
       }
 
-      if (mStandbyTimer == 0) {
+      if (device_settings::idleMs() >= ds.deepSleepTimeoutMs && !keepAwake) {
         mLogger->setLogModule(LogModule::General);
 
         if (mInScene && mLightSleepEnabled) {
@@ -565,3 +639,5 @@ bool HardwareRevX::lightSensorScan(uint16_t &visPlusIrLevel, uint16_t &irLevel) 
   } else
     return false;
 };
+#endif // !IS_SIMULATOR
+

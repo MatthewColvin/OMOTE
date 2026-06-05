@@ -2,11 +2,19 @@
 
 #include "ActionTester.hpp"
 #include "AddDevice.hpp"
+#include "HaRuntime.hpp"
 #include "HardwareFactory.hpp"
 #include "JsonPage.hpp"
 #include "RapidJsonUtilty.hpp"
 #include "ScreenManager.hpp"
+#include "LvglResourceManager.hpp"
 #include "SettingsPage.hpp"
+#include "editor_sync_mode.hpp"
+#ifndef IS_SIMULATOR
+#include "display.hpp"
+#include "device_settings.hpp"
+#endif
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 
@@ -48,11 +56,19 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   SetPushAnimation(LV_SCR_LOAD_ANIM_NONE);
   // Init Factory to allow building of Json devices
   aFactory.InitJsonFactory();
+  HaRuntime::init();
+  std::fprintf(stderr, "[JsonHomeScreen] HaRuntime init done\n");
+  std::fflush(stderr);
 
   mSceneChangeHandler.SetNotification(mStatusBar->GetSceneChangeNotification());
   mSceneChangeHandler = [this](std::string aNewScene) { GoToSceneSelection(aNewScene); };
 
   mStatusBar->SetTopButtonLabel("Select Scene");
+
+  mStatusBar->AddExtraSettingItem({"Editor sync", LV_SYMBOL_REFRESH, [] {
+    editor_sync_mode::enter(true);
+    return UI::Page::Base::Ptr{};
+  }});
 
   static constexpr auto ContentHeight =
       SCREEN_HEIGHT - Widget::StatusBar::Height;
@@ -62,37 +78,15 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
   mTabView->AlignTo(mStatusBar, LV_ALIGN_OUT_BOTTOM_MID);
   mTabView->SetVisiblity(false);
 
-  rapidjson::Document d = OMOTE::JSON::GetDocument(std::filesystem::path(FS_PATH "Scenes.json"));
-  if (d.HasMember("Scenes")) {
-    for (rapidjson::SizeType i = 0; i < d["Scenes"].Size(); i++) {
-      auto &scene = d["Scenes"][i];
-      if (scene.HasMember("FileName") && scene["FileName"].IsString()) {
-        std::string fileName = scene["FileName"].GetString();
-        std::string sceneName;
-        if (scene.HasMember("SceneName") && scene["SceneName"].IsString())
-          sceneName = scene["SceneName"].GetString();
-        else
-          sceneName = fileName;
+  populateSceneListFromDisk();
 
-        auto symbol = checkSceneForEntryExit(fileName) ? LV_SYMBOL_WIFI : LV_SYMBOL_MINUS;
-        mList->AddItem(sceneName, symbol, [this, fileName] { displayScenePage(fileName, false); });
-
-        if (scene.HasMember("BindToKey") && scene["BindToKey"].IsString()) {
-          if (scene.HasMember("PressType") && scene["PressType"].IsString()) {
-            auto id = magic_enum::enum_cast<KeyIds>(scene["BindToKey"].GetString());
-            auto type = magic_enum::enum_cast<KeyPressTypes>(scene["PressType"].GetString());
-            if (id.has_value() && type.has_value())
-              mSceneKeyHandlers.insert({id.value(), {type.value(), fileName}});
-          }
-        }
-      }
-    }
-  }
-
+#ifndef IS_SIMULATOR
   if (RtcLastState.signature == RTC_SIG) {
-    // Serial.printf("Restoring scene from: %s\r\n", RtcLastState.currentScene);
     displayScenePage(RtcLastState.currentScene, true);
-  } // else Serial.println("RTC sig invalid");
+  }
+#else
+  RtcLastState.signature = 0;
+#endif
 
   mStatusBar->AddDebugSettingItem({"Test Actions", LV_SYMBOL_LIST, [this] {
                                      return std::make_unique<UI::Page::ActionTester>();
@@ -106,6 +100,9 @@ JsonHomeScreen::JsonHomeScreen(DeviceFactory &aFactory)
                                      auto compiledDevices = mFactory.getCompileTimeDevices();
                                      return std::make_unique<UI::Page::AddDevice>(mFactory.getActiveDevices(), compiledDevices);
                                    }});
+
+  std::fprintf(stderr, "[JsonHomeScreen] home screen ready\n");
+  std::fflush(stderr);
 }
 
 bool JsonHomeScreen::checkSceneForEntryExit(const std::string &aFileName) {
@@ -235,6 +232,7 @@ void JsonHomeScreen::displayScenePage(const std::string &aFileName, bool restore
   mTabView->SetVisiblity(true);
   mList->SetVisiblity(false);
   lv_obj_fade_in(mTabView->LvglSelf(), 400, 0);
+  mTabView->OnShow();
 }
 
 void JsonHomeScreen::AddPage(Page::Base::Ptr aPage) {
@@ -302,6 +300,122 @@ void JsonHomeScreen::sendExitSequence() {
     Command::Commands::sendCommand(i);
   mExitCommands.clear();
   mSavedExitSeq.clear();
+}
+
+namespace {
+
+bool isSceneListedInManifest(const std::string &fileName) {
+  rapidjson::Document d = OMOTE::JSON::GetDocument(std::filesystem::path(FS_PATH "Scenes.json"));
+  if (!d.HasMember("Scenes") || !d["Scenes"].IsArray())
+    return false;
+  for (rapidjson::SizeType i = 0; i < d["Scenes"].Size(); i++) {
+    const auto &scene = d["Scenes"][i];
+    if (scene.HasMember("FileName") && scene["FileName"].IsString() &&
+        fileName == scene["FileName"].GetString())
+      return true;
+  }
+  return false;
+}
+
+} // namespace
+
+void JsonHomeScreen::populateSceneListFromDisk() {
+  mList->ClearItems();
+  mSceneKeyHandlers.clear();
+
+  rapidjson::Document d = OMOTE::JSON::GetDocument(std::filesystem::path(FS_PATH "Scenes.json"));
+  if (!d.HasMember("Scenes") || !d["Scenes"].IsArray())
+    return;
+
+  for (rapidjson::SizeType i = 0; i < d["Scenes"].Size(); i++) {
+    auto &scene = d["Scenes"][i];
+    if (!scene.HasMember("FileName") || !scene["FileName"].IsString())
+      continue;
+
+    std::string fileName = scene["FileName"].GetString();
+    std::string sceneName;
+    if (scene.HasMember("SceneName") && scene["SceneName"].IsString())
+      sceneName = scene["SceneName"].GetString();
+    else
+      sceneName = fileName;
+
+    const auto symbol = checkSceneForEntryExit(fileName) ? LV_SYMBOL_WIFI : LV_SYMBOL_MINUS;
+    mList->AddItem(sceneName, symbol, [this, fileName] { displayScenePage(fileName, false); });
+
+    if (scene.HasMember("BindToKey") && scene["BindToKey"].IsString() &&
+        scene.HasMember("PressType") && scene["PressType"].IsString()) {
+      const auto id = magic_enum::enum_cast<KeyIds>(scene["BindToKey"].GetString());
+      const auto type = magic_enum::enum_cast<KeyPressTypes>(scene["PressType"].GetString());
+      if (id.has_value() && type.has_value())
+        mSceneKeyHandlers.insert({id.value(), {type.value(), fileName}});
+    }
+  }
+}
+
+void JsonHomeScreen::reloadCurrentSceneFromDisk() {
+  auto lock = LvglResourceManager::GetInstance().scopeLock();
+
+  populateSceneListFromDisk();
+
+  if (mLastScene.empty()) {
+    std::fprintf(stderr, "[JsonHomeScreen] scene list reloaded\n");
+    std::fflush(stderr);
+    return;
+  }
+
+  const std::string scene = mLastScene;
+  if (!std::filesystem::exists(std::filesystem::path(FS_PATH + scene)) ||
+      !isSceneListedInManifest(scene)) {
+    std::fprintf(stderr, "[JsonHomeScreen] scene removed: %s\n", scene.c_str());
+    std::fflush(stderr);
+    sendExitSequence();
+    clearScene();
+    mLastScene.clear();
+    mLastStartSeq.clear();
+    mTabView->SetVisiblity(false);
+    mList->SetVisiblity(true);
+    return;
+  }
+  const uint16_t tabIdx = mTabView->GetCurrentTabIdx();
+  const bool wasVisible = mTabView->IsVisible();
+
+  std::fprintf(stderr, "[JsonHomeScreen] reload scene: %s (tab visible=%d)\n", scene.c_str(),
+               wasVisible ? 1 : 0);
+  std::fflush(stderr);
+
+  mLastScene.clear();
+#ifdef IS_SIMULATOR
+  try {
+    displayScenePage(scene, true);
+    if (wasVisible) {
+      mTabView->SetCurrentTabIdx(tabIdx, LV_ANIM_OFF);
+      mTabView->OnShow();
+    } else {
+      mTabView->SetVisiblity(false);
+      mList->SetVisiblity(true);
+    }
+  } catch (const std::exception &ex) {
+    std::fprintf(stderr, "[JsonHomeScreen] reload failed: %s\n", ex.what());
+    std::fflush(stderr);
+  } catch (...) {
+    std::fprintf(stderr, "[JsonHomeScreen] reload failed: unknown error\n");
+    std::fflush(stderr);
+  }
+#else
+  displayScenePage(scene, false);
+  if (wasVisible) {
+    mTabView->SetCurrentTabIdx(tabIdx, LV_ANIM_OFF);
+    mTabView->OnShow();
+  } else {
+    mTabView->SetVisiblity(false);
+    mList->SetVisiblity(true);
+  }
+#endif
+#ifndef IS_SIMULATOR
+  device_settings::notifyActivity();
+  if (auto disp = std::static_pointer_cast<Display>(HardwareFactory::getAbstract().display()))
+    disp->wake();
+#endif
 }
 
 void JsonHomeScreen::GoToSceneSelection(const std::string &aNewScene) {

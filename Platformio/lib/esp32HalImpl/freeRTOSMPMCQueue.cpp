@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 #include "freeRTOSMPMCQueue.hpp"
 
 template <typename T>
@@ -55,3 +56,5 @@ template <typename T>
 bool freeRTOSMPMCQueue<T>::isEmpty() {
   return (xQueueIsQueueEmptyFromISR(this->queue) == pdTRUE);
 }
+#endif // !IS_SIMULATOR
+

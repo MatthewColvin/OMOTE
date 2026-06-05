@@ -74,6 +74,12 @@ public:
   void ftpSaveCredentials() override;
   void ftpRestoreCredentials();
 
+  /** HTTP config API + captive portal / connect polling */
+  void networkSync() override;
+  bool isPortalActive() const override;
+  bool hasStoredCredentials() const override;
+  const char *portalStatusText() const override;
+
 protected:
   wifiHandler() = default;
   static std::shared_ptr<wifiHandler> mInstance;
@@ -146,4 +152,8 @@ private:
   bool mFtpInitialised = false;
   unsigned long mOldFtpTime = 0;
   bool mFtpForceConnect = true;
+
+  bool mConnectPending = false;
+  uint32_t mConnectStartMs = 0;
+  static constexpr uint32_t kConnectTimeoutMs = 30000;
 };

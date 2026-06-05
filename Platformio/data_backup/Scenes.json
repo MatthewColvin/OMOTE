@@ -1,0 +1,10 @@
+{
+  "Scenes": [
+    {
+      "SceneName": "Watch TV",
+      "FileName": "Scenes/Scene_WatchTV.json",
+      "BindToKey": "TV",
+      "PressType": "Press"
+    }
+  ]
+}

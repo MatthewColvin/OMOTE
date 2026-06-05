@@ -1,7 +1,9 @@
+#if !defined(IS_SIMULATOR)
 #include "IRTransceiver.hpp"
 #include "magic_enum.hpp"
 #include "omoteconfig.h"
 #include <IRutils.h>
+#include <sstream>
 
 struct callbackStruct {
   MessageBufferHandle_t IRSendHandle;
@@ -464,6 +466,15 @@ void IRTransceiver::loopHandleRx() {
     std::string humanReadable(
         resultToHumanReadableBasic(&mCurrentResults).c_str());
 
+    mLastCapture.valid = true;
+    mLastCapture.protocol = std::string(typeToString(mCurrentResults.decode_type, true).c_str());
+    mLastCapture.human = humanReadable;
+    {
+      std::stringstream hex;
+      hex << "0x" << std::uppercase << std::hex << mCurrentResults.value;
+      mLastCapture.dataHex = hex.str();
+    }
+
     // Store protocol
     received.mprotocol =
         static_cast<IRInterface::protocol>(mCurrentResults.decode_type);
@@ -487,3 +498,5 @@ void IRTransceiver::maxOutTaskPriority() {
 void IRTransceiver::restoreTaskPriority() {
   vTaskPrioritySet(nullptr, mPreSendPriority);
 }
+#endif // !IS_SIMULATOR
+

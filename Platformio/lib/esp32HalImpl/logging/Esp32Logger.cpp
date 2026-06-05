@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 #include "Esp32Logger.hpp"
 #include "Arduino.h"
 #include "magic_enum.hpp"
@@ -12,3 +13,5 @@ void ESP32Logger::log(LogLevel aLevel, LogModule aModule, std::string_view aMess
   Serial.print(" ");
   Serial.println(aMessage.data());
 }
+#endif // !IS_SIMULATOR
+

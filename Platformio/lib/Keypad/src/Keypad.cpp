@@ -81,9 +81,12 @@ bool Keypad::getKeys() {
 
 // Private : Hardware scan
 void Keypad::scanKeys() {
-	// Re-intialize the row pins. Allows sharing these pins with other hardware.
-	for (byte r=0; r<sizeKpd.rows; r++) {
-		pin_mode(rowPins[r],INPUT);
+	// Row pins stay inputs; re-calling pinMode every scan floods ESP-IDF gpio logs.
+	static bool rowPinsInput = false;
+	if (!rowPinsInput) {
+		for (byte r = 0; r < sizeKpd.rows; r++)
+			pin_mode(rowPins[r], INPUT);
+		rowPinsInput = true;
 	}
 
 	// bitMap stores ALL the keys that are being pressed.

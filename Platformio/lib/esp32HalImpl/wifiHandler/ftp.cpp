@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 #include <Arduino.h>
 #include <SimpleFTPServer.h>
 #include "ftp.hpp"
@@ -58,3 +59,5 @@ void ftp::end() {
 void ftp::sync() {
   ftpSrv.handleFTP();
 }
+#endif // !IS_SIMULATOR
+

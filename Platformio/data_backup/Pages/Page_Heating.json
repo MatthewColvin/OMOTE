@@ -1,0 +1,27 @@
+{
+  "CommandFile": "Commands/Commands_Heating.json",
+  "Widgets": [
+    {
+      "Type": "HaClimate",
+      "EntityId": "climate.home",
+      "HeightPct": 100,
+      "AlignTo": 0,
+      "Domain": "climate",
+      "Text": "Home"
+    }
+  ],
+  "ButtonMaps": {
+    "Up": {
+      "Press": "UP"
+    },
+    "Down": {
+      "Press": "DOWN"
+    },
+    "Left": {
+      "Press": "BOOST"
+    },
+    "Right": {
+      "Press": "ADVANCE"
+    }
+  }
+}

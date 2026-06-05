@@ -26,6 +26,7 @@
             "-I keys",
             "-I stats",
             "-I wifiHandler",
+            "-I wifiHandlerSim",
             "-lSDL2",
             "-lpthread"
         ]

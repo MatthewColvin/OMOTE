@@ -1,8 +1,11 @@
+#if !defined(IS_SIMULATOR)
 
 #include "display.hpp"
 
 #include "driver/ledc.h"
 #include "omoteconfig.h"
+
+#include <algorithm>
 
 LGFX::LGFX(void) {
   {
@@ -171,22 +174,88 @@ void Display::reInit() {
 #endif
 
   tft.init();
+  tft.touchControllerWake();
   lv_obj_invalidate(lv_scr_act());
 
   startFade(50); // allow time for LCD init to complete before bringing up backlight
 }
 
+bool Display::needsBacklightRestore() const {
+  if (mIsAsleep || mPreSleepDim)
+    return false;
+  const uint8_t target = mIsDay ? mLcdDayBrightness : mLcdNightBrightness;
+  return target > 0 && mLcdBrightness < 4;
+}
+
+void Display::cancelLcdFadeTask() {
+  if (!mFadeLcdTaskMutex)
+    return;
+  xSemaphoreTake(mFadeLcdTaskMutex, portMAX_DELAY);
+  if (mDisplayLcdFadeTask) {
+    vTaskDelete(mDisplayLcdFadeTask);
+    mDisplayLcdFadeTask = nullptr;
+  }
+  xSemaphoreGive(mFadeLcdTaskMutex);
+}
+
+void Display::cancelKbdFadeTask() {
+#ifdef OMOTE_HARDWARE_REV5
+  if (!mFadeKbdTaskMutex)
+    return;
+  xSemaphoreTake(mFadeKbdTaskMutex, portMAX_DELAY);
+  if (mDisplayKbdFadeTask) {
+    vTaskDelete(mDisplayKbdFadeTask);
+    mDisplayKbdFadeTask = nullptr;
+  }
+  xSemaphoreGive(mFadeKbdTaskMutex);
+#endif
+}
+
 void Display::wake() {
-  if (mIsAsleep) {
+  const bool wasAsleep = mIsAsleep;
+  const bool wasDim = mPreSleepDim;
+  mPreSleepDim = false;
+  if (mIsAsleep)
     mIsAsleep = false;
+
+  // Cancel an in-flight fade-down; otherwise wake() clears mIsAsleep while the
+  // task still runs and later wake() calls skip startLcdFade (stuck black screen).
+  if (wasAsleep || wasDim || mLcdBrightness < 4) {
+    cancelLcdFadeTask();
+    cancelKbdFadeTask();
+    startLcdFade(wasAsleep, 0);
+    startKbdFade(wasAsleep, 0);
+  }
+  // FT5336 can stay in chip sleep (light sleep, ESP.reset). Re-enter monitor and flush stale points.
+  tft.touchControllerWake();
+  int32_t discardX = 0;
+  int32_t discardY = 0;
+  tft.getTouch(&discardX, &discardY);
+}
+
+void Display::pokeTouchController() { tft.touchControllerWake(); }
+
+void Display::ensureTouchReady() {
+  tft.touchControllerWake();
+  int32_t x = 0;
+  int32_t y = 0;
+  for (int i = 0; i < 4; i++)
+    (void)tft.getTouch(&x, &y);
+}
+
+void Display::sleep() {
+  mPreSleepDim = false;
+  if (!mIsAsleep) {
+    mIsAsleep = true;
+    // Backlight off only — FT5336 has no RST; chip sleep breaks touch wake and post-wake input.
     startLcdFade();
     startKbdFade();
   }
 }
 
-void Display::sleep() {
-  if (!mIsAsleep) {
-    mIsAsleep = true;
+void Display::enterPreSleepDim() {
+  if (!mIsAsleep && !mPreSleepDim) {
+    mPreSleepDim = true;
     startLcdFade();
     startKbdFade();
   }
@@ -223,6 +292,8 @@ void Display::setupTFT() {
   delay(100);
   // Serial.println("Initialising TFT:");
   tft.init();
+  // FT5336 keeps chip sleep across ESP.reset() (no RST pin); must leave monitor mode.
+  tft.touchControllerWake();
   tft.initDMA();
   tft.setRotation(0);
   tft.fillScreen(TFT_BLACK);
@@ -330,30 +401,34 @@ void Display::screenInput(lv_indev_t *indev, lv_indev_data_t *data) {
 }
 
 void Display::startLcdFade(bool instant, uint16_t delay) {
-  if (xSemaphoreTake(mFadeLcdTaskMutex, 0)) {
-    // Only Create Task if it is needed
-    if (mDisplayLcdFadeTask == nullptr) {
-      uint8_t targetBrightness;
-      if (mIsAsleep)
-        targetBrightness = 0;
-      else {
-        if (mIsDay)
-          targetBrightness = mLcdDayBrightness;
-        else
-          targetBrightness = mLcdNightBrightness;
-      }
+  if (!mFadeLcdTaskMutex)
+    return;
+  if (xSemaphoreTake(mFadeLcdTaskMutex, portMAX_DELAY)) {
+    if (mDisplayLcdFadeTask) {
+      vTaskDelete(mDisplayLcdFadeTask);
+      mDisplayLcdFadeTask = nullptr;
+    }
+    uint8_t targetBrightness;
+    if (mIsAsleep) {
+      targetBrightness = 0;
+    } else if (mPreSleepDim) {
+      const uint8_t base = mIsDay ? mLcdDayBrightness : mLcdNightBrightness;
+      targetBrightness = (uint8_t)std::max(4, (int)(base * 0.3f));
+    } else {
+      if (mIsDay)
+        targetBrightness = mLcdDayBrightness;
+      else
+        targetBrightness = mLcdNightBrightness;
+    }
 
-      if (mLcdBrightness != targetBrightness) {
-        // calculate delta needed to give consistent 300ms (30 step) fade
-        float startBrightness = mLcdBrightness;
-        float delta = (targetBrightness - mLcdBrightness);
-        if (!instant)
-          delta /= 30.0f;
-        mLcdArgs = {delta, startBrightness, targetBrightness, delay};
-        // Serial.printf("Start LCD fade, start:%f, target:%i, delta:%f, delay:%i\r\n", startBrightness, targetBrightness, delta, delay);
-        xTaskCreate(&Display::fadeLcdImpl, "Display Fade Task", 1024, &mLcdArgs, 5, // stack needs to be 2048 for printf use
-                    &mDisplayLcdFadeTask);
-      }
+    if (mLcdBrightness != targetBrightness) {
+      float startBrightness = mLcdBrightness;
+      float delta = (targetBrightness - mLcdBrightness);
+      if (!instant)
+        delta /= 30.0f;
+      mLcdArgs = {delta, startBrightness, targetBrightness, delay};
+      xTaskCreate(&Display::fadeLcdImpl, "Display Fade Task", 1024, &mLcdArgs, 5,
+                  &mDisplayLcdFadeTask);
     }
     xSemaphoreGive(mFadeLcdTaskMutex);
   }
@@ -393,9 +468,12 @@ void Display::startKbdFade(bool instant, uint16_t delay) {
     // Only Create Task if it is needed
     if (mDisplayKbdFadeTask == nullptr) {
       uint8_t targetBrightness;
-      if (mIsAsleep)
+      if (mIsAsleep) {
         targetBrightness = 0;
-      else {
+      } else if (mPreSleepDim) {
+        const uint8_t base = mIsDay ? mKbdDayBrightness : mKbdNightBrightness;
+        targetBrightness = (uint8_t)std::max(4, (int)(base * 0.3f));
+      } else {
         if (mIsDay)
           targetBrightness = mKbdDayBrightness;
         else
@@ -474,3 +552,5 @@ void Display::flushDisplay(lv_disp_t *disp, const lv_area_t *area,
 
   lv_display_flush_ready(disp);
 }
+#endif // !IS_SIMULATOR
+

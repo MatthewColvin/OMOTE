@@ -1,0 +1,103 @@
+# Publishes docs/flasher/ to GitHub Pages (ESP Web Tools).
+# If deploy fails: Settings → Environments → github-pages → allow branch Webui.
+name: Deploy OMOTE web flasher
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - Webui
+    paths:
+      - 'docs/flasher/**'
+      - 'Platformio/**'
+      - '.github/workflows/deploy-flasher-pages.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-flasher
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio-flasher
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Set pip constraints for ESP-IDF
+        run: echo "PIP_CONSTRAINT=${{ github.workspace }}/Platformio/esp-idf-constraints.txt" >> $GITHUB_ENV
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Build esp32_Rev1 firmware
+        working-directory: Platformio
+        run: |
+          pio pkg install
+          pio run -e esp32_Rev1
+          pio run -e esp32_Rev1 -t buildfs
+
+      - name: Stage flasher binaries
+        run: |
+          OUT=Platformio/.pio/build/esp32_Rev1
+          DEST=docs/flasher
+          mkdir -p "$DEST"
+          for f in bootloader.bin partitions.bin firmware.bin littlefs.bin; do
+            test -f "$OUT/$f" || { echo "Missing $OUT/$f"; exit 1; }
+            cp "$OUT/$f" "$DEST/"
+          done
+          # Arduino+ESP-IDF build does not copy boot_app0 into $OUT; use framework stock image @ 0xE000.
+          if [ -f "$OUT/boot_app0.bin" ]; then
+            cp "$OUT/boot_app0.bin" "$DEST/"
+          else
+            BOOT_APP0=$(find "$HOME/.platformio/packages" -path '*/tools/partitions/boot_app0.bin' 2>/dev/null | head -1)
+            if [ -z "$BOOT_APP0" ] || [ ! -f "$BOOT_APP0" ]; then
+              echo "boot_app0.bin not in $OUT and not found under ~/.platformio/packages"
+              exit 1
+            fi
+            echo "Using framework boot_app0: $BOOT_APP0"
+            cp "$BOOT_APP0" "$DEST/boot_app0.bin"
+          fi
+          python3 <<'PY'
+          import json, os, subprocess
+          path = "docs/flasher/manifest.json"
+          with open(path) as f:
+              m = json.load(f)
+          sha = os.environ.get("GITHUB_SHA", "")[:7] or subprocess.check_output(
+              ["git", "rev-parse", "--short", "HEAD"], text=True
+          ).strip()
+          m["version"] = sha
+          with open(path, "w") as f:
+              json.dump(m, f, indent=2)
+              f.write("\n")
+          print("manifest version:", sha)
+          PY
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/flasher
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

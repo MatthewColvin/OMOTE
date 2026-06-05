@@ -1,7 +1,7 @@
 #include "Rest/Access/HomeAssistAccess.hpp"
 
 #if defined(IS_SIMULATOR)
-#include "Rest/Backends/Curl/CurlApi.hpp"
+#include "Rest/Backends/Stub/StubHomeAssistApi.hpp"
 #else
 #include "Rest/Backends/HttpClient/HttpClientApi.hpp"
 
@@ -13,7 +13,7 @@ std::weak_ptr<IHomeAssistApi> HomeAssistantAccess::mCurrentApiAccess;
 
 std::shared_ptr<IHomeAssistApi> GetNewAccess() {
 #if defined(IS_SIMULATOR)
-  return std::make_shared<CurlApi>();
+  return std::make_shared<StubHomeAssistApi>();
 #else
   return std::make_shared<HttpClientApi>();
 #endif

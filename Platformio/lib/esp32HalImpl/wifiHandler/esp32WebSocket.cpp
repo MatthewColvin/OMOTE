@@ -1,3 +1,4 @@
+#if !defined(IS_SIMULATOR)
 #include "esp32WebSocket.hpp"
 
 #include "HardwareFactory.hpp"
@@ -238,3 +239,5 @@ void esp32WebSocket::websocket_event_handler(void *handler_args,
     break;
   }
 }
+#endif // !IS_SIMULATOR
+

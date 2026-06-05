@@ -1,15 +1,22 @@
 #include "BasicUI.hpp"
 
+#include "Hardware/KeyPressAbstract.hpp"
 #include "HardwareFactory.hpp"
 #include "HomeScreen.hpp"
 #include "ScreenManager.hpp"
+#include "editor_sync_mode.hpp"
 
 using namespace UI;
 
 BasicUI::BasicUI() : UIBase() {
   HardwareFactory::getAbstract().keys()->RegisterKeyPressHandler(
       [this](auto aKeyEvent) {
-        // See if any UI elements wanted the key press first
+        if (editor_sync_mode::isActive() &&
+            aKeyEvent.mId == KeyPressAbstract::KeyId::Power &&
+            aKeyEvent.mType == KeyPressAbstract::KeyEvent::Type::Press) {
+          editor_sync_mode::exit(true);
+          return true;
+        }
         if (Screen::Manager::getInstance().distributeKeyEvent(aKeyEvent)) {
           return true;
           // Pass key event to devices to handle if not

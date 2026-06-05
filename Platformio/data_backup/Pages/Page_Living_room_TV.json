@@ -1,0 +1,48 @@
+{
+  "Widgets": [
+    {
+      "Type": "HaToggle",
+      "Text": "Office light switch",
+      "EntityId": "switch.office_lights_switch_1",
+      "Domain": "switch",
+      "Service": "toggle",
+      "HeightPct": 10,
+      "PosX": 4,
+      "PosY": 6
+    },
+    {
+      "Type": "HaToggle",
+      "Text": "Stairway",
+      "EntityId": "light.smart_switch_single_pole_3_way",
+      "Domain": "light",
+      "Service": "toggle",
+      "HeightPct": 10,
+      "PosX": 4,
+      "PosY": 21
+    },
+    {
+      "Type": "HaMomentary",
+      "Text": "Bed time",
+      "EntityId": "scene.bed_time",
+      "Domain": "scene",
+      "ServiceOn": "turn_on",
+      "ServiceOff": "turn_off",
+      "HeightPct": 12,
+      "PosX": 3,
+      "PosY": 76
+    },
+    {
+      "Type": "HaMomentary",
+      "Text": "TV time",
+      "EntityId": "scene.tv_time",
+      "Domain": "scene",
+      "ServiceOn": "turn_on",
+      "ServiceOff": "turn_off",
+      "HeightPct": 12,
+      "PosX": 3,
+      "PosY": 38
+    }
+  ],
+  "ButtonMaps": {},
+  "CommandFile": "Commands/Commands_HA_Test.json"
+}

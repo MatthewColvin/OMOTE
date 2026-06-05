@@ -4,13 +4,16 @@
     "description": "A UI for OMOTE that uses JSON for configuration",
     "keywords": "",
     "dependencies": [
-        "BasicUI"
+        "BasicUI",
+        "Esp32HalImpl"
     ],
     "build": {
         "includeDir": ".",
         "flags": [
             "-I page",
-            "-I screen"
+            "-I screen",
+            "-I ha",
+            "-I widget"
         ]
     },
     "frameworks": "*",

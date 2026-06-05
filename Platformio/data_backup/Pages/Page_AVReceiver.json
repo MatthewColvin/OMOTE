@@ -1,0 +1,57 @@
+{
+  "CommandFile":"Commands/Commands_YamahaAmpMain.json",
+  "Widgets": 
+  [
+    {
+      "Type":"Button",
+      "Text":"BluRay",
+      "Command":"BD_DVD",
+      "HeightPct":10,
+      "AlignTo":0
+    },
+    {
+      "Type":"Button",
+      "Text":"TV",
+      "Command":"TV",
+      "HeightPct":10,
+      "AlignTo":1
+    },
+    {
+      "Type":"Button",
+      "Text":"Music",
+      "Command":"NET",
+      "HeightPct":10,
+      "AlignTo":2
+    },
+    {
+      "Type":"Button",
+      "Text":"Pure Direct",
+      "Command":"PURE_DIRECT",
+      "HeightPct":10,
+      "AlignTo":3
+    },
+    {
+      "Type":"Button",
+      "Text":"Power Off",
+      "Command":"PWR_OFF",
+      "HeightPct":10,
+      "AlignTo":4
+    }
+  ],
+  "ButtonMaps":
+  {
+    "Power":{"Press":"PWR_TOGGLE"},
+    "Up":{"Press":"UP"},
+    "Down":{"Press":"DOWN"},
+    "Left":{"Press":"LEFT"},
+    "Right":{"Press":"RIGHT"},
+    "Center":{"Press":"SELECT"},
+    "VolUp":{"Press":"VOL_UP", "Repeat":"VOL_UP"},
+    "VolDown":{"Press":"VOL_DOWN", "Repeat":"VOL_DOWN"},
+    "Mute":{"Press":"MUTE"},
+    "ChannelUp":{"Press":"PROG_UP"},
+    "ChannelDown":{"Press":"PROG_DOWN"},
+    "Menu":{"Press":"TOP_MENU"},
+    "Back":{"Press":"RETURN"}
+  }
+}

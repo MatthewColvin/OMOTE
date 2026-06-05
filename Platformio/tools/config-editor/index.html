@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OMOTE Config Editor</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header>
+    <h1>OMOTE Config Editor</h1>
+    <nav id="nav">
+      <button data-tab="connect" class="active">Connect</button>
+      <button data-tab="settings">Settings</button>
+      <button data-tab="scenes">Scenes</button>
+      <button data-tab="remote">Remote</button>
+      <button data-tab="commands" class="nav-advanced hidden">Commands</button>
+      <button data-tab="raw" class="nav-advanced hidden">JSON</button>
+    </nav>
+    <label class="advanced-toggle" title="Show command files and raw JSON">
+      <input type="checkbox" id="advanced-mode" /> Advanced
+    </label>
+    <div id="status-bar">Not connected</div>
+  </header>
+  <main>
+    <section id="tab-connect" class="tab active">
+      <h2>Connect to your OMOTE</h2>
+      <p class="muted">Run this editor on your computer — the remote only needs WiFi and a small API.</p>
+      <pre class="code-hint">cd Platformio/tools/config-editor
+python -m http.server 8080</pre>
+      <label>Device URL <input id="device-url" placeholder="http://192.168.x.x" title="Include http:// — hardware: LAN IP (omote.local often fails on Windows); sim: http://127.0.0.1:9080" /></label>
+      <p class="muted small">Hardware: use <code>http://&lt;device-IP&gt;</code> on the same Wi‑Fi. After a successful connect, the editor remembers the IP.</p>
+      <button id="btn-connect" class="primary">Connect &amp; load</button>
+      <div class="row">
+        <button type="button" id="btn-leave-session">Leave editor session</button>
+        <button type="button" id="btn-exit-sync">Finish &amp; reboot remote</button>
+      </div>
+      <p class="muted small"><strong>Connect</strong> enables editor sync on the remote (stays awake, sync screen) for the whole session. Use <strong>Leave session</strong> when done without reboot, or <strong>Power</strong> on the remote to reboot.</p>
+      <h3 class="section-title">Backup &amp; restore</h3>
+      <p class="muted small">Package every JSON config file into one <code>.omote</code> file (zip). Use it before a risky deploy, for offline editing, or to copy your setup to another remote.</p>
+      <div class="backup-actions">
+        <button type="button" id="btn-export-omote">Export .omote backup</button>
+        <label>Import .omote
+          <input type="file" id="omote-import-file" accept=".omote,.zip,application/zip" />
+        </label>
+      </div>
+      <p id="connect-msg" class="msg"></p>
+    </section>
+
+    <section id="tab-settings" class="tab">
+      <div class="settings-page panel">
+        <h2>Editor &amp; remote settings</h2>
+        <p class="muted small">Saved in this browser unless noted. Deploy sends HA credentials to the remote.</p>
+
+        <h3 class="section-title">Physical remote</h3>
+        <p class="muted small">Choose the PCB that matches your hardware. This changes the key layout in the Remote tab.</p>
+        <label class="field-block">PCB layout
+          <select id="remote-pcb-variant" title="Match your remote hardware">
+            <option value="stock">Stock OMOTE</option>
+            <option value="3661">3661 extended keys</option>
+          </select>
+        </label>
+        <p class="muted small">3661 adds Home, Guide, device keys (TV, Stream, STB…), and replaces the four color aux keys.</p>
+
+        <p class="muted small">Layout from <code>DeviceSettings.schema.json</code>; values in <code>DeviceSettings.json</code>. Same files drive the on-device Settings → Device page.</p>
+        <div id="device-settings-dynamic"></div>
+        <div class="row">
+          <button type="button" id="btn-save-device-settings">Save device settings</button>
+          <button type="button" id="btn-pull-device-settings" class="small-btn" title="When connected, copy values from the remote">Pull from remote</button>
+        </div>
+
+        <h3 class="section-title">Home Assistant</h3>
+        <p class="muted small">Entity lists load <strong>directly from HA in this browser</strong>. Credentials are written to <code>HaSettings.json</code> on the remote when you deploy.</p>
+        <label>HA URL <input id="ha-url" placeholder="http://192.168.1.10:8123" /></label>
+        <label>Long-lived token <input id="ha-token" type="password" placeholder="eyJ…" /></label>
+        <div class="row">
+          <button type="button" id="btn-save-ha">Save HA settings</button>
+          <button type="button" id="btn-test-ha">Test connection</button>
+        </div>
+        <p class="muted small">Add this editor URL to <code>http.cors_allowed_origins</code> in Home Assistant <code>configuration.yaml</code>, then restart HA.</p>
+        <p id="settings-msg" class="msg"></p>
+      </div>
+    </section>
+
+    <div id="connect-conflict-modal" class="modal hidden" role="dialog" aria-labelledby="connect-conflict-title" aria-modal="true">
+      <div class="modal-panel">
+        <h3 id="connect-conflict-title">Config differs from remote</h3>
+        <p class="muted small">You have config in the editor that doesn’t match the remote. Choose what to keep — nothing is sent until you click <strong>Save to remote &amp; reboot</strong>.</p>
+        <p id="connect-conflict-summary" class="connect-conflict-summary"></p>
+        <ul id="connect-conflict-list" class="connect-conflict-list"></ul>
+        <div class="modal-actions">
+          <button type="button" id="btn-conflict-keep" class="primary">Keep editor config</button>
+          <button type="button" id="btn-conflict-remote">Load from remote</button>
+          <button type="button" id="btn-conflict-cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <section id="tab-scenes" class="tab">
+      <div class="scenes-shell">
+        <aside class="panel sidebar-narrow">
+          <h2>Scenes</h2>
+          <p class="muted small">Same list as tapping the <strong>top-left</strong> of the remote status bar — e.g. “Watch TV”, “Image Test”, “Watch Roku on Proj”.</p>
+          <p id="scene-orphan-warn" class="msg err small hidden"></p>
+          <ul id="scene-list"></ul>
+          <div class="row">
+            <button type="button" id="btn-new-scene">+ New scene</button>
+            <button type="button" id="btn-delete-scene" class="danger-btn advanced-field hidden" title="Remove from Scenes.json and delete scene file on save">Delete</button>
+          </div>
+          <button type="button" id="btn-cleanup-orphan-scenes" class="advanced-field hidden small-btn">Clean up unregistered scene files</button>
+        </aside>
+        <div class="panel grow" id="scene-detail">
+          <h2><span id="scene-title">Select a scene</span></h2>
+          <div id="scene-empty" class="muted">Choose a scene on the left, or create one. Then add device tabs and configure the remote layout.</div>
+          <div id="scene-editor" class="hidden">
+            <p id="scene-parse-warn" class="msg err hidden"></p>
+            <label>Name in scene picker <input id="scene-picker-name" placeholder="Watch TV" /></label>
+            <p class="muted small">Shown in the list when you tap the status bar on the remote.</p>
+            <label>Title on status bar <input id="scene-screen-name" placeholder="TV" /></label>
+            <p class="muted small">Shown at the top of the screen while this scene is active.</p>
+            <details class="advanced-field hidden" id="scene-key-shortcut">
+              <summary>Physical key shortcut (optional)</summary>
+              <p class="muted small">Jump to this scene when a labeled key is pressed on the remote.</p>
+              <label>Key
+                <select id="scene-bind-key">
+                  <option value="">None</option>
+                  <option value="TV">TV</option>
+                  <option value="Stream">Stream</option>
+                  <option value="BluRay">BluRay</option>
+                  <option value="Audio">Audio</option>
+                  <option value="Aux1">Aux1 (Red)</option>
+                  <option value="Aux2">Aux2 (Green)</option>
+                  <option value="Aux3">Aux3 (Yellow)</option>
+                  <option value="Aux4">Aux4 (Blue)</option>
+                </select>
+              </label>
+              <label>Press type
+                <select id="scene-press-type">
+                  <option value="Press">Press</option>
+                  <option value="Long">Long</option>
+                  <option value="Short">Short</option>
+                </select>
+              </label>
+            </details>
+            <h3 class="section-title">Device tabs</h3>
+            <p class="muted small section-lead">Each device becomes a tab at the bottom of the touch screen.</p>
+            <div id="device-tab-list" class="device-tab-list"></div>
+            <div class="tab-toolbar">
+              <div class="tab-toolbar-row">
+                <select id="device-template" title="Template for new device tab">
+                  <option value="tv">TV (buttons + numpad)</option>
+                  <option value="roku">Streaming / Roku</option>
+                  <option value="avreceiver">AV receiver</option>
+                  <option value="blank">Blank — learn everything</option>
+                </select>
+                <button type="button" id="btn-add-device">+ Add tab</button>
+              </div>
+              <button type="button" id="btn-configure-remote" class="primary" style="width:100%;margin:0">Configure remote layout →</button>
+            </div>
+            <details id="scene-power-details">
+              <summary>When starting / leaving this scene</summary>
+              <p class="muted small">Optional — e.g. turn on the TV when you open this scene. Sent when switching between scenes that have sequences.</p>
+              <h4>When I open this scene</h4>
+              <div id="scene-start-seq"></div>
+              <button type="button" id="btn-add-start-cmd">+ Add action</button>
+              <h4>When I leave</h4>
+              <div id="scene-exit-seq"></div>
+              <button type="button" id="btn-add-exit-cmd">+ Add action</button>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-remote" class="tab">
+      <div class="remote-editor-shell">
+        <aside class="panel remote-sidebar">
+          <label class="field-block">Scene <select id="remote-scene-select"></select></label>
+          <h3 class="section-title">Device tabs</h3>
+          <p class="muted small section-lead">Bottom-bar tabs for this scene.</p>
+          <div id="remote-device-tabs" class="device-tab-list"></div>
+          <div class="tab-toolbar">
+            <div class="tab-toolbar-row">
+              <select id="remote-device-template" title="Template for new tab">
+                <option value="tv">TV template</option>
+                <option value="roku">Roku template</option>
+                <option value="avreceiver">AV receiver</option>
+                <option value="blank">Blank page</option>
+              </select>
+              <button type="button" id="btn-remote-add-tab" class="primary">+ Add</button>
+            </div>
+          </div>
+        </aside>
+        <div class="remote-center panel">
+          <h2><span id="remote-device-label">Device</span></h2>
+          <p id="editing-hint" class="muted small">Configure the touch screen and physical keys on the remote below.</p>
+          <p id="canvas-scroll-hint" class="muted small hidden">Scroll the touch screen with the mouse wheel when content extends below the tab bar.</p>
+          <div id="layout-tools" class="layout-tools">
+            <div class="layout-tools-row">
+              <label class="inline" title="Snap drag and align to a 10px grid (24×32 on 240×320)">
+                <input type="checkbox" id="layout-snap-grid" checked /> Snap grid
+              </label>
+              <label class="inline" title="Show grid on the touch preview">
+                <input type="checkbox" id="layout-show-grid" checked /> Show grid
+              </label>
+            </div>
+            <div class="align-toolbar" role="group" aria-label="Align selected widget">
+              <span class="align-label muted small">Align:</span>
+              <button type="button" id="btn-align-left" class="small-btn" title="Align left edge">Left</button>
+              <button type="button" id="btn-align-center-h" class="small-btn" title="Center horizontally">H center</button>
+              <button type="button" id="btn-align-right" class="small-btn" title="Align right edge">Right</button>
+              <button type="button" id="btn-align-top" class="small-btn" title="Align top">Top</button>
+              <button type="button" id="btn-align-center-v" class="small-btn" title="Center vertically">V center</button>
+              <button type="button" id="btn-align-bottom" class="small-btn" title="Align bottom">Bottom</button>
+              <button type="button" id="btn-align-center" class="small-btn primary" title="Center on screen">Center</button>
+            </div>
+          </div>
+          <div class="remote-layout-wrap">
+            <div id="remote-keymap" class="remote-keymap">
+              <div id="remote-power-row" class="remote-power-row"></div>
+              <div class="remote-screen">
+                <canvas id="preview" width="240" height="320"></canvas>
+              </div>
+              <div id="remote-face" class="remote-face"></div>
+            </div>
+          </div>
+        </div>
+        <aside class="panel action-sidebar">
+          <div id="selection-empty">
+            <h3>What should it do?</h3>
+            <p class="muted small">Click a screen widget or a physical key on the remote face.</p>
+          </div>
+          <div id="selection-editor" class="hidden">
+            <h3 id="selection-title">Selected</h3>
+            <p id="selection-sub" class="muted small"></p>
+
+            <div id="panel-key-editor">
+              <label>Action
+                <select id="action-type">
+                  <option value="ir">Send infrared (TV / receiver / etc.)</option>
+                  <option value="ir_existing">Use existing button from this device</option>
+                </select>
+              </label>
+              <div id="panel-ir">
+                <button type="button" id="btn-action-learn" class="primary">Learn from another remote</button>
+                <p id="action-learn-msg" class="msg muted small">Point any IR remote at OMOTE and press a button.</p>
+                <label class="advanced-field hidden">Command name <input id="action-cmd-name" placeholder="VOL_UP" /></label>
+              </div>
+              <div id="panel-ir-existing" class="hidden">
+                <label>Pick command
+                  <select id="action-cmd-pick"></select>
+                </label>
+              </div>
+              <div id="panel-key-advanced" class="advanced-field hidden">
+                <label>Press type <select id="key-press-type">
+                  <option>Press</option><option>Release</option><option>Repeat</option><option>Long</option><option>Short</option>
+                </select></label>
+              </div>
+              <div class="row widget-action-row">
+                <button type="button" id="btn-key-apply">Apply</button>
+                <button type="button" id="btn-key-clear">Clear mapping</button>
+              </div>
+            </div>
+
+            <div id="panel-widget-editor" class="hidden">
+              <label>Widget type
+                <select id="w-type"></select>
+              </label>
+              <p id="w-type-hint" class="muted small"></p>
+
+              <div id="w-fields-text">
+                <label id="w-text-label">Label <input id="action-touch-label" placeholder="Button text" /></label>
+              </div>
+              <div id="w-fields-command" class="hidden">
+                <label>Action
+                  <select id="widget-action-type">
+                    <option value="ir">Learn new IR command</option>
+                    <option value="ir_existing">Use existing command</option>
+                    <option value="none">No command (label only)</option>
+                  </select>
+                </label>
+                <div id="widget-panel-ir">
+                  <button type="button" id="btn-widget-learn" class="primary">Learn from remote</button>
+                  <p id="widget-learn-msg" class="msg muted small"></p>
+                </div>
+                <div id="widget-panel-existing" class="hidden">
+                  <label>Command <select id="widget-cmd-pick"></select></label>
+                </div>
+              </div>
+              <div id="w-fields-image" class="hidden">
+                <label>Image file <input id="w-image-file" placeholder="Images/OMOTE_Logo.png" list="image-file-list" /></label>
+                <datalist id="image-file-list"></datalist>
+                <div class="row">
+                  <label>Width px <input id="w-image-w" type="number" min="1" max="240" style="width:5em" /></label>
+                  <label>Height px <input id="w-image-h" type="number" min="1" max="320" style="width:5em" /></label>
+                </div>
+              </div>
+              <div id="w-fields-color" class="hidden">
+                <p class="muted small">Set each color key in <strong>Page commands</strong> on the right (Red / Green / Yellow / Blue).</p>
+              </div>
+              <div id="w-fields-numpad" class="hidden">
+                <p class="muted small">Set NUM_0 … NUM_9 in <strong>Page commands</strong> on the right.</p>
+              </div>
+              <div id="w-fields-ha" class="hidden">
+                <div class="domain-tabs" id="ha-domain-tabs"></div>
+                <input id="ha-entity-search" placeholder="Search entities…" />
+                <p id="ha-entity-status" class="muted small"></p>
+                <select id="ha-entity-pick" size="6"></select>
+                <label class="inline"><input type="checkbox" id="ha-auto-label" checked /> Auto label from entity name</label>
+                <label id="ha-service-row">Service
+                  <select id="ha-service">
+                    <option value="toggle">toggle</option>
+                    <option value="turn_on">turn_on</option>
+                    <option value="turn_off">turn_off</option>
+                  </select>
+                </label>
+                <div id="ha-momentary-row" class="hidden">
+                  <label>On (press) <input id="ha-service-on" value="turn_on" /></label>
+                  <label>Off (release) <input id="ha-service-off" value="turn_off" /></label>
+                </div>
+                <div id="ha-slider-row" class="hidden">
+                  <label>Attribute <input id="ha-attribute" placeholder="brightness" /></label>
+                  <div class="row">
+                    <label>Min <input id="ha-slider-min" type="number" value="0" style="width:4em" /></label>
+                    <label>Max <input id="ha-slider-max" type="number" value="255" style="width:4em" /></label>
+                  </div>
+                </div>
+              </div>
+              <div id="w-fields-layout">
+                <p id="w-fields-layout-hint" class="muted small">Use <strong>%</strong> or <strong>px</strong> (saved as % for the device). Preview pixels match the remote 240×320 screen. Drag respects snap grid.</p>
+                <label id="w-width-row">Width <input id="w-width-val" placeholder="e.g. 90% or 120px" /></label>
+                <label id="w-height-row">Height <input id="w-height-val" placeholder="e.g. 10% or 28px" /></label>
+                <label>Position X <input id="w-posx-val" placeholder="e.g. 0% or 8px" /></label>
+                <label>Position Y <input id="w-posy-val" placeholder="e.g. 5% or 16px (from screen top)" /></label>
+              </div>
+              <div class="row widget-action-row">
+                <button type="button" id="btn-widget-apply" class="primary">Apply</button>
+                <button type="button" id="btn-delete-widget" class="danger-btn">Delete</button>
+              </div>
+            </div>
+          </div>
+          <hr />
+          <h3 class="section-title">Screen widgets</h3>
+          <ul id="widget-list" class="widget-list"></ul>
+          <div class="tab-toolbar-row">
+            <select id="add-widget-type" title="Widget type to add"></select>
+            <button type="button" id="btn-add-widget" class="primary">+ Add</button>
+          </div>
+          <p class="muted small advanced-field hidden" id="linked-files-hint"></p>
+        </aside>
+        <aside class="panel commands-sidebar" id="page-commands-panel">
+          <h3 class="section-title">Page commands (IR)</h3>
+          <p class="muted small section-lead">Command file for the active device tab.</p>
+          <label class="field-block">Command file
+            <select id="page-cmd-file-select"></select>
+          </label>
+          <div class="row page-cmd-toolbar">
+            <button type="button" id="btn-page-cmd-new" class="small-btn">New file</button>
+            <button type="button" id="btn-page-cmd-ensure">Create missing</button>
+            <button type="button" id="btn-page-cmd-open" class="small-btn">Full editor…</button>
+          </div>
+          <p id="page-cmd-msg" class="msg muted small"></p>
+          <div id="page-cmd-slots" class="page-cmd-slots"></div>
+          <p id="page-cmd-empty" class="muted small hidden">No IR widgets on this page yet. Add buttons, color keys, or a number pad.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="tab-commands" class="tab nav-advanced">
+      <div class="split">
+        <aside class="panel">
+          <label>Command file <select id="cmd-file-select"></select></label>
+          <button type="button" id="btn-new-cmd-file">New file</button>
+        </aside>
+        <div class="panel grow">
+          <h2>IR &amp; action codes</h2>
+          <p class="muted">Usually managed automatically when you learn buttons on the Remote tab.</p>
+          <table id="cmd-table"><thead><tr><th>Name</th><th>Mode</th><th>Protocol</th><th>Data</th><th></th></tr></thead><tbody></tbody></table>
+          <div class="row">
+            <button type="button" id="btn-add-command">+ Add</button>
+            <button type="button" id="btn-learn-ir">Learn IR</button>
+          </div>
+          <p id="learn-msg" class="msg"></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-raw" class="tab nav-advanced">
+      <label>File <select id="raw-file-select"></select></label>
+      <h2 id="raw-title">JSON</h2>
+      <textarea id="raw-editor" spellcheck="false"></textarea>
+      <button id="btn-apply-raw">Apply</button>
+    </section>
+  </main>
+  <footer>
+    <button id="btn-export-omote-footer" type="button">Export backup</button>
+    <button id="btn-deploy" class="primary">Save to remote &amp; reboot</button>
+    <span id="deploy-msg" class="msg"></span>
+  </footer>
+  <script src="./jszip.min.js"></script>
+  <script src="./settings-form.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+{
+    "name": "Element",
+    "keys": {
+        "Power": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemPower",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BE629D"
+                }
+            }
+        },
+        "ChannelUp": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemChannelUp",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BEF00F"
+                }
+            }
+        },
+        "ChannelDown": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemChannelDown",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BE5AA5"
+                }
+            }
+        },
+        "VolDown": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemVolDown",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BE9867"
+                }
+            }
+        },
+        "VolUp": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemVolUp",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BE30CF"
+                }
+            }
+        },
+        "Mute": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemMute",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BE32CD"
+                }
+            }
+        },
+        "Source": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemSource",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BED22D"
+                }
+            }
+        },
+        "Up": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemUp",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BE12ED"
+                }
+            }
+        },
+        "Down": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemDown",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BEB24D"
+                }
+            }
+        },
+        "Left": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemLeft",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BE728D"
+                }
+            }
+        },
+        "Right": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemRight",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BE926D"
+                }
+            }
+        },
+        "Center": {
+            "Press": {
+                "type": "IRAction",
+                "name": "ElemCenter",
+                "data": {
+                    "protocol": "NEC",
+                    "data": "0x40BE52AD"
+                }
+            }
+        }
+    }
+}

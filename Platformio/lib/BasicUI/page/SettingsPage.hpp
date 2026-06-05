@@ -30,9 +30,6 @@ public:
   void PushDisplaySettings();
   void PushSystemSettings();
   void PushWifiSettings();
-  void PushMqttSettings();
-  void PushNtpSettings();
-  void PushFtpSettings();
   void PushIrReader();
   void PushLoggingSettings();
   void PushLearnBattery();

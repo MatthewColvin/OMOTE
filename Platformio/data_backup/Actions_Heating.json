@@ -1,0 +1,18 @@
+{
+  "Manufacturer":"Custom",
+  "DeviceClass":"HOME_AUTOMATION",
+  "Actions": [
+    {"Action":"KITCHEN_CURRENT", "Protocol":"MQTT_SUB", "Command":["openHAB/Heating/status/Kitchen", "roomTemperature", "Current: %s°C", "20"]},
+    {"Action":"KITCHEN_SETPOINT", "Protocol":"MQTT_SUB", "Command":["openHAB/Heating/status/Kitchen", "setpoint", "Setpoint: %s", "25"]},
+    {"Action":"KITCHEN_BOOST", "Protocol":"MQTT_PUB", "Command":["openHAB/Heating/set/Kitchen", "{\"button\":\"Boost\"}"]},
+    {"Action":"KITCHEN_ADVANCE", "Protocol":"MQTT_PUB", "Command":["openHAB/Heating/set/Kitchen", "{\"button\":\"Advance\"}"]},
+    {"Action":"KITCHEN_UP", "Protocol":"MQTT_PUB", "Command":["openHAB/Heating/set/Kitchen", "{\"button\":\"Up\"}"]},
+    {"Action":"KITCHEN_DOWN", "Protocol":"MQTT_PUB", "Command":["openHAB/Heating/set/Kitchen", "{\"button\":\"Down\"}"]},
+    {"Action":"LOUNGE_CURRENT", "Protocol":"MQTT_SUB", "Command":["openHAB/Heating/status/Lounge", "roomTemperature", "Current: %s°C", "20"]},
+    {"Action":"LOUNGE_SETPOINT", "Protocol":"MQTT_SUB", "Command":["openHAB/Heating/status/Lounge", "setpoint", "Setpoint: %s", "25"]},
+    {"Action":"LOUNGE_BOOST", "Protocol":"MQTT_PUB", "Command":["openHAB/Heating/set/Lounge", "{\"button\":\"Boost\"}"]},
+    {"Action":"LOUNGE_ADVANCE", "Protocol":"MQTT_PUB", "Command":["openHAB/Heating/set/Lounge", "{\"button\":\"Advance\"}"]},
+    {"Action":"LOUNGE_UP", "Protocol":"MQTT_PUB", "Command":["openHAB/Heating/set/Lounge", "{\"button\":\"Up\"}"]},
+    {"Action":"LOUNGE_DOWN", "Protocol":"MQTT_PUB", "Command":["openHAB/Heating/set/Lounge", "{\"button\":\"Down\"}"]}
+  ]
+}

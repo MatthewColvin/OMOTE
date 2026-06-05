@@ -1,4 +1,5 @@
 #include "HardwareSimulator.hpp"
+#include <cstdio>
 #include <filesystem>
 #include <sstream>
 
@@ -37,6 +38,10 @@ HardwareSimulator::HardwareSimulator()
 #ifdef INIT_SIM_DATA_FROM_DATA
   if (!std::filesystem::exists(SimWorkingDir)) {
     initDirectory(SimWorkingDir, CheckedInDataDir);
+  } else {
+    std::printf("[sim] using existing %s (editor saves kept)\n", SimWorkingDir);
+    std::fflush(stdout);
+  }
   }
 #endif
 
@@ -54,7 +59,7 @@ void HardwareSimulator::loopHandler() {
   auto now = std::chrono::high_resolution_clock::now();
   if (std::chrono::duration_cast<std::chrono::milliseconds>(now - oldTime) > std::chrono::milliseconds(25)) {
     mBattery->getPercentage();
-    mWifiHandler->mqttSync();
+    mWifiHandler->networkSync();
     mKeys->KeyboardScan();
     oldTime = std::chrono::high_resolution_clock::now();
   }
@@ -141,12 +146,39 @@ void HardwareSimulator::handleExtraSDLEvents(SDL_Event *aEvent) {
 }
 
 bool HardwareSimulator::dumpDirectory(const char *path, const std::string &outputPath) {
-  std::filesystem::copy(path, outputPath, std::filesystem::copy_options::recursive);
+  std::error_code ec;
+  std::filesystem::remove_all(outputPath, ec);
+  ec.clear();
+  std::filesystem::copy(path, outputPath,
+                        std::filesystem::copy_options::recursive |
+                            std::filesystem::copy_options::overwrite_existing,
+                        ec);
+  if (ec) {
+    std::fprintf(stderr, "[sim] dumpDirectory %s -> %s failed: %s\n", path, outputPath.c_str(),
+                 ec.message().c_str());
+    std::fflush(stderr);
+    return false;
+  }
+  std::printf("[sim] backed up %s to %s (F1)\n", path, outputPath.c_str());
+  std::fflush(stdout);
   return true;
 }
 
 bool HardwareSimulator::initDirectory(const char *path, const std::string &inputPath) {
-  std::filesystem::remove_all(path);
-  std::filesystem::copy(inputPath, path, std::filesystem::copy_options::recursive);
+  std::error_code ec;
+  std::filesystem::remove_all(path, ec);
+  ec.clear();
+  std::filesystem::copy(inputPath, path,
+                        std::filesystem::copy_options::recursive |
+                            std::filesystem::copy_options::overwrite_existing,
+                        ec);
+  if (ec) {
+    std::fprintf(stderr, "[sim] initDirectory %s <- %s failed: %s\n", path, inputPath.c_str(),
+                 ec.message().c_str());
+    std::fflush(stderr);
+    return false;
+  }
+  std::printf("[sim] reset %s from %s\n", path, inputPath.c_str());
+  std::fflush(stdout);
   return true;
 }
